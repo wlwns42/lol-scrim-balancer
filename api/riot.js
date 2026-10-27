@@ -62,6 +62,8 @@
     .dark .tier-silver { color: #94a3b8; }
     .tier-bronze { background: rgba(217, 119, 6, 0.15); color: #b45309; border: 1px solid rgba(217, 119, 6, 0.4); }
     .dark .tier-bronze { color: #fbbf24; }
+    .tier-iron { background: rgba(100, 116, 139, 0.15); color: #334155; border: 1px solid rgba(100, 116, 139, 0.4); }
+    .dark .tier-iron { color: #94a3b8; }
   </style>
 </head>
 <body class="min-h-screen flex antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
@@ -310,7 +312,7 @@
         </div>
       </section>
 
-      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) - 개별 삭제 버튼 복원 -->
+      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) -->
       <section id="tab-content-summoners" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
           <div class="flex items-center gap-3 flex-1 flex-wrap">
@@ -340,7 +342,7 @@
         <div id="match-history-list" class="space-y-3"></div>
       </section>
 
-      <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY) - 완전 복원 -->
+      <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY) -->
       <section id="tab-content-replay" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div class="mb-4">
@@ -496,7 +498,7 @@
   </div>
 
   <script>
-    // 11인 실제 FOW 전적 완벽 고정 데이터
+    // 11인 실제 FOW 전적 데이터
     const VERIFIED_PROFILES = {
       '선릉 오디세우스#KR2': {
         tier: 'MASTER', flexBaseTier: 'EMERALD', soloTier: 'M (301LP)', flexTier: 'E1 (49LP)',
@@ -584,7 +586,7 @@
       document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
     }
 
-    // 실제 전적 데이터로 강제 초기화
+    // 실제 전적 데이터로 강제 초기화 함수
     function resetToVerifiedDefaults() {
       summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
         id: 'p-' + idx,
@@ -604,7 +606,7 @@
         try { summoners = JSON.parse(storedS); } catch(e) { summoners = []; }
       }
 
-      // 이전 잘못된 캐시(판수가 100판 일괄값 등)가 남아있거나 11명 미만인 경우 강제 매핑
+      // 이전 잘못된 캐시(판수 100판 일괄값 등)가 있거나 11명 미만이면 실제 데이터로 로드
       if (summoners.length < 11 || summoners.some(s => s.soloGames === 100 && s.flexGames === 30)) {
         summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
           id: 'p-' + idx,
@@ -635,7 +637,7 @@
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
     }
 
-    // 모든 화면 렌더링 (에러 방지 완비)
+    // 모든 화면 렌더링
     function renderAllViews() {
       renderSelectionGrid();
       renderSummonersList();
@@ -1040,7 +1042,7 @@
           </div>
           <span class="text-sm font-bold text-amber-500">${mmr.mmr} pt</span>
         </div>
-        <div class="text-xs space-y-1">
+        <div class="text-xs space-y-2">
           <p>솔로랭크: <strong>${s.soloTier}</strong> (${s.soloGames}판 · ${mmr.soloPct}%)</p>
           <p>자유랭크: <strong>${s.flexTier}</strong> (${s.flexGames}판 · ${mmr.flexPct}%)</p>
           <p>모스트 챔피언: <strong>${(s.most || []).join(', ')}</strong></p>
@@ -1051,7 +1053,7 @@
 
     function closeMemberDetailModal() { document.getElementById('modal-member-detail').classList.add('hidden'); }
 
-    // 리플레이 보관함 렌더링 함수 완벽 구현 (에러 원인 해결)
+    // 리플레이 보관함 렌더링 함수 완벽 구현 (ReferenceError 방지)
     function renderReplayArchiveList() {
       const container = document.getElementById('replay-archive-list');
       if (!container) return;
