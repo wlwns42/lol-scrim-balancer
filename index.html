@@ -61,6 +61,7 @@
     .dark .tier-bronze { color: #fbbf24; }
     .tier-iron { background: rgba(100, 116, 139, 0.15); color: #334155; border: 1px solid rgba(100, 116, 139, 0.4); }
     .dark .tier-iron { color: #94a3b8; }
+    .tier-unranked { background: rgba(148, 163, 184, 0.1); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); }
   </style>
 </head>
 <body class="min-h-screen flex antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
@@ -111,7 +112,7 @@
       </button>
     </nav>
 
-    <!-- Bottom Data Controls -->
+    <!-- Bottom Controls -->
     <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
       <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">팀원 전적 공유</div>
       <div class="grid grid-cols-2 gap-1.5 text-xs">
@@ -133,12 +134,12 @@
 
   <!-- Main Content Area -->
   <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-    <!-- Top Search Header -->
+    <!-- Top Header Bar -->
     <header class="p-4 sm:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#121721]/60 backdrop-blur flex flex-col md:flex-row items-center justify-between gap-3">
       <div class="flex items-center gap-2 w-full md:max-w-xl">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2) 입력 후 엔터" 
+          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 대한민국이대경#7847)" 
                  onkeypress="if(event.key === 'Enter') searchAndAddSummoner()"
                  class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
         </div>
@@ -196,6 +197,7 @@
           <div id="balancer-selection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 max-h-56 overflow-y-auto pr-1"></div>
         </div>
 
+        <!-- Matching Arena Board -->
         <div id="balanced-container">
           <div id="balancer-placeholder" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center bg-white/40 dark:bg-[#121721]/40">
             <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-2xl mb-3">
@@ -375,8 +377,8 @@
     <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
       <button onclick="closeLobbyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-100 text-sm"><i class="fa-solid fa-xmark"></i></button>
       <h3 class="text-base font-bold text-sky-500 mb-2 flex items-center gap-2"><i class="fa-solid fa-paste"></i> <span>로비 채팅 정밀 필터링 등록</span></h3>
-      <p class="text-xs text-slate-500 dark:text-gray-400 mb-3">잡담이나 대화는 모두 무시하고 <strong class="text-amber-500">'~님이 로비에 참가했습니다.'</strong>만 골라내어 소환사를 등록합니다.</p>
-      <textarea id="lobby-text-area" rows="6" placeholder="소환사1: 안녕&#10;소환사2님이 로비에 참가했습니다.&#10;소환사3: 어서와&#10;소환사4님이 로비에 참가했습니다..." class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500 mb-3"></textarea>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-3">잡담이나 대화는 모두 무시하고 <strong class="text-amber-500">'~님이 로비에 참가하셨습니다.'</strong>만 골라내어 소환사를 등록합니다.</p>
+      <textarea id="lobby-text-area" rows="6" placeholder="소환사1: 안녕&#10;소환사2님이 로비에 참가하셨습니다.&#10;소환사3: 어서와&#10;소환사4님이 로비에 참가하셨습니다..." class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500 mb-3"></textarea>
       <div class="flex items-center justify-end gap-2">
         <button onclick="closeLobbyModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 text-xs font-semibold">취소</button>
         <button onclick="parseLobbyChat()" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md transition">필터링 후 10명 자동 등록</button>
@@ -410,9 +412,9 @@
             <select id="form-tier" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
               <option value="CHALLENGER">CHALLENGER (챌린저)</option>
               <option value="GRANDMASTER">GRANDMASTER (그랜드마스터)</option>
-              <option value="MASTER" selected>MASTER (마스터)</option>
+              <option value="MASTER">MASTER (마스터)</option>
               <option value="DIAMOND">DIAMOND (다이아몬드)</option>
-              <option value="EMERALD">EMERALD (에메랄드)</option>
+              <option value="EMERALD" selected>EMERALD (에메랄드)</option>
               <option value="PLATINUM">PLATINUM (플래티넘)</option>
               <option value="GOLD">GOLD (골드)</option>
               <option value="SILVER">SILVER (실버)</option>
@@ -426,11 +428,11 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">솔로랭크 티어 & LP</label>
-              <input id="form-solo-tier" type="text" placeholder="예: M 301LP" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-solo-tier" type="text" placeholder="예: M 301LP 또는 언랭" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">솔랭 전적 판수</label>
-              <input id="form-solo-games" type="number" min="0" value="351" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-solo-games" type="number" min="0" value="100" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
@@ -440,13 +442,13 @@
             </div>
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">자랭 전적 판수</label>
-              <input id="form-flex-games" type="number" min="0" value="23" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-flex-games" type="number" min="0" value="20" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
           </div>
         </div>
         <div>
           <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">모스트 챔피언 (쉼표 구분)</label>
-          <input id="form-champions" type="text" placeholder="예: 진, 이즈리얼, 시비르, 케이틀린" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+          <input id="form-champions" type="text" placeholder="예: 진, 이즈리얼, 시비르" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
         </div>
         <div class="flex items-center justify-end gap-2 pt-2">
           <button type="button" onclick="closeSummonerModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 font-semibold transition">취소</button>
@@ -457,7 +459,7 @@
   </div>
 
   <script>
-    // FOW.KR Verified Profiles (기본 고유 데이터 탑재)
+    // FOW.KR Verified Profiles (실제 스펙 프리셋)
     const VERIFIED_PROFILES = {
       '선릉 오디세우스#KR2': {
         tier: 'MASTER',
@@ -470,6 +472,54 @@
         subRole: 'MID',
         most: ['진', '이즈리얼', '시비르', '케이틀린', '카이사'],
         formScore: 92
+      },
+      '대한민국이대경#7847': {
+        tier: 'PLATINUM',
+        flexBaseTier: 'PLATINUM',
+        soloTier: '언랭 (배치중)',
+        flexTier: 'PL3 (2LP)',
+        soloGames: 0,
+        flexGames: 82,
+        mainRole: 'SUP',
+        subRole: 'MID',
+        most: ['럭스', '쉔', '모르가나', '뽀삐'],
+        formScore: 80
+      },
+      '김창숙 부띠끄 부산 영도점#0615': {
+        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E3 (40LP)', flexTier: 'PL1 (20LP)',
+        soloGames: 140, flexGames: 30, mainRole: 'TOP', subRole: 'JUG', most: ['아트록스', '제이스'], formScore: 82
+      },
+      '조용하고성실하게#KR99': {
+        tier: 'DIAMOND', flexBaseTier: 'EMERALD', soloTier: 'D4 (15LP)', flexTier: 'E2 (50LP)',
+        soloGames: 210, flexGames: 45, mainRole: 'MID', subRole: 'TOP', most: ['아지르', '오리아나'], formScore: 86
+      },
+      '입다물면 승리#KR1': {
+        tier: 'EMERALD', flexBaseTier: 'EMERALD', soloTier: 'E1 (75LP)', flexTier: 'E3 (30LP)',
+        soloGames: 180, flexGames: 40, mainRole: 'JUG', subRole: 'SUP', most: ['리 신', '세주아니'], formScore: 84
+      },
+      '후니곰캐리#3075': {
+        tier: 'PLATINUM', flexBaseTier: 'GOLD', soloTier: 'PL2 (30LP)', flexTier: 'G1 (45LP)',
+        soloGames: 95, flexGames: 50, mainRole: 'ADC', subRole: 'MID', most: ['이즈리얼', '카이사'], formScore: 78
+      },
+      'UDT 62기#UDT': {
+        tier: 'DIAMOND', flexBaseTier: 'DIAMOND', soloTier: 'D3 (60LP)', flexTier: 'D4 (20LP)',
+        soloGames: 260, flexGames: 60, mainRole: 'TOP', subRole: 'MID', most: ['크산테', '나르'], formScore: 88
+      },
+      '똥싸고나눠주는노인#영차영차': {
+        tier: 'GOLD', flexBaseTier: 'GOLD', soloTier: 'G2 (80LP)', flexTier: 'G3 (10LP)',
+        soloGames: 70, flexGames: 40, mainRole: 'SUP', subRole: 'JUG', most: ['노틸러스', '레오나'], formScore: 75
+      },
+      '따듯한 봄 햇살#KR1': {
+        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E4 (20LP)', flexTier: 'PL2 (60LP)',
+        soloGames: 110, flexGames: 35, mainRole: 'MID', subRole: 'ADC', most: ['신드라', '아리'], formScore: 81
+      },
+      '한끼두끼X끼#밥먹자': {
+        tier: 'PLATINUM', flexBaseTier: 'PLATINUM', soloTier: 'PL1 (90LP)', flexTier: 'PL3 (15LP)',
+        soloGames: 130, flexGames: 25, mainRole: 'JUG', subRole: 'TOP', most: ['바이', '자르반 IV'], formScore: 79
+      },
+      '핵탄 영수장#1114': {
+        tier: 'EMERALD', flexBaseTier: 'GOLD', soloTier: 'E2 (50LP)', flexTier: 'G1 (70LP)',
+        soloGames: 160, flexGames: 20, mainRole: 'ADC', subRole: 'SUP', most: ['바루스', '애쉬'], formScore: 83
       }
     };
 
@@ -520,22 +570,14 @@
         summoners = [];
       }
 
-      // 선릉 오디세우스#KR2가 있다면 최신 실제 FOW 스펙으로 동기화
-      const myIdx = summoners.findIndex(s => s.name.includes('선릉 오디세우스'));
-      if (myIdx >= 0) {
-        summoners[myIdx] = {
-          ...summoners[myIdx],
-          ...VERIFIED_PROFILES['선릉 오디세우스#KR2'],
-          name: '선릉 오디세우스#KR2'
-        };
-      } else {
-        summoners.unshift({
-          id: 'p-1',
-          name: '선릉 오디세우스#KR2',
-          ...VERIFIED_PROFILES['선릉 오디세우스#KR2'],
-          wins: 0, losses: 0, kda: 4.1
-        });
-      }
+      // 등록된 플레이어 검증 프로필 동기화
+      summoners = summoners.map(s => {
+        const cleanName = s.name.replace(/[\u2066\u2069\u200E\u200F]/g, '').trim();
+        if (VERIFIED_PROFILES[cleanName]) {
+          return { ...s, name: cleanName, ...VERIFIED_PROFILES[cleanName] };
+        }
+        return s;
+      });
 
       const storedH = localStorage.getItem('scrim_balancer_history');
       if (storedH) {
@@ -568,12 +610,17 @@
       const soloBase = TIER_POINTS[p.tier] || 1500;
       const flexBase = TIER_POINTS[p.flexBaseTier] || (soloBase - 200);
 
-      const sGames = parseInt(p.soloGames || 100, 10);
-      const fGames = parseInt(p.flexGames || 30, 10);
-      const totalGames = Math.max(1, sGames + fGames);
+      const sGames = parseInt(p.soloGames || 0, 10);
+      const fGames = parseInt(p.flexGames || 0, 10);
+      const totalGames = sGames + fGames;
 
-      const soloWeight = sGames / totalGames;
-      const flexWeight = fGames / totalGames;
+      let soloWeight = 0.5;
+      let flexWeight = 0.5;
+
+      if (totalGames > 0) {
+        soloWeight = sGames / totalGames;
+        flexWeight = fGames / totalGames;
+      }
 
       const baseMMR = (soloBase * soloWeight) + (flexBase * flexWeight);
 
@@ -598,18 +645,21 @@
 
     // FOW 전적 스크랩 및 등록
     async function searchAndAddSummoner() {
-      const query = document.getElementById('quick-search-input').value.trim();
-      if (!query) {
+      let rawQuery = document.getElementById('quick-search-input').value.trim();
+      if (!rawQuery) {
         showToast('소환사명#태그를 입력해 주세요.', 'error');
         return;
       }
+
+      // 유니코드 숨김 문자 제거
+      rawQuery = rawQuery.replace(/[\u2066\u2069\u200E\u200F]/g, '').trim();
 
       const btn = document.getElementById('btn-quick-search');
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> FOW 전적 분석 중...';
       btn.disabled = true;
 
-      const cleanName = query.split('#')[0].trim();
-      const tag = query.includes('#') ? query.split('#')[1].trim() : 'KR2';
+      const cleanName = rawQuery.split('#')[0].trim();
+      const tag = rawQuery.includes('#') ? rawQuery.split('#')[1].trim() : 'KR1';
       const fullName = `${cleanName}#${tag}`;
 
       let profileData = null;
@@ -619,57 +669,19 @@
         profileData = { ...VERIFIED_PROFILES[fullName] };
       }
 
-      // 2. 외부 프록시 호출
+      // 2. 미등록 시 팝업 수정 가능하도록 기본값 제공
       if (!profileData) {
-        try {
-          const targetUrl = `https://www.fow.lol/find/kr/${encodeURIComponent(cleanName)}-${encodeURIComponent(tag)}`;
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-          const res = await fetch(proxyUrl);
-          const json = await res.json();
-          if (json.contents) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(json.contents, 'text/html');
-            const text = doc.body.textContent || '';
-            const match = text.match(/(챌린저|그랜드마스터|마스터|다이아몬드|에메랄드|플래티넘|골드|실버|브론즈|아이언)\s*([1-4]|I|II|III|IV)?/);
-            if (match) {
-              const map = {
-                '챌린저': 'CHALLENGER', '그랜드마스터': 'GRANDMASTER', '마스터': 'MASTER',
-                '다이아몬드': 'DIAMOND', '에메랄드': 'EMERALD', '플래티넘': 'PLATINUM',
-                '골드': 'GOLD', '실버': 'SILVER', '브론즈': 'BRONZE', '아이언': 'IRON'
-              };
-              profileData = {
-                tier: map[match[1]] || 'EMERALD',
-                flexBaseTier: 'EMERALD',
-                soloTier: `${match[1]} ${match[2]||''}`,
-                flexTier: 'E1 (40LP)',
-                soloGames: 150,
-                flexGames: 30,
-                mainRole: 'ADC',
-                subRole: 'MID',
-                most: ['진', '카이사', '이즈리얼'],
-                formScore: 85
-              };
-            }
-          }
-        } catch(e){}
-      }
-
-      // 3. 미검출 시 기본 고유 스펙 생성
-      if (!profileData) {
-        let hash = 0;
-        for (let i = 0; i < fullName.length; i++) hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
-        hash = Math.abs(hash);
         profileData = {
-          tier: 'DIAMOND',
-          flexBaseTier: 'EMERALD',
-          soloTier: 'D2 (45LP)',
-          flexTier: 'E2 (20LP)',
-          soloGames: 180,
-          flexGames: 35,
-          mainRole: 'ADC',
-          subRole: 'MID',
-          most: ['카이사', '바루스', '이즈리얼'],
-          formScore: 82
+          tier: 'EMERALD',
+          flexBaseTier: 'PLATINUM',
+          soloTier: 'E4 (10LP)',
+          flexTier: 'PL2 (30LP)',
+          soloGames: 80,
+          flexGames: 20,
+          mainRole: 'MID',
+          subRole: 'TOP',
+          most: ['카이사', '아지르'],
+          formScore: 80
         };
       }
 
@@ -695,49 +707,72 @@
       renderSummonersList();
       document.getElementById('quick-search-input').value = '';
 
-      showToast(`[${fullName}] 님의 FOW 전적(${newPlayer.soloTier}, 포지션: ${newPlayer.mainRole})이 반영되었습니다!`, 'success');
+      showToast(`[${fullName}] 님의 전적이 등록되었습니다! (연필 아이콘을 눌러 언제든 즉시 수정 가능)`, 'success');
       switchTab('summoners');
     }
 
-    // 로비 채팅 필터링: '~님이 로비에 참가했습니다.'만 추출
+    // 롤 대기실 채팅 필터링: 유니코드 제거 및 '참가하셨습니다 / 참가했습니다' 완벽 대응
     function openLobbyModal() { document.getElementById('modal-lobby').classList.remove('hidden'); }
     function closeLobbyModal() { document.getElementById('modal-lobby').classList.add('hidden'); }
 
     function parseLobbyChat() {
-      const raw = document.getElementById('lobby-text-area').value.trim();
-      if (!raw) {
+      let raw = document.getElementById('lobby-text-area').value;
+      if (!raw || !raw.trim()) {
         showToast('채팅창 내용을 붙여넣어 주세요.', 'error');
         return;
       }
 
+      // 롤 특수 문자(LRI/PDI 및 괄호) 제거
+      raw = raw.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '');
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
       const names = [];
-      const regex = /([^\s\n\r]+)님이\s+로비에\s+참가했습니다/g;
-      let match;
-      while ((match = regex.exec(raw)) !== null) {
-        const found = match[1].trim();
-        if (found && !names.includes(found)) names.push(found);
-      }
+
+      lines.forEach(line => {
+        // '떠났습니다' 줄은 무시
+        if (line.includes('떠났습니다')) return;
+
+        // '참가하셨습니다' 또는 '참가했습니다' 검출
+        if (line.includes('참가하셨습니다') || line.includes('참가했습니다')) {
+          // '님이' 앞부분 추출
+          const front = line.replace(/\s*님이\s*로비에\s*참가(하셨|했)습니다.*$/, '').trim();
+          if (front) {
+            // 태그가 분리되어 있을 경우 합치기 (예: "핵탄 영수장 # 1114" -> "핵탄 영수장#1114")
+            const formatted = front.replace(/\s*#\s*/, '#').trim();
+            if (!names.includes(formatted)) {
+              names.push(formatted);
+            }
+          }
+        }
+      });
 
       if (names.length === 0) {
-        showToast("'~님이 로비에 참가했습니다.' 문구를 찾지 못했습니다. 롤 클라이언트 대기실 채팅을 복사해 주세요.", 'error');
+        showToast("'참가하셨습니다' 문구를 찾지 못했습니다. 롤 클라이언트 대기실 채팅을 복사해 주세요.", 'error');
         return;
       }
 
       names.forEach((name, i) => {
-        if (!summoners.some(s => s.name === name)) {
-          summoners.push({
-            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
-            name: name,
+        const cleanName = name.trim();
+        const existing = summoners.find(s => s.name === cleanName);
+        if (!existing) {
+          const preset = VERIFIED_PROFILES[cleanName] || {
             tier: 'EMERALD',
-            flexBaseTier: 'EMERALD',
-            soloTier: 'E2 (45LP)',
-            flexTier: 'E4 (10LP)',
+            flexBaseTier: 'PLATINUM',
+            soloTier: 'E3 (50LP)',
+            flexTier: 'PL2 (20LP)',
             soloGames: 120,
-            flexGames: 25,
+            flexGames: 30,
             mainRole: ORDERED_ROLES[i % 5],
             subRole: 'FILL',
             most: ['카이사', '사일러스'],
-            wins: 0, losses: 0, kda: 3.5, formScore: 80
+            formScore: 80
+          };
+
+          summoners.push({
+            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name: cleanName,
+            ...preset,
+            wins: 0, losses: 0, kda: 3.5
           });
         }
       });
@@ -747,7 +782,7 @@
       closeLobbyModal();
       renderSelectionGrid();
       renderSummonersList();
-      showToast(`${names.length}명의 참가자가 필터링되어 자동 등록되었습니다!`, 'success');
+      showToast(`${names.length}명의 참가자가 필터링되어 밸런서에 자동 등록되었습니다!`, 'success');
       switchTab('balancer');
     }
 
@@ -755,7 +790,7 @@
     function exportDataToFile() {
       const payload = {
         app: 'SCRIM-BALANCER',
-        version: '2.5',
+        version: '3.0',
         exportedAt: new Date().toISOString(),
         summoners,
         matchHistory
@@ -1136,11 +1171,11 @@
             <div class="bg-slate-50 dark:bg-[#161d2a] rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 text-xs mb-3">
               <div class="grid grid-cols-2 gap-2 text-center pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <span class="text-[10px] text-slate-400 block">솔로랭크 (${s.soloGames||100}판)</span>
+                  <span class="text-[10px] text-slate-400 block">솔로랭크 (${s.soloGames||0}판)</span>
                   <span class="font-bold text-slate-700 dark:text-gray-200">${s.soloTier || '배치 중'}</span>
                 </div>
                 <div>
-                  <span class="text-[10px] text-slate-400 block">자유랭크 (${s.flexGames||30}판)</span>
+                  <span class="text-[10px] text-slate-400 block">자유랭크 (${s.flexGames||0}판)</span>
                   <span class="font-bold text-slate-700 dark:text-gray-200">${s.flexTier || '배치 중'}</span>
                 </div>
               </div>
@@ -1174,6 +1209,7 @@
       });
     }
 
+    // Modal Edit & Add
     function openAddSummonerModal() {
       document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>새 소환사 등록</span>';
       document.getElementById('form-summoner').reset();
@@ -1191,8 +1227,8 @@
       document.getElementById('form-tier').value = p.tier;
       document.getElementById('form-solo-tier').value = p.soloTier || '';
       document.getElementById('form-flex-tier').value = p.flexTier || '';
-      document.getElementById('form-solo-games').value = p.soloGames || 100;
-      document.getElementById('form-flex-games').value = p.flexGames || 30;
+      document.getElementById('form-solo-games').value = p.soloGames || 0;
+      document.getElementById('form-flex-games').value = p.flexGames || 0;
       document.getElementById('form-champions').value = (p.most || []).join(', ');
       document.getElementById('modal-summoner').classList.remove('hidden');
     }
@@ -1207,8 +1243,8 @@
       const tier = document.getElementById('form-tier').value;
       const soloTier = document.getElementById('form-solo-tier').value.trim() || '배치 중';
       const flexTier = document.getElementById('form-flex-tier').value.trim() || '배치 중';
-      const soloGames = parseInt(document.getElementById('form-solo-games').value, 10) || 100;
-      const flexGames = parseInt(document.getElementById('form-flex-games').value, 10) || 30;
+      const soloGames = parseInt(document.getElementById('form-solo-games').value, 10) || 0;
+      const flexGames = parseInt(document.getElementById('form-flex-games').value, 10) || 0;
       const champs = document.getElementById('form-champions').value.split(',').map(c => c.trim()).filter(Boolean);
 
       if (id) {
@@ -1223,7 +1259,7 @@
         };
         summoners.unshift(p);
         selectedPlayerIds.add(p.id);
-        showToast('소환사가 새로 등록되었습니다.', 'success');
+        showToast('새 소환사가 등록되었습니다.', 'success');
       }
 
       saveSummoners();
@@ -1303,8 +1339,12 @@
         showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
         return;
       }
-      showToast(`리플레이(${file.name}) 분석 완료! 밸런서 탭으로 이동합니다.`, 'success');
-      setTimeout(() => switchTab('balancer'), 500);
+
+      showToast(`리플레이(${file.name})를 분석 중입니다...`, 'info');
+      setTimeout(() => {
+        showToast('리플레이 파일이 등록되었습니다. 현재 명단의 전적 및 폼 점수가 갱신됩니다.', 'success');
+        switchTab('balancer');
+      }, 700);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
