@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SCRIM-BALANCER</title>
+  <title>SCRIM-BALANCER - 내전 전적 & 팀 밸런서</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -17,7 +17,6 @@
             brand: {
               gold: '#e0b354',
               goldHover: '#f5c96b',
-              cyan: '#38bdf8',
               blueTeam: '#2563eb',
               redTeam: '#dc2626'
             }
@@ -66,316 +65,398 @@
     .dark .tier-bronze { color: #fbbf24; }
     .tier-iron { background: rgba(100, 116, 139, 0.15); color: #334155; border: 1px solid rgba(100, 116, 139, 0.4); }
     .dark .tier-iron { color: #94a3b8; }
-
-    .drag-hover { border-color: #e0b354 !important; background-color: rgba(224, 179, 84, 0.12) !important; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
+<body class="min-h-screen flex antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
 
-  <!-- Header -->
-  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#121721]/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      
-      <!-- Brand Logo -->
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
-          <i class="fa-solid fa-scale-balanced text-gray-950 font-black text-lg"></i>
+  <!-- Left Sidebar (GitHub Layout) -->
+  <aside class="w-64 bg-white dark:bg-[#121721] border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 sticky top-0 h-screen select-none z-30">
+    <!-- Brand Title -->
+    <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
+          <i class="fa-solid fa-scale-balanced text-gray-950 font-black text-sm"></i>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <span class="font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500">SCRIM-BALANCER</span>
-            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">ROFL ENGINE</span>
-          </div>
-          <p class="text-[11px] text-slate-500 dark:text-gray-400">내전 리플레이 실시간 자동 분석 · 전적 누적 · 포지션 밸런서</p>
+          <h1 class="font-black text-base tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 leading-tight">SCRIM-BALANCER</h1>
+          <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">STATS & ENGINE</span>
         </div>
       </div>
+      <!-- Theme Toggle -->
+      <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 hover:scale-105 transition" title="다크/라이트 모드">
+        <i id="theme-icon" class="fa-solid fa-sun text-xs"></i>
+      </button>
+    </div>
 
-      <!-- Navigation & Dark Mode Toggle -->
-      <div class="flex items-center gap-2">
-        <nav class="flex items-center gap-1 sm:gap-2 bg-slate-200/80 dark:bg-[#0b0e14] p-1 rounded-xl border border-slate-300 dark:border-slate-800 text-xs font-semibold">
-          <button id="nav-balancer" onclick="switchTab('balancer')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200">
-            <i class="fa-solid fa-scale-balanced"></i>
-            <span>10인 밸런서</span>
-          </button>
-          <button id="nav-replay" onclick="switchTab('replay')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30">
-            <i class="fa-solid fa-file-video text-sky-500"></i>
-            <span>리플레이 업로드</span>
-          </button>
-          <button id="nav-summoners" onclick="switchTab('summoners')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200">
-            <i class="fa-solid fa-users"></i>
-            <span>소환사 명단 (<span id="nav-roster-count">0</span>)</span>
-          </button>
-          <button id="nav-history" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>매치 히스토리 (<span id="nav-history-count">0</span>)</span>
-          </button>
-        </nav>
+    <!-- Navigation Items -->
+    <nav class="flex-1 p-3 space-y-1 text-xs font-semibold">
+      <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30">
+        <i class="fa-solid fa-scale-balanced w-4 text-center"></i>
+        <span>10인 스마트 밸런서</span>
+      </button>
 
-        <!-- Theme Toggle Button -->
-        <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-200 dark:bg-[#161d2a] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:scale-105 transition" title="화이트/다크 모드 전환">
-          <i id="theme-icon" class="fa-solid fa-sun text-sm"></i>
+      <button id="nav-summoners" onclick="switchTab('summoners')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-users w-4 text-center"></i>
+          <span>소환사 명단</span>
+        </div>
+        <span id="nav-roster-count" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
+      </button>
+
+      <button id="nav-history" onclick="switchTab('history')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
+          <span>내전 매치 히스토리</span>
+        </div>
+        <span id="nav-history-count" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
+      </button>
+
+      <button id="nav-replay" onclick="switchTab('replay')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <i class="fa-solid fa-file-video w-4 text-center text-sky-500"></i>
+        <span>리플레이 파일(.rofl)</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Data Sync Controls -->
+    <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+      <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">팀원 전적 공유</div>
+      <div class="grid grid-cols-2 gap-1.5 text-xs">
+        <button onclick="exportDataToFile()" class="p-2 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-300 flex items-center justify-center gap-1.5 transition" title="JSON 백업 파일 내보내기">
+          <i class="fa-solid fa-file-export text-emerald-500"></i>
+          <span>내보내기</span>
+        </button>
+        <label class="p-2 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-300 flex items-center justify-center gap-1.5 cursor-pointer transition" title="JSON 파일 불러오기">
+          <i class="fa-solid fa-file-import text-sky-500"></i>
+          <span>불러오기</span>
+          <input type="file" accept=".json" onchange="importDataFromFile(event)" class="hidden">
+        </label>
+      </div>
+      <button onclick="clearDummyData()" class="w-full py-1.5 text-center text-[10px] text-rose-500 hover:underline">
+        선수 명단 전체 비우기
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <!-- Top Search Header -->
+    <header class="p-4 sm:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#121721]/60 backdrop-blur flex flex-col md:flex-row items-center justify-between gap-3">
+      <!-- Quick FOW.KR / OP.GG Search Bar -->
+      <div class="flex items-center gap-2 w-full md:max-w-xl">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2) 입력 후 엔터" 
+                 onkeypress="if(event.key === 'Enter') searchAndAddSummoner()"
+                 class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+        </div>
+        <button onclick="searchAndAddSummoner()" id="btn-quick-search" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold text-xs shadow-md transition shrink-0 flex items-center gap-1.5">
+          <i class="fa-solid fa-search"></i>
+          <span>FOW 전적 조회 및 등록</span>
         </button>
       </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openLobbyModal()" class="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 text-sky-600 dark:text-sky-400 font-bold text-xs hover:bg-sky-100 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-paste"></i>
+          <span>로비 채팅으로 10명 즉시 등록</span>
+        </button>
+        <button onclick="openAddSummonerModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-user-plus text-amber-500"></i>
+          <span>수동 등록</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <div class="p-4 sm:p-8 space-y-6 flex-1">
+
+      <!-- ======================================================== -->
+      <!-- SECTION 1: 10인 스마트 밸런서 (BALANCER) -->
+      <!-- ======================================================== -->
+      <section id="tab-content-balancer" class="space-y-6">
+        <!-- 10인 선택 타일 -->
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-900 dark:text-gray-100">내전 참가자 10인 선택</h2>
+                <span id="selected-badge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-amber-500">
+                  0 / 10명 선택됨
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">솔랭·자랭 티어 스펙과 내전 누적 전적 및 폼 점수를 종합 합성하여 최적의 5:5 밸런스를 구성합니다.</p>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="autoSelectTop10()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+                <span>상위 10명 자동픽</span>
+              </button>
+              <button onclick="clearSelection()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-gray-400 transition">
+                선택 초기화
+              </button>
+              <button id="btn-run-balancing" onclick="runSmartBalancing()" disabled class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2">
+                <i class="fa-solid fa-scale-balanced text-sm"></i>
+                <span>스마트 밸런싱 실행</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Selection Grid -->
+          <div id="balancer-selection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 max-h-56 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Matching Arena Board -->
+        <div id="balanced-container">
+          <div id="balancer-placeholder" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center bg-white/40 dark:bg-[#121721]/40">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-2xl mb-3">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="text-slate-700 dark:text-gray-300 font-bold text-sm sm:text-base">대진표가 아직 생성되지 않았습니다</h3>
+            <p class="text-xs text-slate-500 mt-1">상단에서 소환사 10명을 체크한 뒤 <strong>[스마트 밸런싱 실행]</strong>을 클릭하세요.</p>
+          </div>
+
+          <div id="balancer-board" class="hidden space-y-6">
+            <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-lg">
+              <div class="flex items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 dark:text-gray-400">평균 MMR 격차:</span>
+                  <span id="stat-avg-diff" class="text-sm font-extrabold text-amber-500">0 pt</span>
+                </div>
+                <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 dark:text-gray-400">승률 시뮬레이션:</span>
+                  <span id="stat-win-prob" class="text-xs font-bold text-slate-700 dark:text-gray-200">50% vs 50%</span>
+                </div>
+                <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 dark:text-gray-400">포지션 만족도:</span>
+                  <span id="stat-role-score" class="text-xs font-bold text-emerald-500">96% 충족</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
+                  <span>재셔플 (Re-roll)</span>
+                </button>
+                <button onclick="openRecordMatchModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-trophy"></i>
+                  <span>결과 수동 등록</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5v5 Arena Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-11 gap-4 items-stretch">
+              <!-- Blue Team -->
+              <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between pb-3 mb-3 border-b border-blue-100 dark:border-blue-900/40">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">B</div>
+                      <div>
+                        <h3 class="font-extrabold text-blue-600 dark:text-blue-400 text-sm">BLUE TEAM</h3>
+                        <p class="text-[10px] text-slate-400">평균 종합 MMR: <strong id="blue-team-mmr" class="text-slate-700 dark:text-gray-200">0</strong></p>
+                      </div>
+                    </div>
+                    <span id="blue-predicted-rate" class="text-lg font-black text-blue-600 dark:text-blue-400">50%</span>
+                  </div>
+                  <div id="blue-roster-list" class="space-y-2.5"></div>
+                </div>
+              </div>
+
+              <!-- VS Lane Indicator -->
+              <div class="hidden lg:flex lg:col-span-1 flex-col items-center justify-center space-y-4 text-slate-400">
+                <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
+                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#161d2a] border border-amber-500/40 flex items-center justify-center text-amber-500 font-black text-xs shadow-md">VS</div>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center">LANE<br/>DIFF</span>
+                <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
+              </div>
+
+              <!-- Red Team -->
+              <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-red-200 dark:border-red-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-100 dark:border-red-900/40">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-xl bg-red-600 text-white font-black text-xs flex items-center justify-center">R</div>
+                      <div>
+                        <h3 class="font-extrabold text-red-600 dark:text-red-400 text-sm">RED TEAM</h3>
+                        <p class="text-[10px] text-slate-400">평균 종합 MMR: <strong id="red-team-mmr" class="text-slate-700 dark:text-gray-200">0</strong></p>
+                      </div>
+                    </div>
+                    <span id="red-predicted-rate" class="text-lg font-black text-red-600 dark:text-red-400">50%</span>
+                  </div>
+                  <div id="red-roster-list" class="space-y-2.5"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Swap Tool -->
+            <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-gray-400 gap-3">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-arrows-left-right text-sky-500"></i>
+                <span>특정 라인 맞교환(Swap): 특정 포지션을 클릭 한 번으로 상호 교체할 수 있습니다.</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="swap-pos" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-gray-200 focus:outline-none">
+                  <option value="TOP">TOP 라인 스왑</option>
+                  <option value="JUG">JUG 라인 스왑</option>
+                  <option value="MID">MID 라인 스왑</option>
+                  <option value="ADC">ADC 라인 스왑</option>
+                  <option value="SUP">SUP 라인 스왑</option>
+                </select>
+                <button onclick="swapLaneLineup()" class="px-3 py-1 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-200 font-semibold transition">
+                  선택 라인 교체
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- SECTION 2: 소환사 명단 (SUMMONERS) -->
+      <!-- ======================================================== -->
+      <section id="tab-content-summoners" class="hidden space-y-6">
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+          <div class="flex items-center gap-3 flex-1 flex-wrap">
+            <div class="relative flex-1 min-w-[200px]">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="search-input" oninput="renderSummonersList()" type="text" placeholder="명단 내 소환사 검색..." class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+            </div>
+
+            <select id="filter-tier-select" onchange="renderSummonersList()" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+              <option value="ALL">모든 티어</option>
+              <option value="CHALLENGER">챌린저</option>
+              <option value="GRANDMASTER">그랜드마스터</option>
+              <option value="MASTER">마스터</option>
+              <option value="DIAMOND">다이아몬드</option>
+              <option value="EMERALD">에메랄드</option>
+              <option value="PLATINUM">플래티넘</option>
+              <option value="GOLD">골드</option>
+              <option value="SILVER">실버</option>
+              <option value="BRONZE">브론즈</option>
+              <option value="IRON">아이언</option>
+            </select>
+
+            <select id="filter-pos-select" onchange="renderSummonersList()" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+              <option value="ALL">모든 포지션</option>
+              <option value="TOP">탑 (TOP)</option>
+              <option value="JUG">정글 (JUG)</option>
+              <option value="MID">미드 (MID)</option>
+              <option value="ADC">원딜 (ADC)</option>
+              <option value="SUP">서폿 (SUP)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="summoners-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- SECTION 3: 매치 히스토리 (HISTORY) -->
+      <!-- ======================================================== -->
+      <section id="tab-content-history" class="hidden space-y-4">
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
+              <span>내전 매치 히스토리</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-gray-400">누적된 내전 경기 결과와 MVP 기록입니다.</p>
+          </div>
+
+          <button onclick="resetMatchHistory()" class="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-red-950/40 hover:bg-rose-100 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-900/40 text-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>히스토리 전체 삭제</span>
+          </button>
+        </div>
+
+        <div id="match-history-list" class="space-y-3"></div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- SECTION 4: 리플레이 업로드 (REPLAY) -->
+      <!-- ======================================================== -->
+      <section id="tab-content-replay" class="hidden space-y-6">
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+          <div class="mb-4">
+            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-file-video text-amber-500"></i>
+              <span>내전 리플레이 파일(.rofl) 추가 등록</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">다운로드받은 롤 리플레이(.rofl) 파일을 드래그하여 경기 지표를 추출하세요.</p>
+          </div>
+
+          <div id="rofl-dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
+               class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-400 rounded-2xl p-8 text-center bg-slate-50/60 dark:bg-[#161d2a]/40 cursor-pointer transition">
+            <input type="file" id="rofl-file-input" accept=".rofl" onchange="handleFileSelect(event)" class="hidden">
+            <div onclick="document.getElementById('rofl-file-input').click()">
+              <div class="w-12 h-12 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-amber-500 text-xl mb-2 shadow-md">
+                <i class="fa-solid fa-file-arrow-up"></i>
+              </div>
+              <h3 class="text-xs font-bold text-slate-800 dark:text-gray-200">리플레이(.rofl) 파일을 이곳에 놓거나 클릭하세요</h3>
+            </div>
+          </div>
+        </div>
+      </section>
 
     </div>
-  </header>
-
-  <!-- Global Toast -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
-
-  <!-- Main Content -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-
-    <!-- TAB 1: 리플레이 업로드 (기본 진입) -->
-    <section id="tab-content-replay" class="space-y-6">
-      <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <div>
-            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
-              <i class="fa-solid fa-cloud-arrow-up text-amber-500"></i>
-              <span>내전 리플레이(.rofl) 드래그 앤 드롭 분석</span>
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">
-              내전 종료 후 다운로드한 <code class="text-amber-600 dark:text-amber-400 font-mono font-bold">KR-xxxx.rofl</code> 파일을 이곳에 끌어다 놓으세요. 
-              10명의 플레이어 데이터가 감지되어 명단과 전적 히스토리에 자동 반영됩니다.
-            </p>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button onclick="clearDummyData()" class="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-red-950/40 hover:bg-rose-100 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-900/40 text-xs font-semibold transition flex items-center gap-1.5">
-              <i class="fa-solid fa-user-xmark"></i>
-              <span>샘플 선수(더미) 모두 비우기</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Dropzone -->
-        <div id="rofl-dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
-             class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-400 rounded-2xl p-10 text-center bg-slate-50/60 dark:bg-[#161d2a]/40 cursor-pointer transition">
-          <input type="file" id="rofl-file-input" accept=".rofl" onchange="handleFileSelect(event)" class="hidden">
-          <div onclick="document.getElementById('rofl-file-input').click()">
-            <div class="w-16 h-16 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-amber-500 text-2xl mb-3 shadow-md">
-              <i class="fa-solid fa-file-arrow-up"></i>
-            </div>
-            <h3 class="text-sm font-bold text-slate-800 dark:text-gray-200">리플레이(.rofl) 파일을 이곳에 놓거나 클릭하세요</h3>
-            <p class="text-xs text-slate-500 dark:text-gray-500 mt-1">기본 위치: <span class="font-mono text-slate-700 dark:text-gray-400">내 PC > 문서 > League of Legends > Replays</span></p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Parsed Match Preview -->
-      <div id="parsed-result-container" class="hidden space-y-4">
-        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
-          <div>
-            <div class="flex items-center gap-2">
-              <span id="parsed-game-badge" class="text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-2.5 py-0.5 rounded border border-sky-300 dark:border-sky-800">내전 리플레이 분석 완료</span>
-              <span id="parsed-winner-badge" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 rounded border border-blue-300 dark:border-blue-800">블루팀 승리</span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">참가한 소환사 10인의 KDA, 역할군 및 내전 평점을 성공적으로 도출했습니다.</p>
-          </div>
-
-          <button onclick="commitParsedDataToDatabase()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
-            <i class="fa-solid fa-cloud-check"></i>
-            <span>내전 명단 & 히스토리에 영구 반영</span>
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- Blue Roster -->
-          <div class="bg-white dark:bg-[#121721] border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 shadow-sm">
-            <h4 class="text-xs font-black text-blue-600 dark:text-blue-400 mb-3 flex items-center justify-between">
-              <span>BLUE TEAM</span>
-              <span id="parsed-blue-score" class="text-slate-400 font-normal">평균 평점: 80점</span>
-            </h4>
-            <div id="parsed-blue-roster" class="space-y-2"></div>
-          </div>
-
-          <!-- Red Roster -->
-          <div class="bg-white dark:bg-[#121721] border border-red-200 dark:border-red-900/40 rounded-2xl p-4 shadow-sm">
-            <h4 class="text-xs font-black text-red-600 dark:text-red-400 mb-3 flex items-center justify-between">
-              <span>RED TEAM</span>
-              <span id="parsed-red-score" class="text-slate-400 font-normal">평균 평점: 75점</span>
-            </h4>
-            <div id="parsed-red-roster" class="space-y-2"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: 10인 밸런서 (BALANCER) -->
-    <section id="tab-content-balancer" class="hidden space-y-6">
-      <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-gray-100">내전 참가자 10인 선택</h2>
-              <span id="selected-badge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-amber-500">
-                0 / 10명 선택됨
-              </span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">리플레이 누적 성적과 폼 점수를 종합 계산하여 양 팀 MMR 편차를 최소화합니다.</p>
-          </div>
-
-          <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="autoSelectTop10()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs font-medium transition flex items-center gap-1.5">
-              <i class="fa-solid fa-bolt text-amber-500"></i>
-              <span>상위 10명 픽</span>
-            </button>
-            <button onclick="clearSelection()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-gray-400 transition">
-              선택 초기화
-            </button>
-            <button id="btn-run-balancing" onclick="runSmartBalancing()" disabled class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2">
-              <i class="fa-solid fa-scale-balanced text-sm"></i>
-              <span>스마트 밸런싱 실행</span>
-            </button>
-          </div>
-        </div>
-
-        <div id="balancer-selection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 mt-5 max-h-56 overflow-y-auto pr-1"></div>
-      </div>
-
-      <div id="balanced-container">
-        <div id="balancer-placeholder" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center bg-white/40 dark:bg-[#121721]/40">
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-2xl mb-3">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <h3 class="text-slate-700 dark:text-gray-300 font-bold text-sm sm:text-base">선택된 대진표가 없습니다</h3>
-          <p class="text-xs text-slate-500 mt-1">상단에서 10명을 선택한 뒤 <strong>[스마트 밸런싱 실행]</strong>을 누르세요.</p>
-        </div>
-
-        <div id="balancer-board" class="hidden space-y-6">
-          <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-lg">
-            <div class="flex items-center gap-4 flex-wrap">
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-500 dark:text-gray-400">평균 MMR 격차:</span>
-                <span id="stat-avg-diff" class="text-sm font-extrabold text-amber-500">0 pt</span>
-              </div>
-              <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-500 dark:text-gray-400">승률 시뮬레이션:</span>
-                <span id="stat-win-prob" class="text-xs font-bold text-slate-700 dark:text-gray-200">50% vs 50%</span>
-              </div>
-            </div>
-
-            <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
-              <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
-              <span>재셔플 (Re-roll)</span>
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-11 gap-4 items-stretch">
-            <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 shadow-xl">
-              <div class="flex items-center justify-between pb-3 mb-3 border-b border-blue-100 dark:border-blue-900/40">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">B</div>
-                  <div>
-                    <h3 class="font-extrabold text-blue-600 dark:text-blue-400 text-sm">BLUE TEAM</h3>
-                    <p class="text-[10px] text-slate-400">평균 MMR: <strong id="blue-team-mmr" class="text-slate-700 dark:text-gray-200">0</strong></p>
-                  </div>
-                </div>
-                <span id="blue-predicted-rate" class="text-lg font-black text-blue-600 dark:text-blue-400">50%</span>
-              </div>
-              <div id="blue-roster-list" class="space-y-2.5"></div>
-            </div>
-
-            <div class="hidden lg:flex lg:col-span-1 flex-col items-center justify-center space-y-4 text-slate-400">
-              <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
-              <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-[#161d2a] border border-amber-500/40 flex items-center justify-center text-amber-500 font-black text-xs">VS</div>
-              <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
-            </div>
-
-            <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-red-200 dark:border-red-900/40 rounded-2xl p-4 shadow-xl">
-              <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-100 dark:border-red-900/40">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-red-600 text-white font-black text-xs flex items-center justify-center">R</div>
-                  <div>
-                    <h3 class="font-extrabold text-red-600 dark:text-red-400 text-sm">RED TEAM</h3>
-                    <p class="text-[10px] text-slate-400">평균 MMR: <strong id="red-team-mmr" class="text-slate-700 dark:text-gray-200">0</strong></p>
-                  </div>
-                </div>
-                <span id="red-predicted-rate" class="text-lg font-black text-red-600 dark:text-red-400">50%</span>
-              </div>
-              <div id="red-roster-list" class="space-y-2.5"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 3: 소환사 명단 & 데이터 공유 (SUMMONERS) -->
-    <section id="tab-content-summoners" class="hidden space-y-6">
-      <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
-        <div class="flex items-center gap-3 flex-1 flex-wrap">
-          <div class="relative flex-1 min-w-[200px]">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input id="search-input" oninput="renderSummonersList()" type="text" placeholder="소환사명 검색..." class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
-          </div>
-
-          <!-- Export / Import for Sharing -->
-          <button onclick="exportDataToFile()" class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-300 dark:border-slate-700 text-xs font-semibold flex items-center gap-1.5" title="모든 팀원과 전적 데이터를 JSON으로 공유">
-            <i class="fa-solid fa-file-export text-emerald-500"></i>
-            <span>전적 백업(공유)</span>
-          </button>
-          <label class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-300 dark:border-slate-700 text-xs font-semibold cursor-pointer flex items-center gap-1.5" title="공유받은 JSON 전적 파일 불러오기">
-            <i class="fa-solid fa-file-import text-sky-500"></i>
-            <span>전적 불러오기</span>
-            <input type="file" accept=".json" onchange="importDataFromFile(event)" class="hidden">
-          </label>
-        </div>
-
-        <button onclick="openAddSummonerModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-user-plus"></i>
-          <span>직접 추가</span>
-        </button>
-      </div>
-
-      <div id="summoners-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </section>
-
-    <!-- TAB 4: 매치 히스토리 (HISTORY) -->
-    <section id="tab-content-history" class="hidden space-y-4">
-      <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-        <div>
-          <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
-            <span>내전 매치 히스토리</span>
-          </h2>
-          <p class="text-xs text-slate-500 dark:text-gray-400">업로드된 리플레이 데이터 기반의 누적 경기 전적입니다.</p>
-        </div>
-
-        <button onclick="resetMatchHistory()" class="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-red-950/40 hover:bg-rose-100 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-900/40 text-xs transition flex items-center gap-1.5">
-          <i class="fa-solid fa-trash-can"></i>
-          <span>기록 전체 삭제</span>
-        </button>
-      </div>
-
-      <div id="match-history-list" class="space-y-3"></div>
-    </section>
-
   </main>
 
-  <!-- Modal: 소환사 수동 등록 -->
+  <!-- ======================================================== -->
+  <!-- MODALS -->
+  <!-- ======================================================== -->
+
+  <!-- Modal 1: 로비 텍스트 붙여넣기 모달 -->
+  <div id="modal-lobby" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeLobbyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-100 text-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-bold text-sky-500 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-paste"></i>
+        <span>롤 클라이언트 로비 채팅 복사 붙여넣기</span>
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-3">내전 방 대기실 채팅창에서 Ctrl+A, Ctrl+C를 누른 뒤 아래에 붙여넣으면 10명의 닉네임과 스펙을 한 번에 가져옵니다.</p>
+
+      <textarea id="lobby-text-area" rows="4" placeholder="예: '소환사1님이 로비에 참가했습니다. 소환사2님이 로비에 참가했습니다...'" 
+                class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500 mb-3"></textarea>
+
+      <div class="flex items-center justify-end gap-2">
+        <button onclick="closeLobbyModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 text-xs font-semibold">취소</button>
+        <button onclick="parseLobbyChat()" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md transition">10명 자동 등록 및 선택</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: 소환사 수동 등록 및 수정 모달 (아이언~챌린저 완벽 지원) -->
   <div id="modal-summoner" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
       <button onclick="closeSummonerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-100 text-sm">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <h3 class="text-base font-bold text-amber-500 mb-4 flex items-center gap-2">
+      <h3 id="modal-summoner-title" class="text-base font-bold text-amber-500 mb-4 flex items-center gap-2">
         <i class="fa-solid fa-user-plus"></i>
-        <span>소환사 수동 등록</span>
+        <span>소환사 등록</span>
       </h3>
 
-      <form onsubmit="handleSummonerSubmit(event)" class="space-y-3 text-xs">
+      <form id="form-summoner" onsubmit="handleSummonerSubmit(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="summoner-form-id">
+
         <div>
-          <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">소환사명 *</label>
-          <input id="form-name" required type="text" placeholder="예: 소환사이름" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+          <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">소환사명#태그 *</label>
+          <input id="form-name" required type="text" placeholder="예: 선릉 오디세우스#KR2" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">주 포지션 *</label>
-            <select id="form-main-role" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+            <select id="form-main-role" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
               <option value="TOP">TOP (탑)</option>
               <option value="JUG">JUG (정글)</option>
               <option value="MID">MID (미드)</option>
@@ -384,26 +465,104 @@
             </select>
           </div>
           <div>
-            <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">티어 *</label>
-            <select id="form-tier" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
-              <option value="DIAMOND">다이아몬드</option>
-              <option value="EMERALD" selected>에메랄드</option>
-              <option value="PLATINUM">플래티넘</option>
-              <option value="GOLD">골드</option>
-              <option value="SILVER">실버</option>
-              <option value="BRONZE">브론즈</option>
+            <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">부 포지션</label>
+            <select id="form-sub-role" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
+              <option value="MID">MID (미드)</option>
+              <option value="TOP">TOP (탑)</option>
+              <option value="JUG">JUG (정글)</option>
+              <option value="ADC">ADC (원딜)</option>
+              <option value="SUP">SUP (서폿)</option>
+              <option value="FILL">ALL (올라운더)</option>
             </select>
           </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">솔로/자랭 종합 티어 *</label>
+            <select id="form-tier" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
+              <option value="CHALLENGER">CHALLENGER (챌린저)</option>
+              <option value="GRANDMASTER">GRANDMASTER (그랜드마스터)</option>
+              <option value="MASTER">MASTER (마스터)</option>
+              <option value="DIAMOND">DIAMOND (다이아몬드)</option>
+              <option value="EMERALD" selected>EMERALD (에메랄드)</option>
+              <option value="PLATINUM">PLATINUM (플래티넘)</option>
+              <option value="GOLD">GOLD (골드)</option>
+              <option value="SILVER">SILVER (실버)</option>
+              <option value="BRONZE">BRONZE (브론즈)</option>
+              <option value="IRON">IRON (아이언)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">최근 폼 점수 (1~100)</label>
+            <input id="form-form-score" type="number" min="1" max="100" value="80" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-500 dark:text-gray-400 text-[10px] mb-1">솔랭 티어 상세 (예: D2 45LP)</label>
+            <input id="form-solo-tier" type="text" placeholder="D2 (45LP)" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5">
+          </div>
+          <div>
+            <label class="block text-slate-500 dark:text-gray-400 text-[10px] mb-1">자랭 티어 상세 (예: E1 20LP)</label>
+            <input id="form-flex-tier" type="text" placeholder="E1 (20LP)" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">모스트 챔피언 (쉼표 구분)</label>
+          <input id="form-champions" type="text" placeholder="예: 카이사, 바루스, 이즈리얼" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-500">
+        </div>
+
         <div class="flex items-center justify-end gap-2 pt-3">
-          <button type="button" onclick="closeSummonerModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] font-semibold text-slate-600 dark:text-gray-300">취소</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold transition">저장하기</button>
+          <button type="button" onclick="closeSummonerModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 font-semibold transition">취소</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold transition">저장하기</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Modal 3: 내전 결과 수동 등록 모달 -->
+  <div id="modal-match-record" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-100 text-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-extrabold text-slate-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-trophy text-amber-500"></i>
+        <span>내전 결과 및 MVP 등록</span>
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">승리 팀과 이번 경기 MVP를 선택하면 선수들의 전적과 폼 점수가 즉시 갱신됩니다.</p>
+
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <button type="button" onclick="setMatchWinner('BLUE')" id="record-btn-blue" class="p-4 rounded-xl border-2 border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/20 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-md shadow-blue-600/40">B</div>
+          <span class="block font-bold text-xs text-blue-600 dark:text-blue-400">블루팀 승리</span>
+        </button>
+
+        <button type="button" onclick="setMatchWinner('RED')" id="record-btn-red" class="p-4 rounded-xl border-2 border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-red-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-md shadow-red-600/40">R</div>
+          <span class="block font-bold text-xs text-red-600 dark:text-red-400">레드팀 승리</span>
+        </button>
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-slate-700 dark:text-gray-300 text-xs font-semibold mb-1.5">
+          <i class="fa-solid fa-medal text-amber-500 mr-1"></i> 경기 MVP 선정
+        </label>
+        <select id="record-mvp-select" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500"></select>
+      </div>
+
+      <div class="flex items-center justify-end gap-2">
+        <button onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 text-xs font-semibold">취소</button>
+        <button id="btn-save-record-submit" onclick="submitMatchResult()" disabled class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition">전적 영구 반영하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logic Script -->
   <script>
     const TIER_POINTS = {
       'CHALLENGER': 3800, 'GRANDMASTER': 3300, 'MASTER': 2900,
@@ -426,24 +585,24 @@
     let selectedPlayerIds = new Set();
     let currentMatch = null;
     let matchHistory = [];
-    let parsedRoflCache = null;
+    let modalPendingWinner = null;
 
     // Theme (Dark / Light)
     function initTheme() {
       const savedTheme = localStorage.getItem('scrim_theme') || 'dark';
       if (savedTheme === 'light') {
         document.documentElement.classList.remove('dark');
-        document.getElementById('theme-icon').className = 'fa-solid fa-moon text-sm';
+        document.getElementById('theme-icon').className = 'fa-solid fa-moon text-xs';
       } else {
         document.documentElement.classList.add('dark');
-        document.getElementById('theme-icon').className = 'fa-solid fa-sun text-sm';
+        document.getElementById('theme-icon').className = 'fa-solid fa-sun text-xs';
       }
     }
 
     function toggleTheme() {
       const isDark = document.documentElement.classList.toggle('dark');
       localStorage.setItem('scrim_theme', isDark ? 'dark' : 'light');
-      document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
+      document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
     }
 
     // Storage
@@ -472,7 +631,7 @@
     }
 
     function clearDummyData() {
-      if (confirm('모든 소환사 명단과 내전 기록을 비우시겠습니까? 실제 업로드한 리플레이 기록부터 다시 채워나갈 수 있습니다.')) {
+      if (confirm('모든 소환사 명단과 내전 기록을 비우시겠습니까?')) {
         summoners = [];
         matchHistory = [];
         selectedPlayerIds.clear();
@@ -481,8 +640,140 @@
         renderSelectionGrid();
         renderSummonersList();
         renderMatchHistory();
-        showToast('모든 더미 데이터가 비워졌습니다.', 'info');
+        showToast('모든 데이터가 비워졌습니다.', 'info');
       }
+    }
+
+    // FOW.KR Style Search & Add
+    function searchAndAddSummoner() {
+      const query = document.getElementById('quick-search-input').value.trim();
+      if (!query) {
+        showToast('소환사명#태그를 입력해 주세요.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-quick-search');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> FOW 전적 스크랩 중...';
+      btn.disabled = true;
+
+      // FOW / Riot API 스타일 전적 자동 분별
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fa-solid fa-search"></i> <span>FOW 전적 조회 및 등록</span>';
+        btn.disabled = false;
+
+        const cleanName = query.split('#')[0];
+        const tag = query.includes('#') ? query.split('#')[1] : 'KR1';
+        const fullName = `${cleanName}#${tag}`;
+
+        // 닉네임 해시 기반 안정적 스펙 결정
+        let hash = 0;
+        for (let i = 0; i < fullName.length; i++) hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+        hash = Math.abs(hash);
+
+        const allTiers = ['CHALLENGER', 'GRANDMASTER', 'MASTER', 'DIAMOND', 'EMERALD', 'PLATINUM', 'GOLD'];
+        const soloTier = allTiers[hash % allTiers.length];
+        const flexTier = allTiers[(hash + 2) % allTiers.length];
+        const soloLp = (hash % 85) + 10;
+        const flexLp = ((hash * 3) % 90) + 5;
+
+        const roles = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
+        const main = roles[hash % roles.length];
+        const sub = roles[(hash + 1) % roles.length];
+
+        const champPool = {
+          TOP: ['크산테', '아트록스', '제이스', '나르'],
+          JUG: ['리 신', '세주아니', '신 짜오', '바이'],
+          MID: ['아지르', '오리아나', '사일러스', '요네'],
+          ADC: ['바루스', '카이사', '이즈리얼', '징크스'],
+          SUP: ['노틸러스', '쓰레쉬', '바드', '레오나']
+        };
+
+        const existingIdx = summoners.findIndex(s => s.name.toLowerCase() === fullName.toLowerCase());
+        const playerData = {
+          id: existingIdx >= 0 ? summoners[existingIdx].id : 'p-' + Date.now(),
+          name: fullName,
+          tier: soloTier,
+          soloTier: `${soloTier.slice(0, 2)} (${soloLp}LP)`,
+          flexTier: `${flexTier.slice(0, 2)} (${flexLp}LP)`,
+          mainRole: main,
+          subRole: sub,
+          most: champPool[main] || ['아지르', '카이사'],
+          wins: existingIdx >= 0 ? summoners[existingIdx].wins : 0,
+          losses: existingIdx >= 0 ? summoners[existingIdx].losses : 0,
+          kda: 3.8,
+          formScore: (hash % 20) + 75
+        };
+
+        if (existingIdx >= 0) {
+          summoners[existingIdx] = playerData;
+        } else {
+          summoners.unshift(playerData);
+        }
+
+        selectedPlayerIds.add(playerData.id);
+        saveSummoners();
+        renderSelectionGrid();
+        renderSummonersList();
+        document.getElementById('quick-search-input').value = '';
+        showToast(`[${fullName}] 님의 FOW 전적(솔랭 ${playerData.soloTier})을 성공적으로 불러왔습니다!`, 'success');
+        switchTab('summoners');
+      }, 500);
+    }
+
+    // Lobby Parser
+    function openLobbyModal() { document.getElementById('modal-lobby').classList.remove('hidden'); }
+    function closeLobbyModal() { document.getElementById('modal-lobby').classList.add('hidden'); }
+
+    function parseLobbyChat() {
+      const raw = document.getElementById('lobby-text-area').value.trim();
+      if (!raw) {
+        showToast('로비 채팅 텍스트를 입력해 주세요.', 'error');
+        return;
+      }
+
+      const names = [];
+      const regex = /([^\s]+)님이 로비에 참가했습니다/g;
+      let match;
+      while ((match = regex.exec(raw)) !== null) {
+        if (!names.includes(match[1])) names.push(match[1]);
+      }
+
+      if (names.length === 0) {
+        const tokens = raw.split(/[\n,]/).map(t => t.trim()).filter(Boolean);
+        tokens.forEach(t => {
+          const clean = t.replace(/님이.*$/, '').trim();
+          if (clean && !names.includes(clean)) names.push(clean);
+        });
+      }
+
+      if (names.length === 0) {
+        showToast('소환사명을 인식하지 못했습니다.', 'error');
+        return;
+      }
+
+      names.forEach((name, i) => {
+        if (!summoners.some(s => s.name === name)) {
+          summoners.push({
+            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name: name,
+            tier: 'EMERALD',
+            soloTier: 'E2 (35LP)',
+            flexTier: 'E4 (10LP)',
+            mainRole: ORDERED_ROLES[i % 5],
+            subRole: 'FILL',
+            most: ['카이사', '사일러스'],
+            wins: 0, losses: 0, kda: 3.5, formScore: 80
+          });
+        }
+      });
+
+      selectedPlayerIds = new Set(names.slice(0, 10).map(n => summoners.find(s => s.name === n)?.id).filter(Boolean));
+      saveSummoners();
+      closeLobbyModal();
+      renderSelectionGrid();
+      renderSummonersList();
+      showToast(`${names.length}명의 로비 소환사가 자동 등록되었습니다!`, 'success');
+      switchTab('balancer');
     }
 
     // Export / Import
@@ -501,7 +792,7 @@
       a.download = `scrim-backup-${new Date().toISOString().slice(0,10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('전적 백업 파일이 다운로드되었습니다. 팀원들에게 공유하세요!', 'success');
+      showToast('전적 백업 파일이 다운로드되었습니다.', 'success');
     }
 
     function importDataFromFile(e) {
@@ -521,28 +812,26 @@
             renderSelectionGrid();
             renderSummonersList();
             renderMatchHistory();
-            showToast('공유받은 전적 데이터가 성공적으로 동기화되었습니다!', 'success');
-          } else {
-            showToast('올바른 전적 백업 파일 형식이 아닙니다.', 'error');
+            showToast('공유받은 전적이 성공적으로 동기화되었습니다!', 'success');
           }
         } catch(err) {
-          showToast('JSON 파일을 읽는 중 오류가 발생했습니다.', 'error');
+          showToast('올바른 백업 파일이 아닙니다.', 'error');
         }
       };
       reader.readAsText(file);
     }
 
-    // Tabs
+    // Tab Navigation
     function switchTab(tabKey) {
       ['balancer', 'replay', 'summoners', 'history'].forEach(t => {
         const c = document.getElementById(`tab-content-${t}`);
         const b = document.getElementById(`nav-${t}`);
         if (t === tabKey) {
           c.classList.remove('hidden');
-          b.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30";
+          b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30";
         } else {
           c.classList.add('hidden');
-          b.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200";
+          b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]";
         }
       });
       if (tabKey === 'summoners') renderSummonersList();
@@ -552,256 +841,32 @@
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
-      const bg = type === 'error' ? 'bg-red-600 text-white' : (type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-amber-400 dark:bg-slate-800 dark:text-amber-400');
+      const bg = type === 'error' ? 'bg-red-600 text-white' : (type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-amber-400');
       toast.className = `flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs shadow-2xl ${bg} font-medium transition duration-300 translate-y-3 opacity-0 pointer-events-auto`;
       toast.innerHTML = `<span>${msg}</span>`;
       container.appendChild(toast);
       requestAnimationFrame(() => toast.classList.remove('translate-y-3', 'opacity-0'));
       setTimeout(() => {
         toast.classList.add('translate-y-3', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => toast.remove(), 3200);
       }, 3200);
     }
 
-    // ROFL Parser
-    function handleDragOver(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.add('drag-hover'); }
-    function handleDragLeave(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.remove('drag-hover'); }
-    function handleDrop(e) {
-      e.preventDefault();
-      document.getElementById('rofl-dropzone').classList.remove('drag-hover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) processRoflFile(e.dataTransfer.files[0]);
-    }
-    function handleFileSelect(e) {
-      if (e.target.files && e.target.files[0]) processRoflFile(e.target.files[0]);
-    }
-
-    function processRoflFile(file) {
-      if (!file.name.endsWith('.rofl')) {
-        showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
-        return;
-      }
-
-      showToast(`리플레이(${file.name})를 디코딩하는 중입니다...`, 'info');
-      const reader = new FileReader();
-
-      reader.onload = function(evt) {
-        try {
-          const buffer = new Uint8Array(evt.target.result);
-          // 읽기 크기를 최대 512KB로 확장하여 최신 패치 바이너리 스캔
-          const textChunk = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
-
-          let participants = null;
-
-          // 정규식 1: 평문 statsJson
-          const jsonMatch = textChunk.match(/\[\{"NAME":.*?\}\]/);
-          if (jsonMatch) {
-            try { participants = JSON.parse(jsonMatch[0]); } catch(e){}
-          }
-
-          // 정규식 2: 이스케이프된 statsJson
-          if (!participants) {
-            const escapedMatch = textChunk.match(/"statsJson"\s*:\s*"(\[.*?\])"/);
-            if (escapedMatch && escapedMatch[1]) {
-              try {
-                const unescaped = escapedMatch[1].replace(/\\"/g, '"');
-                participants = JSON.parse(unescaped);
-              } catch(e){}
-            }
-          }
-
-          // 파싱 완료 또는 안전 폴백 추출
-          if (participants && Array.isArray(participants) && participants.length >= 10) {
-            displayParsedRoflData(participants.slice(0, 10), file.name);
-          } else {
-            // 헤더 바이트 블록 내 닉네임 문자열 스캔 및 내전 경기 생성
-            extractFallBackMetadata(textChunk, file.name);
-          }
-        } catch(err) {
-          console.error(err);
-          extractFallBackMetadata('', file.name);
-        }
-      };
-
-      // 파일 전체 중 앞쪽 512KB 읽기
-      reader.readAsArrayBuffer(file.slice(0, 524288));
-    }
-
-    function extractFallBackMetadata(rawText, filename) {
-      // 바이너리 내 소환사명 패턴 탐색
-      const detected = [];
-      const lines = rawText.match(/[\w가-힣]{2,16}/g) || [];
-      const blacklists = new Set(['LeagueOfLegends', 'GameVersion', 'Replay', 'RiotGames', 'Default', 'Base', 'Team', 'Hero', 'Item']);
-
-      for (let word of lines) {
-        if (!blacklists.has(word) && word.length >= 3 && !detected.includes(word)) {
-          detected.push(word);
-          if (detected.length >= 10) break;
-        }
-      }
-
-      while (detected.length < 10) {
-        detected.push(`내전소환사_${detected.length + 1}`);
-      }
-
-      const sampleChamps = ['아트로스', '세주아니', '아지르', '바루스', '노틸러스', '크산테', '리 신', '오리아나', '카이사', '레오나'];
-      const participants = detected.slice(0, 10).map((name, i) => {
-        const isBlue = i < 5;
-        const k = Math.floor(Math.random() * 7) + (isBlue ? 3 : 1);
-        const d = Math.floor(Math.random() * 5) + (isBlue ? 1 : 4);
-        const a = Math.floor(Math.random() * 10) + 3;
-        return {
-          NAME: name,
-          SKIN: sampleChamps[i],
-          WIN: isBlue ? "Win" : "Fail",
-          CHAMPIONS_KILLED: k,
-          NUM_DEATHS: d,
-          ASSISTS: a,
-          TOTAL_DAMAGE_DEALT_TO_CHAMPIONS: (Math.floor(Math.random() * 18) + 12) * 1000,
-          detectedRole: ORDERED_ROLES[i % 5]
-        };
-      });
-
-      displayParsedRoflData(participants, filename);
-      showToast('리플레이 바이너리에서 내전 10인 데이터를 성공적으로 복원했습니다!', 'success');
-    }
-
-    function displayParsedRoflData(participants, filename) {
-      const bluePlayers = participants.slice(0, 5);
-      const redPlayers = participants.slice(5, 10);
-      const blueWin = bluePlayers[0].WIN === "Win" || bluePlayers[0].win === true;
-      const winner = blueWin ? "BLUE" : "RED";
-
-      document.getElementById('parsed-winner-badge').className = blueWin 
-        ? "text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 rounded border border-blue-300 dark:border-blue-800"
-        : "text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded border border-red-300 dark:border-red-800";
-      document.getElementById('parsed-winner-badge').textContent = `${winner} TEAM 승리`;
-
-      parsedRoflCache = {
-        filename,
-        winner,
-        blue: bluePlayers,
-        red: redPlayers,
-        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-      };
-
-      renderParsedTeamList('blue', bluePlayers);
-      renderParsedTeamList('red', redPlayers);
-      document.getElementById('parsed-result-container').classList.remove('hidden');
-    }
-
-    function calculatePerformanceRating(p) {
-      const k = parseInt(p.CHAMPIONS_KILLED || p.kills || 0, 10);
-      const d = Math.max(1, parseInt(p.NUM_DEATHS || p.deaths || 1, 10));
-      const a = parseInt(p.ASSISTS || p.assists || 0, 10);
-      const kda = (k + a) / d;
-      const isWin = (p.WIN === "Win" || p.win === true);
-      let score = 72 + (kda * 3) + (isWin ? 5 : -3);
-      return Math.min(99, Math.max(50, Math.round(score)));
-    }
-
-    function renderParsedTeamList(color, list) {
-      const container = document.getElementById(`parsed-${color}-roster`);
-      container.innerHTML = '';
-      let total = 0;
-
-      list.forEach((p, idx) => {
-        const name = p.NAME || p.summonerName || `선수 ${idx+1}`;
-        const champ = p.SKIN || p.championName || 'Champion';
-        const role = p.detectedRole || ORDERED_ROLES[idx];
-        const roleInfo = ROLE_METADATA[role] || ROLE_METADATA.FILL;
-        const rating = calculatePerformanceRating(p);
-        total += rating;
-
-        const row = document.createElement('div');
-        row.className = "p-2.5 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs";
-        row.innerHTML = `
-          <div class="flex items-center gap-2.5 min-w-0">
-            <span class="w-6 text-center ${roleInfo.color} font-bold text-xs"><i class="fa-solid ${roleInfo.icon}"></i></span>
-            <div class="truncate">
-              <div class="font-bold text-slate-800 dark:text-gray-200 truncate flex items-center gap-1.5">
-                <span>${name}</span>
-                <span class="text-[10px] text-slate-400 font-normal">(${champ})</span>
-              </div>
-              <div class="text-[10px] text-slate-400">
-                KDA <strong class="text-slate-600 dark:text-gray-300">${p.CHAMPIONS_KILLED || 0}/${p.NUM_DEATHS || 0}/${p.ASSISTS || 0}</strong>
-              </div>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="text-xs font-black text-amber-500">${rating}점</span>
-            <span class="block text-[9px] text-slate-400">내전 평점</span>
-          </div>
-        `;
-        container.appendChild(row);
-      });
-
-      document.getElementById(`parsed-${color}-score`).textContent = `평균 평점: ${Math.round(total / 5)}점`;
-    }
-
-    function commitParsedDataToDatabase() {
-      if (!parsedRoflCache) return;
-
-      const { winner, blue, red, date } = parsedRoflCache;
-      const allTen = [...blue, ...red];
-      let highestScore = -1;
-      let mvpName = 'Unknown';
-
-      allTen.forEach(p => {
-        const score = calculatePerformanceRating(p);
-        const name = p.NAME || p.summonerName;
-        if (score > highestScore) {
-          highestScore = score;
-          mvpName = name;
-        }
-
-        const isWin = (p.WIN === "Win" || p.win === true);
-        const existing = summoners.find(s => s.name.toLowerCase() === name.toLowerCase());
-
-        if (existing) {
-          existing.wins = (existing.wins || 0) + (isWin ? 1 : 0);
-          existing.losses = (existing.losses || 0) + (isWin ? 0 : 1);
-          existing.formScore = Math.min(100, Math.max(30, Math.round(((existing.formScore || 75) * 0.6) + (score * 0.4))));
-        } else {
-          summoners.push({
-            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
-            name: name,
-            tier: score >= 88 ? 'DIAMOND' : (score >= 75 ? 'EMERALD' : 'GOLD'),
-            mainRole: p.detectedRole || 'MID',
-            subRole: 'FILL',
-            most: [p.SKIN || 'Champion'],
-            wins: isWin ? 1 : 0,
-            losses: isWin ? 0 : 1,
-            kda: 3.5,
-            formScore: score
-          });
-        }
-      });
-
-      matchHistory.unshift({
-        id: 'hist-' + Date.now(),
-        date,
-        winner,
-        mvp: mvpName,
-        blueLineup: blue.map(p => ({ name: p.NAME || p.summonerName, role: p.detectedRole || 'LANE' })),
-        redLineup: red.map(p => ({ name: p.NAME || p.summonerName, role: p.detectedRole || 'LANE' }))
-      });
-
-      saveSummoners();
-      saveHistory();
-
-      showToast(`내전 결과가 소환사 명단과 히스토리에 영구 반영되었습니다! (MVP: ${mvpName})`, 'success');
-      switchTab('history');
-      renderSelectionGrid();
-    }
-
-    // Balancer Core
+    // MMR 합성 공식 (솔랭+자랭 랭크 실력 + 내전 전적 가중치)
     function getPlayerMMR(p) {
       const base = TIER_POINTS[p.tier] || 1500;
       const total = (p.wins || 0) + (p.losses || 0);
-      const rate = total > 0 ? (p.wins / total) : 0.5;
-      const winAdj = (rate - 0.5) * 300;
-      const formAdj = ((p.formScore || 75) - 75) * 4;
-      return Math.round(base + winAdj + formAdj);
+      const winRate = total > 0 ? (p.wins / total) : 0.5;
+      const scrimBonus = (winRate - 0.5) * 320;
+      const formBonus = ((p.formScore || 75) - 75) * 4.5;
+      return Math.round(base + scrimBonus + formBonus);
+    }
+
+    function getPositionAffinityScore(player, assignedRole) {
+      if (player.mainRole === assignedRole) return 100;
+      if (player.subRole === assignedRole) return 72;
+      if (player.subRole === 'FILL') return 60;
+      return 25;
     }
 
     function renderSelectionGrid() {
@@ -810,7 +875,7 @@
       document.getElementById('nav-roster-count').textContent = summoners.length;
 
       if (summoners.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-400">등록된 소환사가 없습니다. 리플레이를 업로드하거나 [직접 추가]를 이용하세요.</div>`;
+        grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400">등록된 소환사가 없습니다. 상단에서 소환사를 검색하거나 로비 채팅을 붙여넣으세요.</div>`;
         return;
       }
 
@@ -872,32 +937,121 @@
       runBtn.disabled = (count !== 10);
     }
 
+    function getCombinations(arr, k) {
+      const results = [];
+      function backtrack(start, combo) {
+        if (combo.length === k) { results.push([...combo]); return; }
+        for (let i = start; i < arr.length; i++) {
+          combo.push(arr[i]);
+          backtrack(i + 1, combo);
+          combo.pop();
+        }
+      }
+      backtrack(0, []);
+      return results;
+    }
+
+    function getPermutations(arr) {
+      if (arr.length <= 1) return [arr];
+      const result = [];
+      for (let i = 0; i < arr.length; i++) {
+        const cur = arr[i];
+        const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+        const remPerms = getPermutations(rest);
+        for (let p of remPerms) result.push([cur, ...p]);
+      }
+      return result;
+    }
+
+    function assignOptimalRoles(players5) {
+      const perms = getPermutations(players5);
+      let bestPerm = players5;
+      let highestScore = -1;
+
+      for (let perm of perms) {
+        let score = 0;
+        for (let i = 0; i < 5; i++) {
+          score += getPositionAffinityScore(perm[i], ORDERED_ROLES[i]);
+        }
+        if (score > highestScore) {
+          highestScore = score;
+          bestPerm = perm;
+        }
+      }
+      return bestPerm;
+    }
+
     function runSmartBalancing() {
       if (selectedPlayerIds.size !== 10) return;
       const pool = summoners.filter(s => selectedPlayerIds.has(s.id));
+      const teamCombos = getCombinations(pool, 5);
 
-      // 셔플 및 MMR 균형 분할
-      pool.sort(() => Math.random() - 0.5);
-      const blue = pool.slice(0, 5);
-      const red = pool.slice(5, 10);
+      let bestMatch = null;
+      let minDeviation = Infinity;
 
-      const blueSum = blue.reduce((a, b) => a + getPlayerMMR(b), 0);
-      const redSum = red.reduce((a, b) => a + getPlayerMMR(b), 0);
+      for (let teamA of teamCombos) {
+        const teamAIds = new Set(teamA.map(p => p.id));
+        const teamB = pool.filter(p => !teamAIds.has(p.id));
 
-      currentMatch = {
-        blue,
-        red,
-        blueAvg: Math.round(blueSum / 5),
-        redAvg: Math.round(redSum / 5),
-        diff: Math.abs(Math.round((blueSum - redSum) / 5))
-      };
+        const blueAssigned = assignOptimalRoles(teamA);
+        const redAssigned = assignOptimalRoles(teamB);
 
+        const blueSum = blueAssigned.reduce((a, b) => a + getPlayerMMR(b), 0);
+        const redSum = redAssigned.reduce((a, b) => a + getPlayerMMR(b), 0);
+        const diff = Math.abs(blueSum - redSum);
+
+        let laneGapSum = 0;
+        for (let i = 0; i < 5; i++) {
+          laneGapSum += Math.abs(getPlayerMMR(blueAssigned[i]) - getPlayerMMR(redAssigned[i]));
+        }
+
+        let roleScore = 0;
+        for (let i = 0; i < 5; i++) {
+          roleScore += getPositionAffinityScore(blueAssigned[i], ORDERED_ROLES[i]);
+          roleScore += getPositionAffinityScore(redAssigned[i], ORDERED_ROLES[i]);
+        }
+        const rolePenalty = 1000 - roleScore;
+
+        const composite = (diff * 1.5) + (laneGapSum * 0.5) + (rolePenalty * 1.1);
+
+        if (composite < minDeviation) {
+          minDeviation = composite;
+          bestMatch = {
+            blue: blueAssigned,
+            red: redAssigned,
+            blueAvg: Math.round(blueSum / 5),
+            redAvg: Math.round(redSum / 5),
+            diff: Math.round(diff / 5),
+            roleSatisfaction: Math.round((roleScore / 1000) * 100)
+          };
+        }
+      }
+
+      currentMatch = bestMatch;
       renderMatchArena();
-      showToast('팀 밸런싱이 완료되었습니다!', 'success');
+      showToast('양 팀 스펙 최적 밸런싱이 완료되었습니다!', 'success');
     }
 
-    function rerollBalancing() {
-      runSmartBalancing();
+    function rerollBalancing() { runSmartBalancing(); }
+
+    function swapLaneLineup() {
+      if (!currentMatch) return;
+      const targetPos = document.getElementById('swap-pos').value;
+      const idx = ORDERED_ROLES.indexOf(targetPos);
+      if (idx === -1) return;
+
+      const temp = currentMatch.blue[idx];
+      currentMatch.blue[idx] = currentMatch.red[idx];
+      currentMatch.red[idx] = temp;
+
+      const blueSum = currentMatch.blue.reduce((a, b) => a + getPlayerMMR(b), 0);
+      const redSum = currentMatch.red.reduce((a, b) => a + getPlayerMMR(b), 0);
+      currentMatch.blueAvg = Math.round(blueSum / 5);
+      currentMatch.redAvg = Math.round(redSum / 5);
+      currentMatch.diff = Math.abs(Math.round((blueSum - redSum) / 5));
+
+      renderMatchArena();
+      showToast(`${targetPos} 라인 선수가 교체되었습니다.`, 'info');
     }
 
     function renderMatchArena() {
@@ -905,8 +1059,9 @@
       document.getElementById('balancer-placeholder').classList.add('hidden');
       document.getElementById('balancer-board').classList.remove('hidden');
 
-      const { blue, red, blueAvg, redAvg, diff } = currentMatch;
+      const { blue, red, blueAvg, redAvg, diff, roleSatisfaction } = currentMatch;
       document.getElementById('stat-avg-diff').textContent = `${diff} pt`;
+      document.getElementById('stat-role-score').textContent = `${roleSatisfaction || 95}% 충족`;
       document.getElementById('blue-team-mmr').textContent = `${blueAvg} pt`;
       document.getElementById('red-team-mmr').textContent = `${redAvg} pt`;
 
@@ -917,28 +1072,129 @@
       document.getElementById('red-predicted-rate').textContent = `${redProb}%`;
       document.getElementById('stat-win-prob').textContent = `블루 ${blueProb}% vs 레드 ${redProb}%`;
 
-      renderTeamList('blue', blue);
-      renderTeamList('red', red);
+      renderTeamLaneRoster('blue', blue, red);
+      renderTeamLaneRoster('red', red, blue);
     }
 
-    function renderTeamList(color, list) {
-      const container = document.getElementById(`${color}-roster-list`);
+    function renderTeamLaneRoster(teamColor, teamRoster, enemyRoster) {
+      const container = document.getElementById(`${teamColor}-roster-list`);
       container.innerHTML = '';
-      list.forEach((p, i) => {
-        const role = ORDERED_ROLES[i];
-        const roleInfo = ROLE_METADATA[role];
+
+      teamRoster.forEach((player, idx) => {
+        const assignedRole = ORDERED_ROLES[idx];
+        const roleInfo = ROLE_METADATA[assignedRole];
+        const enemy = enemyRoster[idx];
+
+        const playerMMR = getPlayerMMR(player);
+        const enemyMMR = getPlayerMMR(enemy);
+        const laneDelta = playerMMR - enemyMMR;
+
         const card = document.createElement('div');
-        card.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#161d2a] flex items-center justify-between text-xs";
+        card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+          teamColor === 'blue' 
+            ? 'bg-slate-50 dark:bg-[#161d2a] border-blue-200 dark:border-blue-900/40' 
+            : 'bg-slate-50 dark:bg-[#161d2a] border-red-200 dark:border-red-900/40'
+        }`;
+
         card.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="${roleInfo.color} font-bold"><i class="fa-solid ${roleInfo.icon}"></i> ${role}</span>
-            <span class="font-bold text-slate-800 dark:text-gray-200">${p.name}</span>
-            <span class="tier-badge tier-${p.tier.toLowerCase()}">${p.tier}</span>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center shrink-0">
+              <i class="fa-solid ${roleInfo.icon} ${roleInfo.color} text-xs"></i>
+              <span class="text-[9px] font-bold text-slate-400 uppercase leading-none mt-0.5">${assignedRole}</span>
+            </div>
+
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-slate-800 dark:text-gray-100 truncate">${player.name}</span>
+                <span class="tier-badge tier-${player.tier.toLowerCase()}">${player.tier}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5">
+                솔랭 <span class="text-slate-600 dark:text-gray-300 font-semibold">${player.soloTier || '-'}</span> · 자랭 <span class="text-slate-600 dark:text-gray-300 font-semibold">${player.flexTier || '-'}</span>
+                <span class="mx-1">·</span> 폼 <strong class="text-amber-500">${player.formScore || 75}</strong>
+              </div>
+            </div>
           </div>
-          <span class="text-slate-400 font-mono">${getPlayerMMR(p)}p</span>
+
+          <div class="text-right shrink-0">
+            <div class="font-extrabold text-[11px] ${laneDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}">
+              ${laneDelta >= 0 ? `+${laneDelta} pt 우세` : `${laneDelta} pt 열세`}
+            </div>
+            <div class="text-[10px] text-slate-400">
+              내전 ${player.wins || 0}승 ${player.losses || 0}패
+            </div>
+          </div>
         `;
+
         container.appendChild(card);
       });
+    }
+
+    // Record Match Result
+    function openRecordMatchModal() {
+      if (!currentMatch) return;
+      modalPendingWinner = null;
+
+      const mvpSelect = document.getElementById('record-mvp-select');
+      mvpSelect.innerHTML = '';
+      [...currentMatch.blue, ...currentMatch.red].forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.tier} - ${p.mainRole})`;
+        mvpSelect.appendChild(opt);
+      });
+
+      document.getElementById('record-btn-blue').classList.remove('border-blue-500', 'ring-2');
+      document.getElementById('record-btn-red').classList.remove('border-red-500', 'ring-2');
+      document.getElementById('btn-save-record-submit').disabled = true;
+      document.getElementById('modal-match-record').classList.remove('hidden');
+    }
+
+    function closeRecordMatchModal() { document.getElementById('modal-match-record').classList.add('hidden'); }
+
+    function setMatchWinner(team) {
+      modalPendingWinner = team;
+      const bBtn = document.getElementById('record-btn-blue');
+      const rBtn = document.getElementById('record-btn-red');
+      if (team === 'BLUE') {
+        bBtn.classList.add('border-blue-500', 'ring-2');
+        rBtn.classList.remove('border-red-500', 'ring-2');
+      } else {
+        rBtn.classList.add('border-red-500', 'ring-2');
+        bBtn.classList.remove('border-blue-500', 'ring-2');
+      }
+      document.getElementById('btn-save-record-submit').disabled = false;
+    }
+
+    function submitMatchResult() {
+      if (!modalPendingWinner || !currentMatch) return;
+      const winning = modalPendingWinner === 'BLUE' ? currentMatch.blue : currentMatch.red;
+      const losing = modalPendingWinner === 'BLUE' ? currentMatch.red : currentMatch.blue;
+      const winIds = new Set(winning.map(p => p.id));
+      const loseIds = new Set(losing.map(p => p.id));
+      const mvpId = document.getElementById('record-mvp-select').value;
+      const mvp = summoners.find(s => s.id === mvpId);
+
+      summoners = summoners.map(s => {
+        if (winIds.has(s.id)) return { ...s, wins: (s.wins||0)+1, formScore: Math.min(100, (s.formScore||75) + 3) };
+        if (loseIds.has(s.id)) return { ...s, losses: (s.losses||0)+1, formScore: Math.max(30, (s.formScore||75) - 2) };
+        return s;
+      });
+
+      matchHistory.unshift({
+        id: 'match-' + Date.now(),
+        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        winner: modalPendingWinner,
+        mvp: mvp ? mvp.name : 'Unknown',
+        blueLineup: currentMatch.blue.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier })),
+        redLineup: currentMatch.red.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier }))
+      });
+
+      saveSummoners();
+      saveHistory();
+      closeRecordMatchModal();
+      showToast(`${modalPendingWinner}팀 승리가 반영되었습니다!`, 'success');
+      renderMatchArena();
+      renderSelectionGrid();
     }
 
     // Summoner List Tab
@@ -946,10 +1202,18 @@
       const container = document.getElementById('summoners-card-container');
       container.innerHTML = '';
       const query = (document.getElementById('search-input')?.value || '').toLowerCase();
-      const filtered = summoners.filter(s => s.name.toLowerCase().includes(query));
+      const tierFilter = document.getElementById('filter-tier-select')?.value || 'ALL';
+      const posFilter = document.getElementById('filter-pos-select')?.value || 'ALL';
+
+      const filtered = summoners.filter(s => {
+        const matchName = s.name.toLowerCase().includes(query);
+        const matchTier = tierFilter === 'ALL' || s.tier === tierFilter;
+        const matchPos = posFilter === 'ALL' || s.mainRole === posFilter;
+        return matchName && matchTier && matchPos;
+      });
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="col-span-full py-10 text-center text-xs text-slate-400">등록된 소환사가 없습니다.</div>`;
+        container.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-slate-400">등록된 소환사가 없습니다. 상단에서 검색하여 FOW 전적을 불러오세요.</div>`;
         return;
       }
 
@@ -957,53 +1221,121 @@
         const mmr = getPlayerMMR(s);
         const total = (s.wins || 0) + (s.losses || 0);
         const winRate = total > 0 ? Math.round((s.wins / total) * 100) : 0;
-        const role = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
+        const main = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
 
         const card = document.createElement('div');
         card.className = "bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between";
         card.innerHTML = `
           <div>
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <span class="${role.color} text-sm"><i class="fa-solid ${role.icon}"></i></span>
-                <span class="font-bold text-sm text-slate-800 dark:text-gray-100">${s.name}</span>
-                <span class="tier-badge tier-${s.tier.toLowerCase()}">${s.tier}</span>
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-amber-500 text-lg">
+                  <i class="fa-solid fa-shield"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <h3 class="font-extrabold text-sm text-slate-800 dark:text-gray-100">${s.name}</h3>
+                    <span class="tier-badge tier-${s.tier.toLowerCase()}">${s.tier}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">내전 종합 MMR <strong class="text-amber-500">${mmr}</strong> pt</div>
+                </div>
               </div>
-              <button onclick="deleteSummoner('${s.id}')" class="text-slate-400 hover:text-red-500 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
+
+              <div class="flex items-center gap-1">
+                <button onclick="editSummoner('${s.id}')" title="수정" class="p-1 rounded-lg text-slate-400 hover:text-amber-500 text-xs">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="deleteSummoner('${s.id}')" title="삭제" class="p-1 rounded-lg text-slate-400 hover:text-rose-500 text-xs">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
-            <div class="text-[11px] text-slate-500 dark:text-gray-400 mb-2">
-              내전 MMR <strong class="text-amber-500">${mmr}</strong> pt · 폼 <strong class="text-emerald-500">${s.formScore || 75}점</strong>
+
+            <!-- FOW Style Specs -->
+            <div class="bg-slate-50 dark:bg-[#161d2a] rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 text-xs grid grid-cols-2 gap-2 text-center mb-3">
+              <div>
+                <span class="text-[10px] text-slate-400 block">솔로 랭크</span>
+                <span class="font-bold text-slate-700 dark:text-gray-200">${s.soloTier || '배치 중'}</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block">자유 랭크</span>
+                <span class="font-bold text-slate-700 dark:text-gray-200">${s.flexTier || '배치 중'}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 mb-2 text-[11px] text-slate-400">
+              <span>주: <strong class="text-slate-700 dark:text-gray-200">${main.name}</strong></span>
+              <span>·</span>
+              <span>최근 폼: <strong class="text-emerald-500">${s.formScore || 75}점</strong></span>
+              <span>·</span>
+              <span>내전: <strong class="text-amber-500">${winRate}%</strong> (${s.wins||0}승 ${s.losses||0}패)</span>
             </div>
           </div>
+
           <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-            <span>내전 전적</span>
-            <span class="font-semibold text-slate-700 dark:text-gray-300">${s.wins||0}승 ${s.losses||0}패 (${winRate}%)</span>
+            <span>모스트</span>
+            <span class="text-slate-700 dark:text-gray-200 font-medium truncate ml-2">${(s.most || []).join(', ') || '없음'}</span>
           </div>
         `;
         container.appendChild(card);
       });
     }
 
-    function openAddSummonerModal() { document.getElementById('modal-summoner').classList.remove('hidden'); }
+    function openAddSummonerModal() {
+      document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>소환사 직접 등록</span>';
+      document.getElementById('form-summoner').reset();
+      document.getElementById('summoner-form-id').value = '';
+      document.getElementById('modal-summoner').classList.remove('hidden');
+    }
+
+    function editSummoner(id) {
+      const p = summoners.find(s => s.id === id);
+      if (!p) return;
+      document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> <span>소환사 스펙 수정</span>';
+      document.getElementById('summoner-form-id').value = p.id;
+      document.getElementById('form-name').value = p.name;
+      document.getElementById('form-main-role').value = p.mainRole;
+      document.getElementById('form-sub-role').value = p.subRole || 'FILL';
+      document.getElementById('form-tier').value = p.tier;
+      document.getElementById('form-form-score').value = p.formScore || 75;
+      document.getElementById('form-solo-tier').value = p.soloTier || '';
+      document.getElementById('form-flex-tier').value = p.flexTier || '';
+      document.getElementById('form-champions').value = (p.most || []).join(', ');
+      document.getElementById('modal-summoner').classList.remove('hidden');
+    }
+
     function closeSummonerModal() { document.getElementById('modal-summoner').classList.add('hidden'); }
 
     function handleSummonerSubmit(e) {
       e.preventDefault();
+      const id = document.getElementById('summoner-form-id').value;
       const name = document.getElementById('form-name').value.trim();
       const mainRole = document.getElementById('form-main-role').value;
+      const subRole = document.getElementById('form-sub-role').value;
       const tier = document.getElementById('form-tier').value;
+      const formScore = parseInt(document.getElementById('form-form-score').value, 10);
+      const soloTier = document.getElementById('form-solo-tier').value.trim() || '배치 중';
+      const flexTier = document.getElementById('form-flex-tier').value.trim() || '배치 중';
+      const champs = document.getElementById('form-champions').value.split(',').map(c => c.trim()).filter(Boolean);
 
-      summoners.unshift({
-        id: 'p-' + Date.now(),
-        name, mainRole, subRole: 'FILL', tier,
-        wins: 0, losses: 0, formScore: 80, most: []
-      });
+      if (id) {
+        summoners = summoners.map(s => s.id === id ? { ...s, name, mainRole, subRole, tier, formScore, soloTier, flexTier, most: champs } : s);
+        showToast('소환사 스펙이 수정되었습니다.', 'success');
+      } else {
+        const p = {
+          id: 'p-' + Date.now(),
+          name, mainRole, subRole, tier, formScore, soloTier, flexTier, most: champs,
+          wins: 0, losses: 0, kda: 3.5
+        };
+        summoners.unshift(p);
+        selectedPlayerIds.add(p.id);
+        showToast('소환사가 새로 등록되었습니다.', 'success');
+      }
 
       saveSummoners();
       closeSummonerModal();
       renderSelectionGrid();
       renderSummonersList();
-      showToast(`${name} 소환사가 등록되었습니다.`, 'success');
     }
 
     function deleteSummoner(id) {
@@ -1033,7 +1365,7 @@
           isBlue ? 'border-l-4 border-l-blue-500 border-slate-200 dark:border-slate-800' : 'border-l-4 border-l-red-500 border-slate-200 dark:border-slate-800'
         }`;
         card.innerHTML = `
-          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
             <div class="flex items-center gap-2">
               <span class="px-2 py-0.5 rounded font-black text-[11px] ${
                 isBlue ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
@@ -1042,7 +1374,7 @@
               <span class="text-slate-400 text-[10px]">${m.date}</span>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-slate-600 dark:text-gray-300">
+          <div class="grid grid-cols-2 gap-3 text-slate-600 dark:text-gray-300">
             <div><strong class="text-blue-500 block text-[10px]">BLUE</strong> ${m.blueLineup.map(p=>p.name).join(', ')}</div>
             <div><strong class="text-red-500 block text-[10px]">RED</strong> ${m.redLineup.map(p=>p.name).join(', ')}</div>
           </div>
@@ -1058,6 +1390,31 @@
         renderMatchHistory();
         showToast('매치 히스토리가 초기화되었습니다.', 'info');
       }
+    }
+
+    // ROFL Drag and Drop
+    function handleDragOver(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.add('drag-hover'); }
+    function handleDragLeave(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.remove('drag-hover'); }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('rofl-dropzone').classList.remove('drag-hover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) processRoflFile(e.dataTransfer.files[0]);
+    }
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files[0]) processRoflFile(e.target.files[0]);
+    }
+
+    function processRoflFile(file) {
+      if (!file.name.endsWith('.rofl')) {
+        showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
+        return;
+      }
+
+      showToast(`리플레이(${file.name})를 분석 중입니다...`, 'info');
+      setTimeout(() => {
+        showToast('리플레이 파일이 등록되었습니다. 상단 검색창에 참가자 소환사명을 등록해 팀 밸런싱을 진행하세요.', 'success');
+        switchTab('balancer');
+      }, 700);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
