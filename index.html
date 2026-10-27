@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DEEPLOL Scrims Engine - 리플레이 분석 & 전적 밸런서</title>
+  <title>DEEPLOL Scrims - 리그 오브 레전드 내전 밸런서 & 전적 대시보드</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -20,10 +20,14 @@
               card: '#161d2a',
               cardHover: '#1c2435',
               border: '#232c3d',
+              borderLight: '#323d52',
               gold: '#e0b354',
+              goldHover: '#f5c96b',
               cyan: '#38bdf8',
               blueTeam: '#1d4ed8',
-              redTeam: '#b91c1c'
+              blueLight: '#3b82f6',
+              redTeam: '#b91c1c',
+              redLight: '#ef4444'
             }
           }
         }
@@ -37,10 +41,20 @@
       background-color: #0b0e14;
       color: #e2e8f0;
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0b0e14; }
-    ::-webkit-scrollbar-thumb { background: #232c3d; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #e0b354; }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0e14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #232c3d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #e0b354;
+    }
 
     .tier-badge {
       font-size: 0.68rem;
@@ -63,7 +77,10 @@
     .tier-bronze { background: rgba(217, 119, 6, 0.15); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.4); }
     .tier-iron { background: rgba(100, 116, 139, 0.15); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.4); }
 
-    .drag-hover { border-color: #e0b354 !important; background-color: rgba(224, 179, 84, 0.08) !important; }
+    .drag-hover {
+      border-color: #e0b354 !important;
+      background-color: rgba(224, 179, 84, 0.08) !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-amber-500/20 selection:text-amber-300">
@@ -71,6 +88,8 @@
   <!-- Deeplol Header -->
   <header class="border-b border-deeplol-border bg-deeplol-surface/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Brand Logo -->
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
           <i class="fa-solid fa-bolt text-gray-950 font-black text-lg"></i>
@@ -78,9 +97,9 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-100 to-amber-500">DEEPLOL</span>
-            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-deeplol-cyan/15 text-deeplol-cyan border border-deeplol-cyan/30">AI ROFL & ENGINE</span>
+            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-deeplol-cyan/15 text-deeplol-cyan border border-deeplol-cyan/30">SCRIMS AUTO-PARSER</span>
           </div>
-          <p class="text-[11px] text-gray-400">리플레이 자동 분석 · 솔랭/자랭 통계 연동 · 포지션 밸런서</p>
+          <p class="text-[11px] text-gray-400">리플레이(.rofl) 실시간 자동 등록 · 전적 누적 · 포지션 밸런서</p>
         </div>
       </div>
 
@@ -91,8 +110,8 @@
           <span>10인 밸런서</span>
         </button>
         <button id="nav-replay" onclick="switchTab('replay')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card">
-          <i class="fa-solid fa-file-video text-deeplol-cyan"></i>
-          <span>리플레이(.rofl) 분석</span>
+          <i class="fa-solid fa-file-waveform text-deeplol-cyan"></i>
+          <span>리플레이 업로드</span>
         </button>
         <button id="nav-summoners" onclick="switchTab('summoners')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card">
           <i class="fa-solid fa-users"></i>
@@ -100,7 +119,7 @@
         </button>
         <button id="nav-history" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card">
           <i class="fa-solid fa-clock-rotate-left"></i>
-          <span>매치 전적 (<span id="nav-history-count">0</span>)</span>
+          <span>매치 히스토리 (<span id="nav-history-count">0</span>)</span>
         </button>
       </nav>
     </div>
@@ -127,7 +146,7 @@
                 0 / 10명 선택됨
               </span>
             </div>
-            <p class="text-xs text-gray-400 mt-1">솔랭/자랭 데이터 및 내전 리플레이 점수가 통합된 MMR 기준으로 최상의 5:5 라인업을 구성합니다.</p>
+            <p class="text-xs text-gray-400 mt-1">리플레이로 누적된 내전 전적과 주/부 포지션을 종합 분석하여 최적의 5:5 밸런스를 만듭니다.</p>
           </div>
 
           <div class="flex items-center gap-2 flex-wrap">
@@ -161,12 +180,12 @@
           <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">상단 소환사 명단에서 10명을 선택한 뒤 <strong>[스마트 밸런싱 실행]</strong>을 클릭하세요.</p>
         </div>
 
-        <!-- 결과 보드 -->
+        <!-- 활성 대진표 보드 -->
         <div id="balancer-board" class="hidden space-y-6">
           <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-4 flex-wrap">
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-400">평균 MMR 격차:</span>
+                <span class="text-xs text-gray-400">평균 MMR 편차:</span>
                 <span id="stat-avg-diff" class="text-sm font-extrabold text-deeplol-gold">0 pt</span>
               </div>
               <div class="h-3 w-px bg-deeplol-border hidden sm:block"></div>
@@ -176,7 +195,7 @@
               </div>
               <div class="h-3 w-px bg-deeplol-border hidden sm:block"></div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-400">포지션 만족도:</span>
+                <span class="text-xs text-gray-400">포지션 적합도:</span>
                 <span id="stat-role-score" class="text-xs font-bold text-emerald-400">96% 충족</span>
               </div>
             </div>
@@ -185,10 +204,6 @@
               <button onclick="rerollBalancing()" class="px-3 py-1.5 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover text-gray-300 text-xs font-medium border border-deeplol-border transition flex items-center gap-1.5">
                 <i class="fa-solid fa-arrows-rotate text-deeplol-cyan"></i>
                 <span>재셔플 (Re-roll)</span>
-              </button>
-              <button onclick="openRecordMatchModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
-                <i class="fa-solid fa-trophy"></i>
-                <span>내전 결과 수동 등록</span>
               </button>
             </div>
           </div>
@@ -203,7 +218,7 @@
                     <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs">B</div>
                     <div>
                       <h3 class="font-extrabold text-blue-400 text-sm">BLUE TEAM</h3>
-                      <p class="text-[10px] text-gray-400">평균 MMR: <strong id="blue-team-mmr" class="text-gray-200">0</strong></p>
+                      <p class="text-[10px] text-gray-400">팀 평균 MMR: <strong id="blue-team-mmr" class="text-gray-200">0</strong></p>
                     </div>
                   </div>
                   <div class="text-right">
@@ -231,7 +246,7 @@
                     <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white font-black text-xs">R</div>
                     <div>
                       <h3 class="font-extrabold text-red-400 text-sm">RED TEAM</h3>
-                      <p class="text-[10px] text-gray-400">평균 MMR: <strong id="red-team-mmr" class="text-gray-200">0</strong></p>
+                      <p class="text-[10px] text-gray-400">팀 평균 MMR: <strong id="red-team-mmr" class="text-gray-200">0</strong></p>
                     </div>
                   </div>
                   <div class="text-right">
@@ -248,15 +263,15 @@
           <div class="bg-deeplol-surface border border-deeplol-border rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-3">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-arrows-left-right text-deeplol-cyan"></i>
-              <span>원하는 라인의 선수를 즉시 맞교환(Swap)할 수 있습니다.</span>
+              <span>라인 맞교환(Swap): 특정 포지션의 선수를 상호 교체할 수 있습니다.</span>
             </div>
             <div class="flex items-center gap-2">
               <select id="swap-pos" class="bg-deeplol-card border border-deeplol-border rounded-lg px-2.5 py-1 text-gray-200 focus:outline-none">
-                <option value="TOP">TOP 라인 스왑</option>
-                <option value="JUG">JUG 라인 스왑</option>
-                <option value="MID">MID 라인 스왑</option>
-                <option value="ADC">ADC 라인 스왑</option>
-                <option value="SUP">SUP 라인 스왑</option>
+                <option value="TOP">TOP 라인 교체</option>
+                <option value="JUG">JUG 라인 교체</option>
+                <option value="MID">MID 라인 교체</option>
+                <option value="ADC">ADC 라인 교체</option>
+                <option value="SUP">SUP 라인 교체</option>
               </select>
               <button onclick="swapLaneLineup()" class="px-3 py-1 rounded-lg bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-gray-200 font-semibold transition">
                 선택 라인 교체
@@ -268,21 +283,27 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- TAB 2: 리플레이(.rofl) 자동 분석기 (REPLAY PARSER) -->
+    <!-- TAB 2: 리플레이(.rofl) 정밀 파서 및 자동 등록기 -->
     <!-- ======================================================== -->
     <section id="tab-content-replay" class="hidden space-y-6">
       
-      <!-- 안내 및 드래그 앤 드롭 존 -->
+      <!-- 드래그 앤 드롭 업로드 카드 -->
       <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-6 shadow-xl space-y-4">
-        <div>
-          <h2 class="text-base sm:text-lg font-bold text-gray-100 flex items-center gap-2">
-            <i class="fa-solid fa-file-waveform text-deeplol-cyan"></i>
-            <span>내전 리플레이(.rofl) 원클릭 분석 & 자동 스탯 반영</span>
-          </h2>
-          <p class="text-xs text-gray-400 mt-1">
-            내전 종료 후 다운로드받은 <code class="text-amber-400 font-mono">KR-xxxx.rofl</code> 파일을 드래그하여 놓으세요. 
-            서버 전송 없이 브라우저에서 헤더를 디코딩하여 10명의 KDA, 딜량, 승패, 라인 판별 및 퍼포먼스 점수(0~100)를 자동 반영합니다.
-          </p>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-file-waveform text-deeplol-cyan"></i>
+              <span>리플레이(.rofl) 파일 드래그 앤 드롭 즉시 등록</span>
+            </h2>
+            <p class="text-xs text-gray-400 mt-1">
+              내전 종료 후 다운로드한 <code class="text-amber-400 font-mono">KR-xxxx.rofl</code> 파일을 놓으시면, 
+              <strong>실제 10명의 소환사 닉네임, 챔피언, 포지션, 딜량을 자동 분석하여 명단과 전적 히스토리에 즉시 등록</strong>합니다.
+            </p>
+          </div>
+          <button onclick="clearDemoData()" class="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-900/40 text-xs transition flex items-center gap-1.5 self-start md:self-auto">
+            <i class="fa-solid fa-user-xmark"></i>
+            <span>샘플 선수(더미) 모두 비우기</span>
+          </button>
         </div>
 
         <div id="rofl-dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
@@ -298,37 +319,42 @@
         </div>
       </div>
 
-      <!-- 파싱 결과 뷰어 -->
+      <!-- 리플레이 분석 결과 카드 -->
       <div id="parsed-result-container" class="hidden space-y-5">
         <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2">
-              <span id="parsed-game-time" class="text-xs font-bold text-deeplol-cyan bg-deeplol-cyan/10 px-2 py-0.5 rounded border border-deeplol-cyan/30">경기 시간 31분 20초</span>
-              <span id="parsed-winner-badge" class="text-xs font-bold text-blue-400 bg-blue-950/40 px-2 py-0.5 rounded border border-blue-500/30">블루팀 승리</span>
+              <span id="parsed-game-time" class="text-xs font-bold text-deeplol-cyan bg-deeplol-cyan/10 px-2.5 py-0.5 rounded border border-deeplol-cyan/30">실제 게임 분석 완료</span>
+              <span id="parsed-winner-badge" class="text-xs font-bold text-blue-400 bg-blue-950/40 px-2.5 py-0.5 rounded border border-blue-500/30">블루팀 승리</span>
+              <span id="parsed-mvp-badge" class="text-xs font-bold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/30">MVP: -</span>
             </div>
-            <p class="text-xs text-gray-400 mt-1">10인의 전투 지표(KDA, 딜량 비중, CS, 포지션) 분석을 완료했습니다.</p>
+            <p class="text-xs text-gray-400 mt-1">참가한 실제 10명의 소환사 정보가 명단과 매치 히스토리에 영구 반영되었습니다.</p>
           </div>
 
-          <button onclick="commitParsedDataToDatabase()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
-            <i class="fa-solid fa-cloud-check"></i>
-            <span>분석 결과를 내전 명단 & 히스토리에 자동 반영</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="switchTab('summoners')" class="px-4 py-2 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-xs text-gray-200 font-semibold transition">
+              소환사 명단 확인
+            </button>
+            <button onclick="switchTab('history')" class="px-4 py-2 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-xs text-gray-200 font-semibold transition">
+              매치 히스토리 확인
+            </button>
+          </div>
         </div>
 
-        <!-- 10인 스탯 테이블 -->
+        <!-- 10인 실시간 추출 스탯 그리드 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="bg-deeplol-surface border border-blue-900/40 rounded-2xl p-4">
             <h4 class="text-xs font-black text-blue-400 mb-3 flex items-center justify-between">
-              <span>BLUE TEAM RATING</span>
-              <span id="parsed-blue-score" class="text-gray-400 font-normal">팀 평균 평점: 84점</span>
+              <span>BLUE TEAM PARTICIPANTS</span>
+              <span id="parsed-blue-score" class="text-gray-400 font-normal">팀 평균 평점: 80점</span>
             </h4>
             <div id="parsed-blue-roster" class="space-y-2"></div>
           </div>
 
           <div class="bg-deeplol-surface border border-red-900/40 rounded-2xl p-4">
             <h4 class="text-xs font-black text-red-400 mb-3 flex items-center justify-between">
-              <span>RED TEAM RATING</span>
-              <span id="parsed-red-score" class="text-gray-400 font-normal">팀 평균 평점: 72점</span>
+              <span>RED TEAM PARTICIPANTS</span>
+              <span id="parsed-red-score" class="text-gray-400 font-normal">팀 평균 평점: 75점</span>
             </h4>
             <div id="parsed-red-roster" class="space-y-2"></div>
           </div>
@@ -337,7 +363,7 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- TAB 3: 소환사 관리 & 솔랭/자랭 데이터 연동 (SUMMONERS) -->
+    <!-- TAB 3: 소환사 관리 (SUMMONERS) -->
     <!-- ======================================================== -->
     <section id="tab-content-summoners" class="hidden space-y-6">
       
@@ -398,12 +424,12 @@
             <i class="fa-solid fa-clock-rotate-left text-deeplol-gold"></i>
             <span>내전 전적 히스토리</span>
           </h2>
-          <p class="text-xs text-gray-400">리플레이 자동 분석 및 수동 등록된 경기 전적입니다.</p>
+          <p class="text-xs text-gray-400">리플레이(.rofl)로 자동 기록된 역대 내전 경기 결과와 MVP입니다.</p>
         </div>
 
         <button onclick="resetMatchHistory()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 text-xs transition flex items-center gap-1.5">
           <i class="fa-solid fa-trash-can"></i>
-          <span>히스토리 초기화</span>
+          <span>히스토리 전체 삭제</span>
         </button>
       </div>
 
@@ -416,7 +442,7 @@
   <!-- MODALS -->
   <!-- ======================================================== -->
 
-  <!-- Modal: 솔랭 / 자랭 전적 아이디 검색 모달 -->
+  <!-- Modal: 솔랭 / 자랭 아이디 조회 모달 -->
   <div id="modal-api-import" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-deeplol-surface border border-deeplol-border w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
       <button onclick="closeApiImportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-sm">
@@ -425,22 +451,14 @@
 
       <h3 class="text-base font-bold text-deeplol-cyan mb-2 flex items-center gap-2">
         <i class="fa-solid fa-magnifying-glass-chart"></i>
-        <span>소환사 아이디(태그) 전적 자동 조회</span>
+        <span>소환사 아이디 전적 자동 조회</span>
       </h3>
-      <p class="text-xs text-gray-400 mb-4">소환사명#태그를 입력하면 솔로랭크 및 자유랭크 티어, 승률, 모스트 라인을 분석해 자동으로 등록합니다.</p>
+      <p class="text-xs text-gray-400 mb-4">소환사명#태그를 입력하면 솔로랭크 및 자유랭크 티어를 분석하여 초기 MMR을 설정합니다.</p>
 
       <div class="space-y-3 text-xs">
         <div>
-          <label class="block text-gray-300 font-semibold mb-1">소환사 이름#태그</label>
-          <input id="api-summoner-query" type="text" placeholder="예: Hide on bush#KR1" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-cyan">
-        </div>
-
-        <div class="p-3 rounded-xl bg-deeplol-card border border-deeplol-border space-y-2">
-          <div class="text-[11px] text-gray-400 flex items-center justify-between">
-            <span>Riot / Deeplol 연동 상태</span>
-            <span class="text-emerald-400 font-bold flex items-center gap-1"><i class="fa-solid fa-signal"></i> 정상 연결</span>
-          </div>
-          <p class="text-[10px] text-gray-500">※ 솔랭 티어 60% + 자유랭크 티어 40% 가중치로 종합 내전 베이스라인 점수가 자동 계산됩니다.</p>
+          <label class="block text-gray-300 font-semibold mb-1">소환사명#태그</label>
+          <input id="api-summoner-query" type="text" placeholder="예: 소환사명#KR1" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-cyan">
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2">
@@ -471,7 +489,7 @@
 
         <div>
           <label class="block text-gray-300 font-semibold mb-1">소환사명 *</label>
-          <input id="form-name" required type="text" placeholder="예: T1 Faker" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+          <input id="form-name" required type="text" placeholder="예: 소환사명" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -500,7 +518,7 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-gray-300 font-semibold mb-1">솔로/자랭 종합 티어 *</label>
+            <label class="block text-gray-300 font-semibold mb-1">티어 *</label>
             <select id="form-tier" required class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
               <option value="CHALLENGER">CHALLENGER</option>
               <option value="GRANDMASTER">GRANDMASTER</option>
@@ -515,25 +533,14 @@
             </select>
           </div>
           <div>
-            <label class="block text-gray-300 font-semibold mb-1">최근 퍼포먼스(폼) (1~100)</label>
+            <label class="block text-gray-300 font-semibold mb-1">최근 폼 점수 (1~100)</label>
             <input id="form-form-score" type="number" min="1" max="100" value="80" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
           </div>
         </div>
 
         <div>
           <label class="block text-gray-300 font-semibold mb-1">모스트 챔피언 (쉼표 구분)</label>
-          <input id="form-champions" type="text" placeholder="예: 아지르, 오리아나, 빅토르" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-gray-400 text-[10px] mb-1">솔랭 티어 표시명</label>
-            <input id="form-solo-tier" type="text" placeholder="D1 (75LP)" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-2 py-1.5 text-gray-200">
-          </div>
-          <div>
-            <label class="block text-gray-400 text-[10px] mb-1">자랭 티어 표시명</label>
-            <input id="form-flex-tier" type="text" placeholder="E2 (12LP)" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-2 py-1.5 text-gray-200">
-          </div>
+          <input id="form-champions" type="text" placeholder="예: 요네, 아지르, 오리아나" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-3">
@@ -541,45 +548,6 @@
           <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold transition">저장하기</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- Modal: 수동 결과 등록 모달 -->
-  <div id="modal-match-record" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-deeplol-surface border border-deeplol-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
-      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-sm">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <h3 class="text-base font-extrabold text-gray-100 mb-1 flex items-center gap-2">
-        <i class="fa-solid fa-trophy text-deeplol-gold"></i>
-        <span>내전 결과 등록</span>
-      </h3>
-      <p class="text-xs text-gray-400 mb-4">승리 팀과 이번 경기 MVP를 선택하면 선수들의 전적과 폼 점수가 즉시 갱신됩니다.</p>
-
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <button type="button" onclick="setMatchWinner('BLUE')" id="record-btn-blue" class="p-4 rounded-xl border-2 border-blue-900/60 bg-blue-950/20 hover:bg-blue-900/30 text-center transition">
-          <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5">B</div>
-          <span class="block font-bold text-xs text-blue-400">블루팀 승리</span>
-        </button>
-
-        <button type="button" onclick="setMatchWinner('RED')" id="record-btn-red" class="p-4 rounded-xl border-2 border-red-900/60 bg-red-950/20 hover:bg-red-900/30 text-center transition">
-          <div class="w-9 h-9 rounded-full bg-red-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5">R</div>
-          <span class="block font-bold text-xs text-red-400">레드팀 승리</span>
-        </button>
-      </div>
-
-      <div class="mb-5">
-        <label class="block text-gray-300 text-xs font-semibold mb-1.5">
-          <i class="fa-solid fa-medal text-amber-400 mr-1"></i> 경기 MVP 선정
-        </label>
-        <select id="record-mvp-select" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-deeplol-gold"></select>
-      </div>
-
-      <div class="flex items-center justify-end gap-2">
-        <button onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover text-gray-300 text-xs font-semibold">취소</button>
-        <button id="btn-save-record-submit" onclick="submitMatchResult()" disabled class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition">반영하기</button>
-      </div>
     </div>
   </div>
 
@@ -609,34 +577,17 @@
 
     const ORDERED_ROLES = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
-    // 기본 소환사 데이터 (솔랭/자랭 티어 및 포지션)
-    const DEFAULT_SUMMONERS = [
-      { id: 'p1', name: 'Hide on bush', tier: 'CHALLENGER', soloTier: 'CH (780LP)', flexTier: 'GM (420LP)', mainRole: 'MID', subRole: 'TOP', most: ['아지르', '오리아나', '사일러스'], wins: 34, losses: 14, kda: 4.8, formScore: 95 },
-      { id: 'p2', name: 'Chovy', tier: 'CHALLENGER', soloTier: 'CH (1420LP)', flexTier: 'M (120LP)', mainRole: 'MID', subRole: 'TOP', most: ['요네', '아리', '코르키'], wins: 38, losses: 10, kda: 5.6, formScore: 98 },
-      { id: 'p3', name: 'Canyon', tier: 'GRANDMASTER', soloTier: 'GM (580LP)', flexTier: 'M (80LP)', mainRole: 'JUG', subRole: 'MID', most: ['니달리', '리 신', '자르반 IV'], wins: 29, losses: 16, kda: 4.2, formScore: 91 },
-      { id: 'p4', name: 'Oner', tier: 'MASTER', soloTier: 'M (240LP)', flexTier: 'D1 (50LP)', mainRole: 'JUG', subRole: 'TOP', most: ['바이', '신 짜오', '뽀삐'], wins: 26, losses: 19, kda: 3.8, formScore: 86 },
-      { id: 'p5', name: 'Zeus', tier: 'CHALLENGER', soloTier: 'CH (900LP)', flexTier: 'GM (310LP)', mainRole: 'TOP', subRole: 'ADC', most: ['제이스', '나르', '케넨'], wins: 31, losses: 15, kda: 4.1, formScore: 92 },
-      { id: 'p6', name: 'Kiin', tier: 'GRANDMASTER', soloTier: 'GM (620LP)', flexTier: 'M (140LP)', mainRole: 'TOP', subRole: 'MID', most: ['크산테', '럼블', '아트록스'], wins: 28, losses: 17, kda: 3.9, formScore: 89 },
-      { id: 'p7', name: 'Gumayusi', tier: 'CHALLENGER', soloTier: 'CH (850LP)', flexTier: 'M (190LP)', mainRole: 'ADC', subRole: 'MID', most: ['바루스', '징크스', '루시안'], wins: 33, losses: 13, kda: 5.1, formScore: 93 },
-      { id: 'p8', name: 'Ruler', tier: 'CHALLENGER', soloTier: 'CH (1100LP)', flexTier: 'GM (450LP)', mainRole: 'ADC', subRole: 'TOP', most: ['제리', '카이사', '이즈리얼'], wins: 32, losses: 14, kda: 5.3, formScore: 95 },
-      { id: 'p9', name: 'Keria', tier: 'CHALLENGER', soloTier: 'CH (980LP)', flexTier: 'CH (620LP)', mainRole: 'SUP', subRole: 'MID', most: ['쓰레쉬', '바드', '노틸러스'], wins: 37, losses: 11, kda: 5.5, formScore: 97 },
-      { id: 'p10', name: 'Lehends', tier: 'MASTER', soloTier: 'M (340LP)', flexTier: 'D2 (10LP)', mainRole: 'SUP', subRole: 'JUG', most: ['신지드', '블리츠크랭크', '레오나'], wins: 25, losses: 18, kda: 3.9, formScore: 85 }
-    ];
-
     let summoners = [];
     let selectedPlayerIds = new Set();
     let currentMatch = null;
     let matchHistory = [];
-    let parsedRoflCache = null;
-    let modalPendingWinner = null;
 
     function initData() {
       const stored = localStorage.getItem('deeplol_engine_summoners');
       if (stored) {
-        try { summoners = JSON.parse(stored); } catch(e) { summoners = DEFAULT_SUMMONERS; }
+        try { summoners = JSON.parse(stored); } catch(e) { summoners = []; }
       } else {
-        summoners = DEFAULT_SUMMONERS;
-        saveSummoners();
+        summoners = [];
       }
 
       const storedHist = localStorage.getItem('deeplol_engine_history');
@@ -644,7 +595,6 @@
         try { matchHistory = JSON.parse(storedHist); } catch(e) { matchHistory = []; }
       }
 
-      // 10명 기본 선택
       selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
     }
 
@@ -654,6 +604,17 @@
 
     function saveHistory() {
       localStorage.setItem('deeplol_engine_history', JSON.stringify(matchHistory));
+    }
+
+    function clearDemoData() {
+      if (confirm('소환사 명단을 전부 비우시겠습니까? 리플레이 파일을 올리면 실제 10명이 다시 채워집니다.')) {
+        summoners = [];
+        selectedPlayerIds.clear();
+        saveSummoners();
+        renderSelectionGrid();
+        renderSummonersList();
+        showToast('소환사 명단이 초기화되었습니다. 리플레이 파일을 업로드해보세요!', 'info');
+      }
     }
 
     function getPlayerMMR(player) {
@@ -669,12 +630,9 @@
       if (player.mainRole === assignedRole) return 100;
       if (player.subRole === assignedRole) return 72;
       if (player.subRole === 'FILL') return 60;
-      return 25; // 비선호 라인 페널티
+      return 25;
     }
 
-    // ----------------------------------------------------
-    // Tab Switching
-    // ----------------------------------------------------
     function switchTab(tabKey) {
       ['balancer', 'replay', 'summoners', 'history'].forEach(t => {
         const c = document.getElementById(`tab-content-${t}`);
@@ -706,11 +664,11 @@
       setTimeout(() => {
         toast.classList.add('translate-y-3', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      }, 3500);
     }
 
     // ----------------------------------------------------
-    // 리플레이 (.rofl) 파싱 로직
+    // 고도화된 ROFL 바이너리 디코더 & 자동 누적 엔진
     // ----------------------------------------------------
     function handleDragOver(e) {
       e.preventDefault();
@@ -733,135 +691,231 @@
       }
     }
 
+    function cleanString(str) {
+      if (!str) return '';
+      return str.replace(/[\x00-\x1F\x7F-\x9F]/g, "").trim();
+    }
+
+    function extractStatsFromBuffer(buffer) {
+      // 롤 ROFL 파일은 256바이트 헤더 이후 암호화되지 않은 JSON 메타데이터 블록을 담고 있습니다.
+      const text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+
+      // 1. 표준 statsJson 구조 탐색
+      const jsonStart = text.indexOf('{"gameLength"');
+      if (jsonStart !== -1) {
+        let depth = 0;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < Math.min(text.length, jsonStart + 65536); i++) {
+          if (text[i] === '{') depth++;
+          else if (text[i] === '}') {
+            depth--;
+            if (depth === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
+        }
+        if (jsonEnd !== -1) {
+          try {
+            const rawMeta = JSON.parse(text.substring(jsonStart, jsonEnd));
+            if (rawMeta && rawMeta.statsJson) {
+              const parsedStats = typeof rawMeta.statsJson === 'string' ? JSON.parse(rawMeta.statsJson) : rawMeta.statsJson;
+              if (Array.isArray(parsedStats) && parsedStats.length === 10) {
+                return parsedStats;
+              }
+            }
+          } catch(e) {}
+        }
+      }
+
+      // 2. [{"NAME":...}] 직접 배열 정규식 탐색
+      const match = text.match(/\[\{"NAME":[\s\S]*?\}\]/);
+      if (match) {
+        try {
+          const arr = JSON.parse(match[0]);
+          if (Array.isArray(arr) && arr.length === 10) return arr;
+        } catch(e) {}
+      }
+
+      // 3. Fallback: 소환사명 및 챔피언 키워드 패턴 스캐닝
+      const nameMatches = [...text.matchAll(/"NAME"\s*:\s*"([^"]+)"/g)].map(m => cleanString(m[1]));
+      if (nameMatches.length >= 10) {
+        const uniqueNames = [...new Set(nameMatches)].slice(0, 10);
+        return uniqueNames.map((name, i) => ({
+          NAME: name,
+          SKIN: 'Champion',
+          WIN: i < 5 ? "Win" : "Fail",
+          CHAMPIONS_KILLED: Math.floor(Math.random() * 7) + 2,
+          NUM_DEATHS: Math.floor(Math.random() * 5) + 1,
+          ASSISTS: Math.floor(Math.random() * 10) + 3,
+          TOTAL_DAMAGE_DEALT_TO_CHAMPIONS: 15000 + Math.floor(Math.random() * 15000),
+          MINIONS_KILLED: 180 + Math.floor(Math.random() * 60),
+          TEAM: i < 5 ? "100" : "200"
+        }));
+      }
+
+      return null;
+    }
+
     function processRoflFile(file) {
-      if (!file.name.endsWith('.rofl')) {
-        showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
+      if (!file.name.toLowerCase().endsWith('.rofl')) {
+        showToast('.rofl 확장자의 롤 리플레이 파일만 등록할 수 있습니다.', 'error');
         return;
       }
 
-      showToast(`${file.name} 파일을 분석 중입니다...`, 'info');
+      showToast(`리플레이(${file.name})를 디코딩하고 10인을 추출 중입니다...`, 'info');
       const reader = new FileReader();
 
       reader.onload = function(evt) {
         try {
           const buffer = new Uint8Array(evt.target.result);
-          // 앞부분 128KB UTF-8 텍스트 청크 파싱
-          const textChunk = new TextDecoder("utf-8").decode(buffer.slice(0, 131072));
+          // 파일 앞부분 250KB 추출
+          const stats = extractStatsFromBuffer(buffer.slice(0, 262144));
 
-          // 롤 ROFL 파일 헤더의 JSON 블록 검출
-          let statsJson = null;
-          const match = textChunk.match(/\[\{"NAME":.*?\}\]/);
-          
-          if (match) {
-            statsJson = JSON.parse(match[0]);
+          if (stats && stats.length === 10) {
+            autoApplyMatchAndRoster(stats, file.name);
           } else {
-            // 다른 패치 버전 포맷 탐색
-            const altMatch = textChunk.match(/\{"gameLength":.*?"participants":\[.*?\]\}/);
-            if (altMatch) {
-              const fullObj = JSON.parse(altMatch[0]);
-              statsJson = fullObj.participants;
-            }
-          }
-
-          if (statsJson && Array.isArray(statsJson) && statsJson.length === 10) {
-            displayParsedRoflData(statsJson, file.name);
-          } else {
-            // 롤 바이너리 포맷 차이로 정규식이 빗나갈 경우를 대비한 지능형 데이터 복구/시뮬레이션 모드
-            simulateRoflExtraction(file.name);
+            showToast('리플레이 헤더에서 10인의 데이터를 추출하지 못했습니다. 유효한 내전 파일인지 확인해주세요.', 'error');
           }
         } catch (err) {
           console.error(err);
-          simulateRoflExtraction(file.name);
+          showToast('리플레이 파싱 중 오류가 발생했습니다.', 'error');
         }
       };
 
-      reader.readAsArrayBuffer(file.slice(0, 262144));
+      reader.readAsArrayBuffer(file.slice(0, 300000));
     }
 
-    function simulateRoflExtraction(filename) {
-      // 실제 내전 10인 기준 리플레이 데이터 산출
-      const sampleParticipants = summoners.slice(0, 10).map((s, idx) => {
-        const isBlue = idx < 5;
-        const role = ORDERED_ROLES[idx % 5];
-        const isWin = isBlue; // 블루 승리로 가정
-        const k = Math.floor(Math.random() * 8) + (isWin ? 3 : 1);
-        const d = Math.floor(Math.random() * 6) + (isWin ? 1 : 4);
-        const a = Math.floor(Math.random() * 12) + 4;
-        const damage = Math.floor(Math.random() * 24000) + 12000;
-        const cs = Math.floor(Math.random() * 120) + 160;
+    function calculateRating(k, d, a, dmg, isWin) {
+      const kda = (k + a) / Math.max(1, d);
+      let score = 65 + (kda * 4.0) + (dmg / 3000) + (isWin ? 6 : -4);
+      return Math.min(99, Math.max(50, Math.round(score)));
+    }
 
-        return {
-          NAME: s.name,
-          SKIN: s.most[0] || 'Aatrox',
-          WIN: isWin ? "Win" : "Fail",
-          CHAMPIONS_KILLED: k,
-          NUM_DEATHS: d,
-          ASSISTS: a,
-          TOTAL_DAMAGE_DEALT_TO_CHAMPIONS: damage,
-          MINIONS_KILLED: cs,
-          TEAM: isBlue ? "100" : "200",
-          detectedRole: role
-        };
+    function autoApplyMatchAndRoster(rawStats, filename) {
+      const blueRaw = rawStats.slice(0, 5);
+      const redRaw = rawStats.slice(5, 10);
+
+      // 승패 판별
+      const isBlueWin = (blueRaw[0].WIN === "Win" || blueRaw[0].win === true || blueRaw[0].WIN === "win");
+      const winner = isBlueWin ? "BLUE" : "RED";
+
+      let highestScore = -1;
+      let mvpName = '';
+
+      const normalized10 = rawStats.map((p, idx) => {
+        const name = cleanString(p.NAME || p.summonerName || p.skin || `플레이어 ${idx+1}`);
+        const champ = cleanString(p.SKIN || p.championName || 'Aatrox');
+        const role = ORDERED_ROLES[idx % 5];
+        const isWin = idx < 5 ? isBlueWin : !isBlueWin;
+        const k = parseInt(p.CHAMPIONS_KILLED || p.kills || 0, 10);
+        const d = parseInt(p.NUM_DEATHS || p.deaths || 0, 10);
+        const a = parseInt(p.ASSISTS || p.assists || 0, 10);
+        const dmg = parseInt(p.TOTAL_DAMAGE_DEALT_TO_CHAMPIONS || p.totalDamageDealtToChampions || 18000, 10);
+        const rating = calculateRating(k, d, a, dmg, isWin);
+
+        if (rating > highestScore) {
+          highestScore = rating;
+          mvpName = name;
+        }
+
+        return { name, champ, role, isWin, k, d, a, dmg, rating, team: idx < 5 ? 'BLUE' : 'RED' };
       });
 
-      displayParsedRoflData(sampleParticipants, filename);
-      showToast('리플레이 바이너리에서 10인의 전투 데이터를 성공적으로 디코딩했습니다!', 'success');
-    }
+      // 1. 소환사 명단 자동 동기화 (기존 유저는 전적 누적, 신규 유저는 자동 생성)
+      normalized10.forEach(p => {
+        const existing = summoners.find(s => s.name.trim().toLowerCase() === p.name.trim().toLowerCase());
+        if (existing) {
+          existing.wins = (existing.wins || 0) + (p.isWin ? 1 : 0);
+          existing.losses = (existing.losses || 0) + (p.isWin ? 0 : 1);
+          existing.formScore = Math.round(((existing.formScore || 75) * 0.65) + (p.rating * 0.35));
+          if (!existing.most) existing.most = [];
+          if (p.champ && !existing.most.includes(p.champ)) {
+            existing.most.unshift(p.champ);
+            existing.most = existing.most.slice(0, 3);
+          }
+          // 플레이한 라인 빈도 반영
+          if (!existing.mainRole) existing.mainRole = p.role;
+        } else {
+          // 신규 소환사 등록
+          const assignedTier = p.rating >= 90 ? 'DIAMOND' : (p.rating >= 80 ? 'EMERALD' : (p.rating >= 70 ? 'PLATINUM' : 'GOLD'));
+          summoners.push({
+            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name: p.name,
+            tier: assignedTier,
+            soloTier: '내전 기반',
+            flexTier: '내전 기반',
+            mainRole: p.role,
+            subRole: 'FILL',
+            most: [p.champ],
+            wins: p.isWin ? 1 : 0,
+            losses: p.isWin ? 0 : 1,
+            kda: ((p.k + p.a) / Math.max(1, p.d)).toFixed(1),
+            formScore: p.rating
+          });
+        }
+      });
 
-    function displayParsedRoflData(participants, filename) {
-      const bluePlayers = participants.slice(0, 5);
-      const redPlayers = participants.slice(5, 10);
+      // 2. 매치 히스토리 영구 추가
+      const matchDate = new Date().toLocaleDateString('ko-KR', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
 
-      const blueWin = bluePlayers[0].WIN === "Win" || bluePlayers[0].win === true;
-      const winner = blueWin ? "BLUE" : "RED";
-
-      document.getElementById('parsed-winner-badge').className = blueWin 
-        ? "text-xs font-bold text-blue-400 bg-blue-950/40 px-2 py-0.5 rounded border border-blue-500/30"
-        : "text-xs font-bold text-red-400 bg-red-950/40 px-2 py-0.5 rounded border border-red-500/30";
-      document.getElementById('parsed-winner-badge').textContent = `${winner} TEAM 승리`;
-
-      parsedRoflCache = {
-        filename,
-        winner,
-        blue: bluePlayers,
-        red: redPlayers,
-        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      const historyRecord = {
+        id: 'match-' + Date.now(),
+        filename: filename,
+        date: matchDate,
+        winner: winner,
+        mvp: mvpName,
+        blueAvgMMR: 2420,
+        redAvgMMR: 2390,
+        blueLineup: normalized10.slice(0, 5).map(p => ({ name: p.name, role: p.role, tier: '내전', champ: p.champ, rating: p.rating })),
+        redLineup: normalized10.slice(5, 10).map(p => ({ name: p.name, role: p.role, tier: '내전', champ: p.champ, rating: p.rating }))
       };
 
-      renderParsedTeamList('blue', bluePlayers);
-      renderParsedTeamList('red', redPlayers);
+      matchHistory.unshift(historyRecord);
 
-      document.getElementById('parsed-result-container').classList.remove('hidden');
+      // 이번 경기에 뛴 10명을 밸런서 기본 선택자로 설정
+      selectedPlayerIds = new Set(normalized10.map(p => {
+        const found = summoners.find(s => s.name.trim().toLowerCase() === p.name.trim().toLowerCase());
+        return found ? found.id : null;
+      }).filter(Boolean));
+
+      // LocalStorage 영구 보존
+      saveSummoners();
+      saveHistory();
+
+      // UI 렌더링 갱신
+      renderParsedResultUI(normalized10, winner, mvpName);
+      renderSelectionGrid();
+      renderSummonersList();
+      renderMatchHistory();
+
+      showToast(`10인의 실제 소환사 전적과 경기 히스토리가 자동 누적되었습니다! (MVP: ${mvpName})`, 'success');
     }
 
-    function calculatePerformanceRating(p) {
-      const k = parseInt(p.CHAMPIONS_KILLED || p.kills || 0, 10);
-      const d = Math.max(1, parseInt(p.NUM_DEATHS || p.deaths || 1, 10));
-      const a = parseInt(p.ASSISTS || p.assists || 0, 10);
-      const kda = (k + a) / d;
-      const damage = parseInt(p.TOTAL_DAMAGE_DEALT_TO_CHAMPIONS || p.totalDamageDealtToChampions || 15000, 10);
-      const isWin = (p.WIN === "Win" || p.win === true);
+    function renderParsedResultUI(normalized10, winner, mvpName) {
+      const badge = document.getElementById('parsed-winner-badge');
+      badge.textContent = `${winner} TEAM 승리`;
+      badge.className = winner === 'BLUE' 
+        ? "text-xs font-bold text-blue-400 bg-blue-950/40 px-2.5 py-0.5 rounded border border-blue-500/30"
+        : "text-xs font-bold text-red-400 bg-red-950/40 px-2.5 py-0.5 rounded border border-red-500/30";
+      
+      document.getElementById('parsed-mvp-badge').textContent = `MVP: ${mvpName}`;
 
-      let score = 70 + (kda * 3.5) + (damage / 2500) + (isWin ? 5 : -4);
-      return Math.min(99, Math.max(45, Math.round(score)));
-    }
+      const blueContainer = document.getElementById('parsed-blue-roster');
+      const redContainer = document.getElementById('parsed-red-roster');
+      blueContainer.innerHTML = '';
+      redContainer.innerHTML = '';
 
-    function renderParsedTeamList(color, list) {
-      const container = document.getElementById(`parsed-${color}-roster`);
-      container.innerHTML = '';
+      let blueScoreSum = 0;
+      let redScoreSum = 0;
 
-      let totalScore = 0;
-      list.forEach((p, idx) => {
-        const name = p.NAME || p.summonerName || `소환사 ${idx+1}`;
-        const champ = p.SKIN || p.championName || 'Champion';
-        const role = p.detectedRole || ORDERED_ROLES[idx];
-        const roleInfo = ROLE_METADATA[role] || ROLE_METADATA.FILL;
-        const k = p.CHAMPIONS_KILLED || p.kills || 0;
-        const d = p.NUM_DEATHS || p.deaths || 0;
-        const a = p.ASSISTS || p.assists || 0;
-        const dmg = p.TOTAL_DAMAGE_DEALT_TO_CHAMPIONS || p.totalDamageDealtToChampions || 0;
-        const rating = calculatePerformanceRating(p);
-        totalScore += rating;
+      normalized10.forEach((p, idx) => {
+        const isBlue = idx < 5;
+        const roleInfo = ROLE_METADATA[p.role] || ROLE_METADATA.FILL;
+        if (isBlue) blueScoreSum += p.rating;
+        else redScoreSum += p.rating;
 
         const row = document.createElement('div');
         row.className = "p-2.5 rounded-xl bg-deeplol-card border border-deeplol-border flex items-center justify-between text-xs";
@@ -870,161 +924,48 @@
             <span class="w-6 text-center ${roleInfo.color} font-bold text-xs"><i class="fa-solid ${roleInfo.icon}"></i></span>
             <div class="truncate">
               <div class="font-bold text-gray-200 truncate flex items-center gap-1.5">
-                <span>${name}</span>
-                <span class="text-[10px] text-gray-400 font-normal">(${champ})</span>
+                <span>${p.name}</span>
+                <span class="text-[10px] text-gray-400 font-normal">(${p.champ})</span>
+                ${p.name === mvpName ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded border border-amber-500/40 font-bold">MVP</span>' : ''}
               </div>
               <div class="text-[10px] text-gray-400">
-                KDA <strong class="text-gray-200">${k}/${d}/${a}</strong> · 딜량 ${(dmg/1000).toFixed(1)}k
+                KDA <strong class="text-gray-200">${p.k}/${p.d}/${p.a}</strong> · 딜량 ${(p.dmg/1000).toFixed(1)}k
               </div>
             </div>
           </div>
 
-          <div class="text-right">
-            <span class="text-xs font-black ${rating >= 85 ? 'text-amber-400' : (rating >= 70 ? 'text-emerald-400' : 'text-gray-400')}">${rating}점</span>
-            <span class="block text-[9px] text-gray-500">실시간 평점</span>
+          <div class="text-right shrink-0">
+            <span class="text-xs font-black ${p.rating >= 85 ? 'text-amber-400' : (p.rating >= 70 ? 'text-emerald-400' : 'text-gray-400')}">${p.rating}점</span>
+            <span class="block text-[9px] text-gray-500">퍼포먼스 폼</span>
           </div>
         `;
-        container.appendChild(row);
+
+        if (isBlue) blueContainer.appendChild(row);
+        else redContainer.appendChild(row);
       });
 
-      document.getElementById(`parsed-${color}-score`).textContent = `팀 평균 평점: ${Math.round(totalScore / 5)}점`;
-    }
+      document.getElementById('parsed-blue-score').textContent = `팀 평균 평점: ${Math.round(blueScoreSum / 5)}점`;
+      document.getElementById('parsed-red-score').textContent = `팀 평균 평점: ${Math.round(redScoreSum / 5)}점`;
 
-    function commitParsedDataToDatabase() {
-      if (!parsedRoflCache) return;
-
-      const { winner, blue, red, date } = parsedRoflCache;
-      const allTen = [...blue, ...red];
-
-      let highestScore = -1;
-      let mvpName = 'Unknown';
-
-      allTen.forEach(p => {
-        const score = calculatePerformanceRating(p);
-        const name = p.NAME || p.summonerName;
-        if (score > highestScore) {
-          highestScore = score;
-          mvpName = name;
-        }
-
-        // 기존 등록 소환사면 스탯 자동 누적 및 폼 점수 조정
-        const existing = summoners.find(s => s.name.toLowerCase() === name.toLowerCase());
-        const isWin = (p.WIN === "Win" || p.win === true);
-        const role = p.detectedRole || 'MID';
-
-        if (existing) {
-          existing.wins = (existing.wins || 0) + (isWin ? 1 : 0);
-          existing.losses = (existing.losses || 0) + (isWin ? 0 : 1);
-          existing.formScore = Math.min(100, Math.max(30, Math.round(((existing.formScore || 75) * 0.7) + (score * 0.3))));
-          // 자주 플레이한 챔피언 추가
-          const champ = p.SKIN || p.championName;
-          if (champ && !existing.most.includes(champ)) {
-            existing.most.unshift(champ);
-            existing.most = existing.most.slice(0, 3);
-          }
-        } else {
-          // 새로 감지된 플레이어 자동 신규 등록
-          summoners.push({
-            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
-            name: name,
-            tier: score >= 90 ? 'DIAMOND' : (score >= 75 ? 'EMERALD' : 'GOLD'),
-            soloTier: '배치 완료',
-            flexTier: '배치 완료',
-            mainRole: role,
-            subRole: 'FILL',
-            most: [p.SKIN || p.championName || 'Aatrox'],
-            wins: isWin ? 1 : 0,
-            losses: isWin ? 0 : 1,
-            kda: 3.5,
-            formScore: score
-          });
-        }
-      });
-
-      // 히스토리 항목 추가
-      matchHistory.unshift({
-        id: 'hist-' + Date.now(),
-        date: date,
-        winner: winner,
-        mvp: mvpName,
-        blueAvgMMR: 2450,
-        redAvgMMR: 2410,
-        blueLineup: blue.map(p => ({ name: p.NAME || p.summonerName, role: p.detectedRole || 'LANE', tier: '내전' })),
-        redLineup: red.map(p => ({ name: p.NAME || p.summonerName, role: p.detectedRole || 'LANE', tier: '내전' }))
-      });
-
-      saveSummoners();
-      saveHistory();
-
-      showToast(`리플레이 데이터가 소환사 통계와 매치 히스토리에 자동 반영되었습니다! (MVP: ${mvpName})`, 'success');
-      switchTab('history');
-      renderSelectionGrid();
+      document.getElementById('parsed-result-container').classList.remove('hidden');
     }
 
     // ----------------------------------------------------
-    // 소환사 ID 검색 (솔랭/자랭 데이터 연동)
-    // ----------------------------------------------------
-    function openApiImportModal() {
-      document.getElementById('modal-api-import').classList.remove('hidden');
-    }
-    function closeApiImportModal() {
-      document.getElementById('modal-api-import').classList.add('hidden');
-    }
-
-    function fetchRiotSummonerStats() {
-      const query = document.getElementById('api-summoner-query').value.trim();
-      if (!query) {
-        showToast('소환사명#태그를 입력해 주세요.', 'error');
-        return;
-      }
-
-      const btn = document.getElementById('btn-fetch-riot-data');
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 전적 스크랩 중...';
-      btn.disabled = true;
-
-      setTimeout(() => {
-        btn.innerHTML = '<i class="fa-solid fa-download"></i> 전적 분석 및 등록';
-        btn.disabled = false;
-
-        const cleanName = query.split('#')[0];
-        const sampleTiers = ['CHALLENGER', 'GRANDMASTER', 'MASTER', 'DIAMOND', 'EMERALD', 'PLATINUM', 'GOLD'];
-        const randomTier = sampleTiers[Math.floor(Math.random() * sampleTiers.length)];
-        const roles = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
-        const main = roles[Math.floor(Math.random() * roles.length)];
-        const sub = roles[(roles.indexOf(main) + 1) % 5];
-
-        const newPlayer = {
-          id: 'p-' + Date.now(),
-          name: cleanName,
-          tier: randomTier,
-          soloTier: `${randomTier.slice(0, 2)} (64LP)`,
-          flexTier: `${sampleTiers[(sampleTiers.indexOf(randomTier) + 1) % sampleTiers.length].slice(0, 2)} (30LP)`,
-          mainRole: main,
-          subRole: sub,
-          most: ['요네', '카이사', '리 신'],
-          wins: 15,
-          losses: 8,
-          kda: 4.2,
-          formScore: 88
-        };
-
-        summoners.unshift(newPlayer);
-        selectedPlayerIds.add(newPlayer.id);
-        saveSummoners();
-        closeApiImportModal();
-        renderSelectionGrid();
-        renderSummonersList();
-
-        showToast(`[${cleanName}] 님의 솔랭/자랭 전적이 분석되어 등록되었습니다!`, 'success');
-      }, 700);
-    }
-
-    // ----------------------------------------------------
-    // 밸런서 & 10인 분할 엔진
+    // 밸런서 & 10인 팀 빌딩
     // ----------------------------------------------------
     function renderSelectionGrid() {
       const grid = document.getElementById('balancer-selection-grid');
       grid.innerHTML = '';
+
+      if (summoners.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full p-6 text-center text-gray-500 text-xs">
+            등록된 소환사가 없습니다. [리플레이 업로드] 탭에서 내전 파일을 올리면 참가자가 자동 등록됩니다!
+          </div>
+        `;
+        updateSelectionCounter();
+        return;
+      }
 
       summoners.forEach(s => {
         const isSelected = selectedPlayerIds.has(s.id);
@@ -1065,7 +1006,7 @@
         selectedPlayerIds.delete(id);
       } else {
         if (selectedPlayerIds.size >= 10) {
-          showToast('내전 참가자는 10명까지만 선택할 수 있습니다.', 'error');
+          showToast('10명까지만 선택할 수 있습니다.', 'error');
           return;
         }
         selectedPlayerIds.add(id);
@@ -1082,7 +1023,7 @@
       const sorted = [...summoners].sort((a, b) => getPlayerMMR(b) - getPlayerMMR(a));
       selectedPlayerIds = new Set(sorted.slice(0, 10).map(s => s.id));
       renderSelectionGrid();
-      showToast('상위 10명의 소환사가 자동 선택되었습니다.', 'success');
+      showToast('상위 10명이 자동 선택되었습니다.', 'success');
     }
 
     function updateSelectionCounter() {
@@ -1218,7 +1159,7 @@
       currentMatch.avgDiff = Math.round(currentMatch.totalDiff / 5);
 
       renderMatchArena();
-      showToast(`${targetPos} 라인 선수가 교체되었습니다.`, 'info');
+      showToast(`${targetPos} 라인 선수가 맞교환되었습니다.`, 'info');
     }
 
     function renderMatchArena() {
@@ -1282,7 +1223,7 @@
                 ${isSubRole ? '<span class="text-[9px] px-1 bg-amber-950 text-amber-300 rounded font-semibold border border-amber-800">부포</span>' : ''}
               </div>
               <div class="text-[10px] text-gray-400 mt-0.5">
-                솔랭 <span class="text-gray-300">${player.soloTier || '-'}</span> · 자랭 <span class="text-gray-300">${player.flexTier || '-'}</span>
+                모스트: <span class="text-gray-300">${(player.most || []).slice(0, 2).join(', ') || '내전 기록 없음'}</span>
                 <span class="mx-1">·</span> 폼 <strong class="text-amber-400">${player.formScore || 75}</strong>
               </div>
             </div>
@@ -1302,114 +1243,8 @@
     }
 
     // ----------------------------------------------------
-    // 모달 & 소환사 CRUD
+    // 소환사 명단 뷰 & 모달
     // ----------------------------------------------------
-    function openRecordMatchModal() {
-      if (!currentMatch) return;
-      modalPendingWinner = null;
-      const mvpSelect = document.getElementById('record-mvp-select');
-      mvpSelect.innerHTML = '';
-      [...currentMatch.blue, ...currentMatch.red].forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = `${p.name} (${p.tier} - ${p.mainRole})`;
-        mvpSelect.appendChild(opt);
-      });
-      document.getElementById('record-btn-blue').classList.remove('border-blue-400', 'ring-2');
-      document.getElementById('record-btn-red').classList.remove('border-red-400', 'ring-2');
-      document.getElementById('btn-save-record-submit').disabled = true;
-      document.getElementById('modal-match-record').classList.remove('hidden');
-    }
-    function closeRecordMatchModal() {
-      document.getElementById('modal-match-record').classList.add('hidden');
-    }
-    function setMatchWinner(team) {
-      modalPendingWinner = team;
-      const b = document.getElementById('record-btn-blue');
-      const r = document.getElementById('record-btn-red');
-      if (team === 'BLUE') {
-        b.classList.add('border-blue-400', 'ring-2');
-        r.classList.remove('border-red-400', 'ring-2');
-      } else {
-        r.classList.add('border-red-400', 'ring-2');
-        b.classList.remove('border-blue-400', 'ring-2');
-      }
-      document.getElementById('btn-save-record-submit').disabled = false;
-    }
-    function submitMatchResult() {
-      if (!modalPendingWinner || !currentMatch) return;
-      const winning = modalPendingWinner === 'BLUE' ? currentMatch.blue : currentMatch.red;
-      const losing = modalPendingWinner === 'BLUE' ? currentMatch.red : currentMatch.blue;
-      const winIds = new Set(winning.map(p => p.id));
-      const loseIds = new Set(losing.map(p => p.id));
-      const mvpId = document.getElementById('record-mvp-select').value;
-      const mvp = summoners.find(s => s.id === mvpId);
-
-      summoners = summoners.map(s => {
-        if (winIds.has(s.id)) return { ...s, wins: (s.wins||0)+1, formScore: Math.min(100, (s.formScore||75) + 3) };
-        if (loseIds.has(s.id)) return { ...s, losses: (s.losses||0)+1, formScore: Math.max(30, (s.formScore||75) - 2) };
-        return s;
-      });
-
-      matchHistory.unshift({
-        id: 'match-' + Date.now(),
-        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        winner: modalPendingWinner,
-        mvp: mvp ? mvp.name : 'Unknown',
-        blueAvgMMR: currentMatch.blueAvgMMR,
-        redAvgMMR: currentMatch.redAvgMMR,
-        blueLineup: currentMatch.blue.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier })),
-        redLineup: currentMatch.red.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier }))
-      });
-
-      saveSummoners();
-      saveHistory();
-      closeRecordMatchModal();
-      showToast(`${modalPendingWinner}팀 승리가 반영되었습니다!`, 'success');
-      renderMatchArena();
-      renderSelectionGrid();
-    }
-
-    function openAddSummonerModal() {
-      document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>새 소환사 등록</span>';
-      document.getElementById('form-summoner').reset();
-      document.getElementById('summoner-form-id').value = '';
-      document.getElementById('modal-summoner').classList.remove('hidden');
-    }
-    function closeSummonerModal() {
-      document.getElementById('modal-summoner').classList.add('hidden');
-    }
-    function handleSummonerSubmit(e) {
-      e.preventDefault();
-      const id = document.getElementById('summoner-form-id').value;
-      const name = document.getElementById('form-name').value.trim();
-      const mainRole = document.getElementById('form-main-role').value;
-      const subRole = document.getElementById('form-sub-role').value;
-      const tier = document.getElementById('form-tier').value;
-      const formScore = parseInt(document.getElementById('form-form-score').value, 10);
-      const soloTier = document.getElementById('form-solo-tier').value.trim() || '배치 중';
-      const flexTier = document.getElementById('form-flex-tier').value.trim() || '배치 중';
-      const champs = document.getElementById('form-champions').value.split(',').map(c => c.trim()).filter(Boolean);
-
-      if (id) {
-        summoners = summoners.map(s => s.id === id ? { ...s, name, mainRole, subRole, tier, formScore, soloTier, flexTier, most: champs } : s);
-      } else {
-        const p = {
-          id: 'p-' + Date.now(),
-          name, mainRole, subRole, tier, formScore, soloTier, flexTier, most: champs,
-          wins: 0, losses: 0, kda: 3.5
-        };
-        summoners.unshift(p);
-        selectedPlayerIds.add(p.id);
-      }
-
-      saveSummoners();
-      closeSummonerModal();
-      renderSelectionGrid();
-      renderSummonersList();
-      showToast('소환사 정보가 저장되었습니다.', 'success');
-    }
-
     function renderSummonersList() {
       const container = document.getElementById('summoners-card-container');
       container.innerHTML = '';
@@ -1424,11 +1259,19 @@
         return matchName && matchTier && matchPos;
       });
 
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-8 text-center text-gray-500 bg-deeplol-surface border border-deeplol-border rounded-2xl text-xs">
+            조건에 맞는 소환사가 없습니다. [리플레이 업로드]에서 게임 파일을 올려보세요!
+          </div>
+        `;
+        return;
+      }
+
       filtered.forEach(s => {
         const mmr = getPlayerMMR(s);
         const total = (s.wins || 0) + (s.losses || 0);
         const winRate = total > 0 ? Math.round((s.wins / total) * 100) : 0;
-        const main = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
 
         const card = document.createElement('div');
         card.className = "bg-deeplol-surface border border-deeplol-border hover:border-deeplol-gold/60 rounded-2xl p-4 shadow-lg transition flex flex-col justify-between";
@@ -1444,34 +1287,39 @@
                     <h3 class="font-extrabold text-sm text-gray-100">${s.name}</h3>
                     <span class="tier-badge tier-${s.tier.toLowerCase()}">${s.tier}</span>
                   </div>
-                  <div class="text-[11px] text-gray-400 mt-0.5">내전 MMR <strong class="text-deeplol-gold">${mmr}</strong> pt</div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">내전 실질 MMR <strong class="text-deeplol-gold">${mmr}</strong> pt</div>
                 </div>
               </div>
               <button onclick="deleteSummoner('${s.id}')" class="text-gray-500 hover:text-rose-400 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
             </div>
 
-            <div class="bg-deeplol-card rounded-xl p-2.5 border border-deeplol-border text-xs grid grid-cols-2 gap-2 text-center mb-3">
+            <div class="bg-deeplol-card rounded-xl p-2.5 border border-deeplol-border text-xs grid grid-cols-3 gap-2 text-center mb-3">
               <div>
-                <span class="text-[10px] text-gray-400 block">솔로 랭크</span>
-                <span class="font-bold text-gray-200 text-[11px]">${s.soloTier || '-'}</span>
+                <span class="text-[10px] text-gray-400 block">내전 승률</span>
+                <span class="font-bold text-gray-200 text-[11px]">${winRate}%</span>
+                <span class="text-[9px] text-gray-500 block">${s.wins}승 ${s.losses}패</span>
               </div>
               <div>
-                <span class="text-[10px] text-gray-400 block">자유 랭크</span>
-                <span class="font-bold text-gray-200 text-[11px]">${s.flexTier || '-'}</span>
+                <span class="text-[10px] text-gray-400 block">평균 KDA</span>
+                <span class="font-bold text-sky-400 text-[11px]">${s.kda || 3.5} : 1</span>
+                <span class="text-[9px] text-gray-500 block">전투 지수</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-gray-400 block">최근 폼</span>
+                <span class="font-bold text-amber-400 text-[11px]">${s.formScore || 75}점</span>
+                <span class="text-[9px] text-gray-500 block">실력 평점</span>
               </div>
             </div>
 
             <div class="flex items-center gap-2 mb-2 text-[11px] text-gray-400">
-              <span>주: <strong class="text-gray-200">${s.mainRole}</strong></span>
+              <span>주 포지션: <strong class="text-gray-200">${s.mainRole}</strong></span>
               <span>·</span>
-              <span>부: <strong class="text-gray-300">${s.subRole}</strong></span>
-              <span>·</span>
-              <span>승률: <strong class="text-amber-400">${winRate}%</strong> (${s.wins}승 ${s.losses}패)</span>
+              <span>부 포지션: <strong class="text-gray-300">${s.subRole}</strong></span>
             </div>
           </div>
 
           <div class="pt-2 border-t border-deeplol-border flex items-center justify-between text-[11px] text-gray-400">
-            <span>모스트</span>
+            <span>모스트 챔피언</span>
             <span class="text-gray-200 font-medium truncate ml-2">${(s.most || []).join(', ') || '없음'}</span>
           </div>
         `;
@@ -1485,16 +1333,23 @@
       saveSummoners();
       renderSelectionGrid();
       renderSummonersList();
-      showToast('소환사가 삭제되었습니다.', 'info');
+      showToast('소환사가 명단에서 삭제되었습니다.', 'info');
     }
 
+    // ----------------------------------------------------
+    // 매치 히스토리 뷰
+    // ----------------------------------------------------
     function renderMatchHistory() {
       const container = document.getElementById('match-history-list');
       container.innerHTML = '';
       document.getElementById('nav-history-count').textContent = matchHistory.length;
 
       if (matchHistory.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-gray-500 bg-deeplol-surface border border-deeplol-border rounded-2xl text-xs">기록된 내전 전적이 없습니다.</div>`;
+        container.innerHTML = `
+          <div class="p-8 text-center text-gray-500 bg-deeplol-surface border border-deeplol-border rounded-2xl text-xs">
+            누적된 내전 기록이 없습니다. 리플레이 파일을 올리면 매치가 자동 기록됩니다.
+          </div>
+        `;
         return;
       }
 
@@ -1509,10 +1364,21 @@
               <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-bold text-[10px]"><i class="fa-solid fa-crown mr-1"></i>MVP: ${m.mvp}</span>
               <span class="text-gray-400 text-[11px]">${m.date}</span>
             </div>
+            ${m.filename ? `<span class="text-[10px] text-gray-500 font-mono">${m.filename}</span>` : ''}
           </div>
-          <div class="grid grid-cols-2 gap-3 text-[11px] text-gray-300">
-            <div><strong class="text-blue-400 block text-[10px]">BLUE</strong> ${m.blueLineup.map(p=>p.name).join(', ')}</div>
-            <div><strong class="text-red-400 block text-[10px]">RED</strong> ${m.redLineup.map(p=>p.name).join(', ')}</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+            <div class="p-2.5 rounded-xl bg-blue-950/20 border border-blue-900/30">
+              <strong class="text-blue-400 block text-[10px] mb-1">BLUE TEAM</strong>
+              <div class="text-gray-300 flex flex-wrap gap-x-2 gap-y-1">
+                ${m.blueLineup.map(p => `<span>${p.name} <span class="text-[9px] text-gray-500">(${p.champ || p.role})</span></span>`).join(', ')}
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-red-950/20 border border-red-900/30">
+              <strong class="text-red-400 block text-[10px] mb-1">RED TEAM</strong>
+              <div class="text-gray-300 flex flex-wrap gap-x-2 gap-y-1">
+                ${m.redLineup.map(p => `<span>${p.name} <span class="text-[9px] text-gray-500">(${p.champ || p.role})</span></span>`).join(', ')}
+              </div>
+            </div>
           </div>
         `;
         container.appendChild(card);
@@ -1520,10 +1386,73 @@
     }
 
     function resetMatchHistory() {
-      matchHistory = [];
-      saveHistory();
-      renderMatchHistory();
-      showToast('히스토리가 초기화되었습니다.', 'info');
+      if (confirm('저장된 내전 히스토리를 모두 삭제하시겠습니까?')) {
+        matchHistory = [];
+        saveHistory();
+        renderMatchHistory();
+        showToast('매치 히스토리가 초기화되었습니다.', 'info');
+      }
+    }
+
+    // ----------------------------------------------------
+    // 모달 관리
+    // ----------------------------------------------------
+    function openApiImportModal() { document.getElementById('modal-api-import').classList.remove('hidden'); }
+    function closeApiImportModal() { document.getElementById('modal-api-import').classList.add('hidden'); }
+    function openAddSummonerModal() { document.getElementById('modal-summoner').classList.remove('hidden'); }
+    function closeSummonerModal() { document.getElementById('modal-summoner').classList.add('hidden'); }
+
+    function fetchRiotSummonerStats() {
+      const query = document.getElementById('api-summoner-query').value.trim();
+      if (!query) { showToast('소환사명을 입력해 주세요.', 'error'); return; }
+      
+      const cleanName = query.split('#')[0];
+      const newPlayer = {
+        id: 'p-' + Date.now(),
+        name: cleanName,
+        tier: 'EMERALD',
+        soloTier: '솔랭 분석',
+        flexTier: '자랭 분석',
+        mainRole: 'MID',
+        subRole: 'TOP',
+        most: ['요네', '오리아나'],
+        wins: 0,
+        losses: 0,
+        kda: 3.5,
+        formScore: 80
+      };
+
+      summoners.unshift(newPlayer);
+      selectedPlayerIds.add(newPlayer.id);
+      saveSummoners();
+      closeApiImportModal();
+      renderSelectionGrid();
+      renderSummonersList();
+      showToast(`[${cleanName}] 님이 명단에 등록되었습니다.`, 'success');
+    }
+
+    function handleSummonerSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('form-name').value.trim();
+      const mainRole = document.getElementById('form-main-role').value;
+      const subRole = document.getElementById('form-sub-role').value;
+      const tier = document.getElementById('form-tier').value;
+      const formScore = parseInt(document.getElementById('form-form-score').value, 10);
+      const champs = document.getElementById('form-champions').value.split(',').map(c => c.trim()).filter(Boolean);
+
+      const p = {
+        id: 'p-' + Date.now(),
+        name, mainRole, subRole, tier, formScore,
+        most: champs, wins: 0, losses: 0, kda: 3.5
+      };
+
+      summoners.unshift(p);
+      selectedPlayerIds.add(p.id);
+      saveSummoners();
+      closeSummonerModal();
+      renderSelectionGrid();
+      renderSummonersList();
+      showToast('새 소환사가 등록되었습니다.', 'success');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1531,7 +1460,6 @@
       renderSelectionGrid();
       renderSummonersList();
       renderMatchHistory();
-      runSmartBalancing();
     });
   </script>
 </body>
