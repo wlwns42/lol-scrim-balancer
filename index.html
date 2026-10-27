@@ -77,10 +77,10 @@
         </div>
         <div>
           <h1 class="font-black text-sm tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 leading-tight">SCRIM-BALANCER</h1>
-          <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">PRO SERVERLESS ENGINE</span>
+          <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">RIOT LIVE API ENGINE</span>
         </div>
       </div>
-      <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 hover:scale-105 transition" title="다크/라이트 모드">
+      <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 hover:scale-105 transition">
         <i id="theme-icon" class="fa-solid fa-sun text-xs"></i>
       </button>
     </div>
@@ -139,9 +139,6 @@
       <button onclick="clearSelection()" class="w-full py-1.5 text-center text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition border border-amber-500/20">
         <i class="fa-solid fa-rotate-left mr-1"></i> 오늘 10인 선택 비우기
       </button>
-      <button onclick="resetToVerifiedDefaults()" class="w-full py-1.5 text-center text-[11px] font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition border border-rose-500/20">
-        <i class="fa-solid fa-arrows-rotate mr-1"></i> 실제 전적 데이터로 강제 초기화
-      </button>
     </div>
   </aside>
 
@@ -152,17 +149,22 @@
       <div class="flex items-center gap-2 w-full md:max-w-xl">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 대한민국이대경#7847)" 
+          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 똥싸고나눠주는노인#영차영차)" 
                  onkeypress="if(event.key === 'Enter') fetchRiotData()"
                  class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
         </div>
         <button onclick="fetchRiotData()" id="btn-quick-search" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold text-xs shadow-md transition shrink-0 flex items-center gap-1.5">
           <i class="fa-solid fa-bolt"></i>
-          <span>실시간 전적 조회</span>
+          <span>라이엇 실시간 전적 조회</span>
         </button>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- 일괄 최신 라이엇 동기화 버튼 -->
+        <button onclick="refreshAllFromRiotAPI()" id="btn-refresh-all" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 font-bold text-xs transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>라이엇 서버 전원 최신 전적 갱신</span>
+        </button>
         <button onclick="openLobbyModal()" class="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 text-sky-600 dark:text-sky-400 font-bold text-xs hover:bg-sky-100 transition flex items-center gap-1.5">
           <i class="fa-solid fa-paste"></i>
           <span>로비 10명 일괄 등록</span>
@@ -190,7 +192,7 @@
                 </span>
               </div>
               <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">
-                타일을 클릭해 선택하거나 <i class="fa-solid fa-circle-xmark text-rose-500"></i> 버튼을 눌러 오늘 명단에서 바로 제외할 수 있습니다.
+                타일을 클릭해 선택하거나 <i class="fa-solid fa-circle-xmark text-rose-500"></i> 버튼을 눌러 오늘 명단에서 제외할 수 있습니다.
               </p>
             </div>
 
@@ -225,12 +227,12 @@
             <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-lg">
               <div class="flex items-center gap-4 flex-wrap">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-slate-500 dark:text-gray-400">평균 MMR 격차:</span>
+                  <span class="text-xs text-slate-500">평균 MMR 격차:</span>
                   <span id="stat-avg-diff" class="text-sm font-extrabold text-amber-500">0 pt</span>
                 </div>
                 <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-slate-500 dark:text-gray-400">승률 시뮬레이션:</span>
+                  <span class="text-xs text-slate-500">승률 시뮬레이션:</span>
                   <span id="stat-win-prob" class="text-xs font-bold text-slate-700 dark:text-gray-200">50% vs 50%</span>
                 </div>
               </div>
@@ -498,57 +500,6 @@
   </div>
 
   <script>
-    // 11인 실제 FOW 전적 데이터
-    const VERIFIED_PROFILES = {
-      '선릉 오디세우스#KR2': {
-        tier: 'MASTER', flexBaseTier: 'EMERALD', soloTier: 'M (301LP)', flexTier: 'E1 (49LP)',
-        soloGames: 351, flexGames: 23, mainRole: 'ADC', subRole: 'MID',
-        most: ['진', '이즈리얼', '시비르', '케이틀린', '카이사'], formScore: 92
-      },
-      '대한민국이대경#7847': {
-        tier: 'PLATINUM', flexBaseTier: 'PLATINUM', soloTier: '언랭 (배치중)', flexTier: 'PL3 (2LP)',
-        soloGames: 0, flexGames: 82, mainRole: 'SUP', subRole: 'MID',
-        most: ['럭스', '쉔', '모르가나', '뽀삐'], formScore: 80
-      },
-      '똥싸고나눠주는노인#영차영차': {
-        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E4 (1LP)', flexTier: 'PL4 (82LP)',
-        soloGames: 283, flexGames: 25, mainRole: 'TOP', subRole: 'JUG',
-        most: ['요릭', '다리우스', '쉔', '피오라', '잭스'], formScore: 82
-      },
-      '김창숙 부띠끄 부산 영도점#0615': {
-        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E3 (40LP)', flexTier: 'PL1 (20LP)',
-        soloGames: 140, flexGames: 30, mainRole: 'TOP', subRole: 'JUG', most: ['아트록스', '제이스'], formScore: 82
-      },
-      '조용하고성실하게#KR99': {
-        tier: 'DIAMOND', flexBaseTier: 'EMERALD', soloTier: 'D4 (15LP)', flexTier: 'E2 (50LP)',
-        soloGames: 210, flexGames: 45, mainRole: 'MID', subRole: 'TOP', most: ['아지르', '오리아나'], formScore: 86
-      },
-      '입다물면 승리#KR1': {
-        tier: 'EMERALD', flexBaseTier: 'EMERALD', soloTier: 'E1 (75LP)', flexTier: 'E3 (30LP)',
-        soloGames: 180, flexGames: 40, mainRole: 'JUG', subRole: 'SUP', most: ['리 신', '세주아니'], formScore: 84
-      },
-      '후니곰캐리#3075': {
-        tier: 'PLATINUM', flexBaseTier: 'GOLD', soloTier: 'PL2 (30LP)', flexTier: 'G1 (45LP)',
-        soloGames: 95, flexGames: 50, mainRole: 'ADC', subRole: 'MID', most: ['이즈리얼', '카이사'], formScore: 78
-      },
-      'UDT 62기#UDT': {
-        tier: 'DIAMOND', flexBaseTier: 'DIAMOND', soloTier: 'D3 (60LP)', flexTier: 'D4 (20LP)',
-        soloGames: 260, flexGames: 60, mainRole: 'TOP', subRole: 'MID', most: ['크산테', '나르'], formScore: 88
-      },
-      '따듯한 봄 햇살#KR1': {
-        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E4 (20LP)', flexTier: 'PL2 (60LP)',
-        soloGames: 110, flexGames: 35, mainRole: 'MID', subRole: 'ADC', most: ['신드라', '아리'], formScore: 81
-      },
-      '한끼두끼X끼#밥먹자': {
-        tier: 'PLATINUM', flexBaseTier: 'PLATINUM', soloTier: 'PL1 (90LP)', flexTier: 'PL3 (15LP)',
-        soloGames: 130, flexGames: 25, mainRole: 'JUG', subRole: 'TOP', most: ['바이', '자르반 IV'], formScore: 79
-      },
-      '핵탄 영수장#1114': {
-        tier: 'EMERALD', flexBaseTier: 'GOLD', soloTier: 'E2 (50LP)', flexTier: 'G1 (70LP)',
-        soloGames: 160, flexGames: 20, mainRole: 'ADC', subRole: 'SUP', most: ['바루스', '애쉬'], formScore: 83
-      }
-    };
-
     const TIER_POINTS = {
       'CHALLENGER': 3800, 'GRANDMASTER': 3300, 'MASTER': 2900,
       'DIAMOND': 2400, 'EMERALD': 2000, 'PLATINUM': 1600,
@@ -586,33 +537,33 @@
       document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
     }
 
-    // 실제 전적 데이터로 강제 초기화 함수
-    function resetToVerifiedDefaults() {
-      summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
-        id: 'p-' + idx,
-        name: name,
-        ...VERIFIED_PROFILES[name],
-        wins: 0, losses: 0, kda: 3.8
-      }));
-      selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
-      saveLocalData();
-      renderAllViews();
-      showToast('11인 실제 전적 데이터로 강제 초기화되었습니다!', 'success');
-    }
-
     function initData() {
       const storedS = localStorage.getItem('scrim_balancer_summoners');
       if (storedS) {
         try { summoners = JSON.parse(storedS); } catch(e) { summoners = []; }
       }
 
-      // 이전 잘못된 캐시(판수 100판 일괄값 등)가 있거나 11명 미만이면 실제 데이터로 로드
-      if (summoners.length < 11 || summoners.some(s => s.soloGames === 100 && s.flexGames === 30)) {
-        summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
+      // 기본 시작 11명 (실제 데이터 호출 전 초기값)
+      if (summoners.length === 0) {
+        const defaultNames = [
+          '선릉 오디세우스#KR2', '대한민국이대경#7847', '똥싸고나눠주는노인#영차영차',
+          '김창숙 부띠끄 부산 영도점#0615', '조용하고성실하게#KR99', '입다물면 승리#KR1',
+          '후니곰캐리#3075', 'UDT 62기#UDT', '따듯한 봄 햇살#KR1', '한끼두끼X끼#밥먹자', '핵탄 영수장#1114'
+        ];
+        summoners = defaultNames.map((name, idx) => ({
           id: 'p-' + idx,
           name: name,
-          ...VERIFIED_PROFILES[name],
-          wins: 0, losses: 0, kda: 3.8
+          tier: 'UNRANKED',
+          soloTier: '조회 대기',
+          flexTier: '조회 대기',
+          soloGames: 0,
+          flexGames: 0,
+          mainRole: ORDERED_ROLES[idx % 5],
+          subRole: 'FILL',
+          most: [],
+          formScore: 75,
+          wins: 0,
+          losses: 0
         }));
       }
 
@@ -637,7 +588,6 @@
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
     }
 
-    // 모든 화면 렌더링
     function renderAllViews() {
       renderSelectionGrid();
       renderSummonersList();
@@ -673,25 +623,19 @@
       };
     }
 
-    // Vercel Serverless Function 호출 연동
+    // 🌟 Riot 공식 API를 통해 단일 소환사 실시간 조회 (가짜 프리셋 인터셉트 완전 제거)
     async function fetchRiotData() {
       let rawQuery = document.getElementById('quick-search-input').value.trim();
       if (!rawQuery || !rawQuery.includes('#')) {
-        showToast('소환사명#태그 형식으로 입력해 주세요.', 'error');
+        showToast('소환사명#태그 형식으로 입력해 주세요. (예: 소환사명#KR1)', 'error');
         return;
       }
 
       rawQuery = rawQuery.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '').trim();
       const [name, tag] = rawQuery.split('#');
-      const fullName = `${name}#${tag}`;
-
-      if (VERIFIED_PROFILES[fullName]) {
-        addOrUpdateSummoner(fullName, VERIFIED_PROFILES[fullName]);
-        return;
-      }
 
       const btn = document.getElementById('btn-quick-search');
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Riot API 조회 중...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 라이엇 서버 실시간 조회 중...';
       btn.disabled = true;
 
       try {
@@ -699,58 +643,98 @@
         const data = await res.json();
 
         if (res.ok && data.name) {
-          const solo = data.soloRank || { tier: 'UNRANKED', rank: '', lp: 0, totalGames: 0 };
-          const flex = data.flexRank || { tier: 'UNRANKED', rank: '', lp: 0, totalGames: 0 };
-
-          const profile = {
-            tier: solo.tier !== 'UNRANKED' ? solo.tier : (flex.tier !== 'UNRANKED' ? flex.tier : 'EMERALD'),
-            flexBaseTier: flex.tier !== 'UNRANKED' ? flex.tier : 'PLATINUM',
-            soloTier: solo.tier !== 'UNRANKED' ? `${solo.tier.slice(0, 2)} ${solo.rank} (${solo.lp}LP)` : '언랭',
-            flexTier: flex.tier !== 'UNRANKED' ? `${flex.tier.slice(0, 2)} ${flex.rank} (${flex.lp}LP)` : '언랭',
-            soloGames: solo.totalGames || 0,
-            flexGames: flex.totalGames || 0,
-            mainRole: 'ADC',
-            subRole: 'MID',
-            most: data.mostChamps.length ? data.mostChamps : ['진', '카이사'],
-            formScore: 85
-          };
-          addOrUpdateSummoner(data.name, profile);
-          showToast(`[${data.name}] 라이엇 공식 전적이 반영되었습니다!`, 'success');
+          applyRiotAPIData(data);
+          showToast(`[${data.name}] 라이엇 공식 서버의 최신 실시간 전적이 반영되었습니다!`, 'success');
         } else {
+          showToast(data.error || '소환사를 찾을 수 없습니다. 스펙 등록 창을 엽니다.', 'error');
           openAddModalWithData(name, tag);
         }
       } catch (e) {
+        showToast('라이엇 API 통신 중 오류가 발생했습니다. 직접 입력 창을 엽니다.', 'error');
         openAddModalWithData(name, tag);
       } finally {
-        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>실시간 전적 조회</span>';
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>라이엇 실시간 전적 조회</span>';
         btn.disabled = false;
         document.getElementById('quick-search-input').value = '';
       }
     }
 
-    function addOrUpdateSummoner(fullName, profile) {
-      const idx = summoners.findIndex(s => s.name.toLowerCase() === fullName.toLowerCase());
-      const player = {
+    // 🌟 등록된 전체 소환사 라이엇 서버 실시간 일괄 갱신
+    async function refreshAllFromRiotAPI() {
+      if (summoners.length === 0) {
+        showToast('갱신할 소환사가 없습니다.', 'info');
+        return;
+      }
+
+      const btn = document.getElementById('btn-refresh-all');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 라이엇 서버 갱신 중...';
+      btn.disabled = true;
+
+      let successCount = 0;
+      for (const s of summoners) {
+        if (!s.name.includes('#')) continue;
+        const [name, tag] = s.name.split('#');
+        try {
+          const res = await fetch(`/api/riot?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.name) {
+              applyRiotAPIData(data);
+              successCount++;
+            }
+          }
+        } catch (e) {}
+      }
+
+      btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> <span>라이엇 서버 전원 최신 전적 갱신</span>';
+      btn.disabled = false;
+      showToast(`${successCount}명의 실시간 최신 라이엇 티어 및 판수가 갱신되었습니다!`, 'success');
+    }
+
+    // 라이엇 API 응답 데이터를 소환사 배열에 정확히 매핑
+    function applyRiotAPIData(data) {
+      const solo = data.soloRank;
+      const flex = data.flexRank;
+
+      const primaryTier = solo ? solo.tier : (flex ? flex.tier : 'UNRANKED');
+      const flexTierBase = flex ? flex.tier : 'UNRANKED';
+
+      const soloDisplay = solo ? `${solo.tier.slice(0, 2)} ${solo.rank} (${solo.lp}LP)` : '언랭';
+      const flexDisplay = flex ? `${flex.tier.slice(0, 2)} ${flex.rank} (${flex.lp}LP)` : '언랭';
+
+      const sGames = solo ? solo.totalGames : 0;
+      const fGames = flex ? flex.totalGames : 0;
+
+      const idx = summoners.findIndex(s => s.name.toLowerCase() === data.name.toLowerCase());
+      const updatedPlayer = {
         id: idx >= 0 ? summoners[idx].id : 'p-' + Date.now(),
-        name: fullName,
-        ...profile,
+        name: data.name,
+        tier: primaryTier,
+        flexBaseTier: flexTierBase,
+        soloTier: soloDisplay,
+        flexTier: flexDisplay,
+        soloGames: sGames,
+        flexGames: fGames,
+        mainRole: idx >= 0 ? summoners[idx].mainRole : 'ADC',
+        subRole: idx >= 0 ? summoners[idx].subRole : 'MID',
+        most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (idx >= 0 ? summoners[idx].most : []),
+        formScore: idx >= 0 ? summoners[idx].formScore : 85,
         wins: idx >= 0 ? summoners[idx].wins : 0,
         losses: idx >= 0 ? summoners[idx].losses : 0,
         kda: 3.8
       };
-      if (idx >= 0) summoners[idx] = player;
-      else summoners.unshift(player);
 
-      selectedPlayerIds.add(player.id);
+      if (idx >= 0) summoners[idx] = updatedPlayer;
+      else summoners.unshift(updatedPlayer);
+
+      selectedPlayerIds.add(updatedPlayer.id);
       saveLocalData();
       renderAllViews();
-      openMemberDetailModal(player.id);
     }
 
     function openAddModalWithData(name, tag) {
       document.getElementById('form-name').value = `${name}#${tag}`;
       document.getElementById('modal-summoner').classList.remove('hidden');
-      showToast('스펙 등록 창이 열렸습니다.', 'info');
     }
 
     // 10인 밸런서 선택 그리드
@@ -914,7 +898,7 @@
       });
     }
 
-    // 전체 멤버 목록 카드 그리드 (수정 옆 개별 삭제 휴지통 버튼 완벽 복원)
+    // 전체 멤버 목록 카드 그리드 (휴지통 개별 삭제 버튼 완벽 구현)
     function renderSummonersList() {
       const container = document.getElementById('summoners-card-container');
       if (!container) return;
@@ -942,7 +926,7 @@
                 </div>
               </div>
 
-              <!-- 수정 버튼 및 개별 삭제(휴지통) 버튼 -->
+              <!-- 수정 및 삭제(휴지통) 버튼 -->
               <div class="flex items-center gap-1.5">
                 <button onclick="editSummoner('${s.id}')" title="스펙 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
                   <i class="fa-solid fa-pen-to-square"></i>
@@ -998,7 +982,7 @@
       }
     }
 
-    // 좌측 서랍 렌더링
+    // 좌측 빠른 멤버 서랍
     function toggleSidebarMemberDrawer() {
       isDrawerOpen = !isDrawerOpen;
       document.getElementById('sidebar-drawer-container').classList.toggle('hidden', !isDrawerOpen);
@@ -1053,7 +1037,7 @@
 
     function closeMemberDetailModal() { document.getElementById('modal-member-detail').classList.add('hidden'); }
 
-    // 리플레이 보관함 렌더링 함수 완벽 구현 (ReferenceError 방지)
+    // 리플레이 보관함 정상 정의
     function renderReplayArchiveList() {
       const container = document.getElementById('replay-archive-list');
       if (!container) return;
@@ -1196,12 +1180,21 @@
         const cleanName = name.trim();
         const existing = summoners.find(s => s.name === cleanName);
         if (!existing) {
-          const preset = VERIFIED_PROFILES[cleanName] || {
-            tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E3 (50LP)', flexTier: 'PL2 (20LP)',
-            soloGames: 120, flexGames: 30, mainRole: ORDERED_ROLES[i % 5], subRole: 'FILL',
-            most: ['카이사'], formScore: 80
-          };
-          summoners.push({ id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4), name: cleanName, ...preset, wins: 0, losses: 0 });
+          summoners.push({
+            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name: cleanName,
+            tier: 'UNRANKED',
+            soloTier: '조회 대기',
+            flexTier: '조회 대기',
+            soloGames: 0,
+            flexGames: 0,
+            mainRole: ORDERED_ROLES[i % 5],
+            subRole: 'FILL',
+            most: [],
+            formScore: 75,
+            wins: 0,
+            losses: 0
+          });
         }
       });
 
@@ -1209,7 +1202,7 @@
       saveLocalData();
       closeLobbyModal();
       renderAllViews();
-      showToast(`${names.length}명의 로비 인원이 등록되었습니다.`, 'success');
+      showToast(`${names.length}명의 로비 인원이 등록되었습니다. 상단 [라이엇 서버 전원 최신 전적 갱신]을 눌러 실제 전적을 불러오세요!`, 'success');
     }
 
     function renderMatchHistory() {
