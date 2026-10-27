@@ -1,6 +1,5 @@
 // Vercel Serverless Function: Riot Games Official API Proxy
 export default async function handler(req, res) {
-  // CORS 허용 헤더
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Account-v1: PUUID 획득
     const accountRes = await fetch(
       `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?api_key=${RIOT_API_KEY}`
     );
@@ -29,7 +27,6 @@ export default async function handler(req, res) {
     const accountData = await accountRes.json();
     const puuid = accountData.puuid;
 
-    // 2. League-v4: 솔랭 및 자랭 티어, LP, 승/패수 획득
     const leagueRes = await fetch(
       `https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${RIOT_API_KEY}`
     );
@@ -64,13 +61,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Champion-Mastery-v4: 모스트 상위 3개 챔피언 ID 획득
     const masteryRes = await fetch(
       `https://kr.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=3&api_key=${RIOT_API_KEY}`
     );
     const masteryData = await masteryRes.json();
 
-// 챔피언 ID -> 한글 이름 전체 매핑 테이블 (누락 번호 전면 추가)
     const CHAMP_MAP = {
       "1": "애니", "2": "올라프", "3": "갈리오", "4": "트위스티드 페이트", "5": "신 짜오", "6": "우르곳", "7": "르블랑",
       "8": "블라디미르", "9": "피들스틱", "10": "케일", "11": "마스터 이", "12": "알리스타", "13": "라이즈", "14": "사이온",
