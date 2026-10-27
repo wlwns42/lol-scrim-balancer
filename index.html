@@ -874,6 +874,89 @@
         const delta = pMMR - eMMR;
 
         const card = document.createElement('div');
+        // 드래그 속성 부여
+        card.setAttribute('draggable', 'true');
+        card.ondragstart = (e) => handleDragStartLane(e, teamColor, idx);
+        card.ondragover = (e) => e.preventDefault();
+        card.ondrop = (e) => handleDropLane(e, teamColor, idx);
+
+        card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-grab active:cursor-grabbing hover:border-amber-400 transition select-none ${
+          teamColor === 'blue' ? 'border-blue-200 dark:border-blue-900/40 bg-slate-50 dark:bg-[#161d2a]' : 'border-red-200 dark:border-red-900/40 bg-slate-50 dark:bg-[#161d2a]'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-white dark:bg-[#121721] flex flex-col items-center justify-center shrink-0">
+              <i class="fa-solid ${roleInfo.icon} ${roleInfo.color} text-xs"></i>
+              <span class="text-[8px] font-bold text-slate-400 uppercase leading-none">${role}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold truncate text-slate-800 dark:text-gray-100">${player.name}</span>
+                <span class="tier-badge tier-${player.tier.toLowerCase()}">${player.tier}</span>
+              </div>
+              <div class="text-[10px] text-slate-400">${player.soloTier} · ${player.flexTier}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-bold text-[11px] ${delta >= 0 ? 'text-emerald-500' : 'text-rose-500'}">
+              ${delta >= 0 ? `+${delta}` : delta} pt
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 마우스 드래그 앤 드롭 상태 저장 및 스왑 처리
+    let draggedLaneData = null;
+
+    function handleDragStartLane(e, team, idx) {
+      draggedLaneData = { team, idx };
+      e.dataTransfer.setData('text/plain', JSON.stringify({ team, idx }));
+    }
+
+    function handleDropLane(e, targetTeam, targetIdx) {
+      e.preventDefault();
+      if (!draggedLaneData || !currentMatch) return;
+
+      const sourceTeam = draggedLaneData.team;
+      const sourceIdx = draggedLaneData.idx;
+
+      // 대상 선수를 상호 교체(Swap)
+      const sourcePlayer = currentMatch[sourceTeam][sourceIdx];
+      const targetPlayer = currentMatch[targetTeam][targetIdx];
+
+      currentMatch[sourceTeam][sourceIdx] = targetPlayer;
+      currentMatch[targetTeam][targetIdx] = sourcePlayer;
+
+      // 평균 MMR 및 라인 격차 재계산
+      const bAvg = Math.round(currentMatch.blue.reduce((a, b) => a + getPlayerMMR(b).mmr, 0) / 5);
+      const rAvg = Math.round(currentMatch.red.reduce((a, b) => a + getPlayerMMR(b).mmr, 0) / 5);
+      currentMatch.blueAvg = bAvg;
+      currentMatch.redAvg = rAvg;
+      currentMatch.diff = Math.abs(bAvg - rAvg);
+
+      document.getElementById('stat-avg-diff').textContent = `${currentMatch.diff} pt`;
+      document.getElementById('blue-team-mmr').textContent = `${bAvg} pt`;
+      document.getElementById('red-team-mmr').textContent = `${rAvg} pt`;
+
+      renderTeamLaneRoster('blue', currentMatch.blue, currentMatch.red);
+      renderTeamLaneRoster('red', currentMatch.red, currentMatch.blue);
+      showToast(`${sourcePlayer.name} ↔ ${targetPlayer.name} 선수가 교체되었습니다!`, 'info');
+      draggedLaneData = null;
+    }
+
+      teamRoster.forEach((player, idx) => {
+        const role = ORDERED_ROLES[idx];
+        const roleInfo = ROLE_METADATA[role];
+        const enemy = enemyRoster[idx];
+
+        const pMMR = getPlayerMMR(player).mmr;
+        const eMMR = getPlayerMMR(enemy).mmr;
+        const delta = pMMR - eMMR;
+
+        const card = document.createElement('div');
         card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs ${
           teamColor === 'blue' ? 'border-blue-200 dark:border-blue-900/40 bg-slate-50 dark:bg-[#161d2a]' : 'border-red-200 dark:border-red-900/40 bg-slate-50 dark:bg-[#161d2a]'
         }`;
