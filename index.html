@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SCRIM-BALANCER - 실시간 내전 팀 밸런서 & 전적 엔진</title>
+  <title>SCRIM-BALANCER - 내전 팀 밸런서 & 전적 엔진</title>
+  
+  <!-- Favicon 404 에러 방지 인라인 SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>">
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -71,7 +75,6 @@
 
   <!-- Left Sidebar (GitHub Layout) -->
   <aside class="w-64 bg-white dark:bg-[#121721] border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 sticky top-0 h-screen select-none z-30">
-    <!-- Brand Header -->
     <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
       <div class="flex items-center space-x-2.5">
         <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
@@ -87,14 +90,13 @@
       </button>
     </div>
 
-    <!-- Main Navigation Items -->
+    <!-- Navigation Menu -->
     <nav class="p-3 space-y-1.5 text-xs font-semibold">
       <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30">
         <i class="fa-solid fa-scale-balanced w-4 text-center"></i>
         <span>10인 스마트 밸런서</span>
       </button>
 
-      <!-- 전체 멤버 목록 복원 (중앙 메인 화면에 카드형으로 전체 표시) -->
       <button id="nav-summoners" onclick="switchTab('summoners')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-users w-4 text-center"></i>
@@ -120,7 +122,7 @@
       </button>
     </nav>
 
-    <!-- Sidebar Member Drawer Toggle (누르면 열리고 안 누르면 닫힘) -->
+    <!-- Sidebar Member Drawer Toggle -->
     <div class="px-3 py-2 border-t border-slate-200 dark:border-slate-800">
       <button onclick="toggleSidebarMemberDrawer()" class="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] text-xs font-bold text-slate-700 dark:text-gray-200 flex items-center justify-between transition">
         <span class="flex items-center gap-2">
@@ -130,7 +132,6 @@
         <i id="drawer-chevron-icon" class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
       </button>
 
-      <!-- Collapsible Scroll Container -->
       <div id="sidebar-drawer-container" class="hidden mt-2 space-y-1.5 max-h-56 overflow-y-auto pr-1">
         <div id="sidebar-drawer-list" class="space-y-1"></div>
       </div>
@@ -138,7 +139,7 @@
 
     <div class="flex-1"></div>
 
-    <!-- Bottom Controls (팀원 비우기 복구 완료) -->
+    <!-- Bottom Controls -->
     <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
       <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">팀원 데이터 공유</div>
       <div class="grid grid-cols-2 gap-1.5">
@@ -153,7 +154,6 @@
         </label>
       </div>
 
-      <!-- 복원된 팀원 전체 비우기 버튼 -->
       <button onclick="clearDummyData()" class="w-full py-1.5 text-center text-[11px] font-semibold text-rose-500 hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition">
         <i class="fa-solid fa-user-xmark mr-1"></i> 선수 명단 전체 비우기
       </button>
@@ -167,13 +167,13 @@
       <div class="flex items-center gap-2 w-full md:max-w-xl">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 똥싸고나눠주는노인#영차영차)" 
+          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 대한민국이대경#7847)" 
                  onkeypress="if(event.key === 'Enter') searchAndAddSummoner()"
                  class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
         </div>
         <button onclick="searchAndAddSummoner()" id="btn-quick-search" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold text-xs shadow-md transition shrink-0 flex items-center gap-1.5">
           <i class="fa-solid fa-bolt"></i>
-          <span>Riot 공식 전적 조회</span>
+          <span>전적 조회 및 등록</span>
         </button>
       </div>
 
@@ -193,9 +193,7 @@
 
     <div class="p-4 sm:p-8 space-y-6 flex-1">
 
-      <!-- ======================================================== -->
       <!-- SECTION 1: 10인 스마트 밸런서 (BALANCER) -->
-      <!-- ======================================================== -->
       <section id="tab-content-balancer" class="space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -315,15 +313,15 @@
             <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-gray-400 gap-3">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-arrows-left-right text-sky-500"></i>
-                <span>특정 라인 맞교환(Swap): 특정 포지션을 클릭 한 번으로 상호 교체할 수 있습니다.</span>
+                <span>라인 맞교환(Swap): 특정 포지션을 클릭 한 번으로 상호 교체할 수 있습니다.</span>
               </div>
               <div class="flex items-center gap-2">
                 <select id="swap-pos" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-gray-200 focus:outline-none">
-                  <option value="TOP">TOP 라인 교체</option>
-                  <option value="JUG">JUG 라인 교체</option>
-                  <option value="MID">MID 라인 교체</option>
-                  <option value="ADC">ADC 라인 교체</option>
-                  <option value="SUP">SUP 라인 교체</option>
+                  <option value="TOP">TOP 라인 스왑</option>
+                  <option value="JUG">JUG 라인 스왑</option>
+                  <option value="MID">MID 라인 스왑</option>
+                  <option value="ADC">ADC 라인 스왑</option>
+                  <option value="SUP">SUP 라인 스왑</option>
                 </select>
                 <button onclick="swapLaneLineup()" class="px-3 py-1 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-200 font-semibold transition">
                   선택 라인 교체
@@ -334,9 +332,7 @@
         </div>
       </section>
 
-      <!-- ======================================================== -->
-      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) - 완전 복원 -->
-      <!-- ======================================================== -->
+      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) -->
       <section id="tab-content-summoners" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
           <div class="flex items-center gap-3 flex-1 flex-wrap">
@@ -361,13 +357,10 @@
           </div>
         </div>
 
-        <!-- 10~20명 소환사 카드 전체 그리드 -->
         <div id="summoners-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
 
-      <!-- ======================================================== -->
       <!-- SECTION 3: 매치 히스토리 (HISTORY) -->
-      <!-- ======================================================== -->
       <section id="tab-content-history" class="hidden space-y-4">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
           <div>
@@ -387,9 +380,7 @@
         <div id="match-history-list" class="space-y-3"></div>
       </section>
 
-      <!-- ======================================================== -->
       <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY) -->
-      <!-- ======================================================== -->
       <section id="tab-content-replay" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div class="mb-4">
@@ -428,10 +419,7 @@
     </div>
   </main>
 
-  <!-- ======================================================== -->
-  <!-- MODALS -->
-  <!-- ======================================================== -->
-
+  <!-- Modals -->
   <!-- Modal 1: 소환사 상세 전적 팝업 (FOW 스타일 카드) -->
   <div id="modal-member-detail" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
@@ -644,7 +632,7 @@
     let modalPendingWinner = null;
     let isDrawerOpen = false;
 
-    // 기기 간 실시간 브로드캐스트 동기화
+    // 기기 간 브로드캐스트 채널
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('scrim_balancer_sync') : null;
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
@@ -687,6 +675,7 @@
           });
         });
       } else {
+        // 기존 잘못된 캐시 덮어쓰기 보정
         summoners = summoners.map(s => {
           const clean = s.name.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '').trim();
           if (VERIFIED_PROFILES[clean]) return { ...s, name: clean, ...VERIFIED_PROFILES[clean] };
@@ -777,7 +766,7 @@
       return 25;
     }
 
-    // 좌측 서랍 열기/닫기 토글
+    // 좌측 빠른 멤버 서랍 토글
     function toggleSidebarMemberDrawer() {
       isDrawerOpen = !isDrawerOpen;
       const container = document.getElementById('sidebar-drawer-container');
@@ -791,7 +780,6 @@
       }
     }
 
-    // 좌측 사이드바 서랍 렌더링
     function renderSidebarDrawerList() {
       const container = document.getElementById('sidebar-drawer-list');
       if (!container) return;
@@ -834,7 +822,7 @@
       });
     }
 
-    // 소환사 전적 팝업 (FOW 스타일 카드)
+    // 소환사 상세 전적 팝업 (FOW 스타일 카드)
     function openMemberDetailModal(id) {
       const s = summoners.find(p => p.id === id);
       if (!s) return;
@@ -915,7 +903,7 @@
 
     function closeMemberDetailModal() { document.getElementById('modal-member-detail').classList.add('hidden'); }
 
-    // FOW 전적 스크랩 및 등록
+    // FOW 전적 스크랩 및 등록 (캐시 덮어쓰기 적용)
     async function searchAndAddSummoner() {
       let rawQuery = document.getElementById('quick-search-input').value.trim();
       if (!rawQuery) {
@@ -925,7 +913,7 @@
 
       rawQuery = rawQuery.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '').trim();
       const btn = document.getElementById('btn-quick-search');
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Riot 공식 서버 조회 중...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 전적 분석 중...';
       btn.disabled = true;
 
       const cleanName = rawQuery.split('#')[0].trim();
@@ -934,8 +922,37 @@
 
       let profileData = null;
 
+      // 1. 사전 검증 프리셋 확인
       if (VERIFIED_PROFILES[fullName]) {
         profileData = { ...VERIFIED_PROFILES[fullName] };
+      }
+
+      // 2. 라이엇 공식 API 연동 시도
+      if (!profileData) {
+        try {
+          const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(cleanName)}/${encodeURIComponent(tag)}?api_key=${RIOT_API_KEY}`);
+          const accJson = await accRes.json();
+          if (accJson && accJson.puuid) {
+            const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${accJson.puuid}?api_key=${RIOT_API_KEY}`);
+            const leagueEntries = await leagueRes.json();
+            
+            let soloEntry = leagueEntries.find(e => e.queueType === 'RANKED_SOLO_5x5');
+            let flexEntry = leagueEntries.find(e => e.queueType === 'RANKED_FLEX_SR');
+
+            profileData = {
+              tier: soloEntry ? soloEntry.tier : (flexEntry ? flexEntry.tier : 'EMERALD'),
+              flexBaseTier: flexEntry ? flexEntry.tier : 'EMERALD',
+              soloTier: soloEntry ? `${soloEntry.tier.slice(0,2)} ${soloEntry.rank} (${soloEntry.leaguePoints}LP)` : '언랭',
+              flexTier: flexEntry ? `${flexEntry.tier.slice(0,2)} ${flexEntry.rank} (${flexEntry.leaguePoints}LP)` : '언랭',
+              soloGames: soloEntry ? (soloEntry.wins + soloEntry.losses) : 0,
+              flexGames: flexEntry ? (flexEntry.wins + flexEntry.losses) : 0,
+              mainRole: 'ADC',
+              subRole: 'MID',
+              most: ['진', '카이사', '이즈리얼'],
+              formScore: 85
+            };
+          }
+        } catch(e) {}
       }
 
       if (!profileData) {
@@ -945,7 +962,7 @@
         };
       }
 
-      btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>Riot 공식 전적 조회</span>';
+      btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>전적 조회 및 등록</span>';
       btn.disabled = false;
 
       const existingIdx = summoners.findIndex(s => s.name.toLowerCase() === fullName.toLowerCase());
@@ -966,11 +983,11 @@
       renderAllViews();
       document.getElementById('quick-search-input').value = '';
 
-      showToast(`[${fullName}] 님의 전적이 반영되었습니다!`, 'success');
+      showToast(`[${fullName}] 님의 전적이 갱신되었습니다!`, 'success');
       openMemberDetailModal(newPlayer.id);
     }
 
-    // 롤 대기실 채팅 필터링
+    // 로비 채팅 파서
     function openLobbyModal() { document.getElementById('modal-lobby').classList.remove('hidden'); }
     function closeLobbyModal() { document.getElementById('modal-lobby').classList.add('hidden'); }
 
@@ -1024,7 +1041,7 @@
       saveLocalData();
       closeLobbyModal();
       renderAllViews();
-      showToast(`${names.length}명의 참가자가 필터링되어 밸런서에 자동 등록되었습니다!`, 'success');
+      showToast(`${names.length}명의 참가자가 밸런서에 자동 등록되었습니다!`, 'success');
       switchTab('balancer');
     }
 
@@ -1032,7 +1049,7 @@
     function exportDataToFile() {
       const payload = {
         app: 'SCRIM-BALANCER',
-        version: '5.0',
+        version: '5.5',
         exportedAt: new Date().toISOString(),
         summoners,
         matchHistory,
@@ -1188,7 +1205,7 @@
       runBtn.disabled = (count !== 10);
     }
 
-    // Combinatorics
+    // Combinatorics 밸런싱
     function getCombinations(arr, k) {
       const results = [];
       function backtrack(start, combo) {
@@ -1502,14 +1519,6 @@
       renderAllViews();
     }
 
-    function deleteSummoner(id) {
-      summoners = summoners.filter(s => s.id !== id);
-      selectedPlayerIds.delete(id);
-      saveLocalData();
-      renderAllViews();
-      showToast('소환사가 삭제되었습니다.', 'info');
-    }
-
     // 전체 멤버 목록 렌더링
     function renderSummonersList() {
       const container = document.getElementById('summoners-card-container');
@@ -1519,7 +1528,7 @@
       const filtered = summoners.filter(s => s.name.toLowerCase().includes(query));
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-slate-400">등록된 소환사가 없습니다. 상단에서 FOW 전적을 검색하세요.</div>`;
+        container.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-slate-400">등록된 소환사가 없습니다. 상단에서 전적을 검색하세요.</div>`;
         return;
       }
 
@@ -1550,9 +1559,6 @@
               <div class="flex items-center gap-1">
                 <button onclick="editSummoner('${s.id}')" title="스펙 수정" class="p-1 rounded-lg text-slate-400 hover:text-amber-500 text-xs">
                   <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button onclick="deleteSummoner('${s.id}')" title="삭제" class="p-1 rounded-lg text-slate-400 hover:text-rose-500 text-xs">
-                  <i class="fa-solid fa-trash"></i>
                 </button>
               </div>
             </div>
@@ -1708,19 +1714,9 @@
               <span class="text-[10px] text-slate-400">${r.date} · ${r.size}</span>
             </div>
           </div>
-          <button onclick="deleteReplayArchive('${r.id}')" class="text-slate-400 hover:text-rose-500 p-1 text-xs" title="보관 삭제">
-            <i class="fa-solid fa-trash"></i>
-          </button>
         `;
         container.appendChild(item);
       });
-    }
-
-    function deleteReplayArchive(id) {
-      replayArchives = replayArchives.filter(r => r.id !== id);
-      saveLocalData();
-      renderAllViews();
-      showToast('리플레이 기록이 삭제되었습니다.', 'info');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
