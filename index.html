@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEEPLOL Scrims - 리그 오브 레전드 내전 밸런서 & 전적 대시보드</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            deeplol: {
+              bg: '#0b0e14',
+              surface: '#121721',
+              card: '#161d2a',
+              cardHover: '#1c2435',
+              border: '#232c3d',
+              borderLight: '#323d52',
+              gold: '#e0b354',
+              goldHover: '#f5c96b',
+              cyan: '#38bdf8',
+              blueTeam: '#1d4ed8',
+              blueLight: '#3b82f6',
+              redTeam: '#b91c1c',
+              redLight: '#ef4444'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #0b0e14;
+      color: #e2e8f0;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0e14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #232c3d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #e0b354;
+    }
+
+    /* Deeplol style badge accents */
+    .tier-badge {
+      font-size: 0.68rem;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .tier-challenger { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); text-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    .tier-grandmaster { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .tier-master { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); }
+    .tier-diamond { background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.4); }
+    .tier-emerald { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+    .tier-gold { background: rgba(250, 204, 21, 0.15); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.4); }
+    .tier-silver { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500/20 selection:text-amber-300">
+
+  <!-- Top Deeplol Navbar -->
+  <header class="border-b border-deeplol-border bg-deeplol-surface/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
+          <i class="fa-solid fa-bolt text-gray-950 font-black text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-100 to-amber-500">DEEPLOL</span>
+            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-deeplol-cyan/15 text-deeplol-cyan border border-deeplol-cyan/30">SCRIMS ENGINE</span>
+          </div>
+          <p class="text-[11px] text-gray-400">내전 통계 · 스마트 포지션 밸런서 · 실시간 승률 계산기</p>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="flex items-center gap-1 sm:gap-2 bg-deeplol-bg p-1 rounded-xl border border-deeplol-border text-xs font-semibold">
+        <button id="nav-balancer" onclick="switchTab('balancer')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-deeplol-gold/15 text-deeplol-gold border border-deeplol-gold/30">
+          <i class="fa-solid fa-scale-balanced"></i>
+          <span>10인 밸런서</span>
+        </button>
+        <button id="nav-summoners" onclick="switchTab('summoners')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card">
+          <i class="fa-solid fa-users"></i>
+          <span>소환사 명단 (<span id="nav-roster-count">0</span>)</span>
+        </button>
+        <button id="nav-history" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>매치 전적 (<span id="nav-history-count">0</span>)</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Global Toast Notification System -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: 10인 밸런싱 엔진 (BALANCER) -->
+    <!-- ======================================================== -->
+    <section id="tab-content-balancer" class="space-y-6">
+
+      <!-- Roster Selector Card -->
+      <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-gray-100">내전 참가자 10인 선택</h2>
+              <span id="selected-badge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-deeplol-card border border-deeplol-border text-amber-400">
+                0 / 10명 선택됨
+              </span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">참가할 10명을 선택하면 티어, 내전 승률, 폼 점수 및 주/부 포지션을 종합 분석하여 공정한 5v5를 생성합니다.</p>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="autoSelectTop10()" class="px-3 py-1.5 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-xs text-gray-300 font-medium transition flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt text-deeplol-gold"></i>
+              <span>상위 10명 자동픽</span>
+            </button>
+            <button onclick="clearSelection()" class="px-3 py-1.5 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-xs text-gray-400 hover:text-gray-200 transition">
+              선택 초기화
+            </button>
+            <button id="btn-run-balancing" onclick="runSmartBalancing()" disabled class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2">
+              <i class="fa-solid fa-scale-balanced text-sm"></i>
+              <span>스마트 밸런싱 실행</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Player Selection Mini-Tiles -->
+        <div id="balancer-selection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 mt-5 max-h-56 overflow-y-auto pr-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Balance Match View Container -->
+      <div id="balanced-container">
+        
+        <!-- Empty State PlaceHolder -->
+        <div id="balancer-placeholder" class="border border-dashed border-deeplol-border rounded-2xl p-12 text-center bg-deeplol-surface/40">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-deeplol-card border border-deeplol-border flex items-center justify-center text-gray-500 text-2xl mb-3">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h3 class="text-gray-300 font-bold text-sm sm:text-base">선택된 대진표가 없습니다</h3>
+          <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">상단 소환사 목록에서 10명을 체크한 뒤 <strong>[스마트 밸런싱 실행]</strong>을 클릭하세요.</p>
+        </div>
+
+        <!-- Active Match Display Board -->
+        <div id="balancer-board" class="hidden space-y-6">
+          
+          <!-- Balance Summary Banner -->
+          <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">평균 MMR 편차:</span>
+                <span id="stat-avg-diff" class="text-sm font-extrabold text-deeplol-gold">0 pt</span>
+              </div>
+              <div class="h-3 w-px bg-deeplol-border hidden sm:block"></div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">승률 시뮬레이션:</span>
+                <span id="stat-win-prob" class="text-xs font-bold text-gray-200">블루 50% vs 레드 50%</span>
+              </div>
+              <div class="h-3 w-px bg-deeplol-border hidden sm:block"></div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">포지션 적합도:</span>
+                <span id="stat-role-score" class="text-xs font-bold text-emerald-400">96% 충족</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="rerollBalancing()" class="px-3 py-1.5 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover text-gray-300 text-xs font-medium border border-deeplol-border transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate text-deeplol-cyan"></i>
+                <span>재셔플 (Re-roll)</span>
+              </button>
+              <button onclick="openRecordMatchModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+                <i class="fa-solid fa-trophy"></i>
+                <span>내전 결과 등록</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5v5 Comparison Arena -->
+          <div class="grid grid-cols-1 lg:grid-cols-11 gap-4 items-stretch">
+            
+            <!-- BLUE TEAM (5 cols) -->
+            <div class="lg:col-span-5 bg-deeplol-surface border border-blue-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden">
+              <div class="absolute -top-12 -left-12 w-36 h-36 bg-blue-600/10 rounded-full blur-2xl pointer-events-none"></div>
+              <div>
+                <!-- Blue Header -->
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-blue-900/40">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-md shadow-blue-600/40">
+                      B
+                    </div>
+                    <div>
+                      <h3 class="font-extrabold text-blue-400 text-sm tracking-wide">BLUE TEAM</h3>
+                      <p class="text-[10px] text-gray-400">팀 평균 MMR: <strong id="blue-team-mmr" class="text-gray-200">0</strong></p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span id="blue-predicted-rate" class="text-lg font-black text-blue-400">50%</span>
+                    <p class="text-[10px] text-gray-500">예측 승률</p>
+                  </div>
+                </div>
+
+                <!-- 5 Blue Roster Cards -->
+                <div id="blue-roster-list" class="space-y-2.5">
+                  <!-- JS Injected -->
+                </div>
+              </div>
+            </div>
+
+            <!-- VS Divider (1 col on desktop) -->
+            <div class="hidden lg:flex lg:col-span-1 flex-col items-center justify-center space-y-4">
+              <div class="w-px h-20 bg-gradient-to-b from-transparent via-deeplol-border to-transparent"></div>
+              <div class="w-10 h-10 rounded-full bg-deeplol-card border border-deeplol-gold/40 flex items-center justify-center text-deeplol-gold font-black text-xs shadow-lg shadow-black">
+                VS
+              </div>
+              <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest text-center">LANE<br/>DIFF</span>
+              <div class="w-px h-20 bg-gradient-to-b from-transparent via-deeplol-border to-transparent"></div>
+            </div>
+
+            <!-- RED TEAM (5 cols) -->
+            <div class="lg:col-span-5 bg-deeplol-surface border border-red-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden">
+              <div class="absolute -top-12 -right-12 w-36 h-36 bg-red-600/10 rounded-full blur-2xl pointer-events-none"></div>
+              <div>
+                <!-- Red Header -->
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-900/40">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white font-black text-xs shadow-md shadow-red-600/40">
+                      R
+                    </div>
+                    <div>
+                      <h3 class="font-extrabold text-red-400 text-sm tracking-wide">RED TEAM</h3>
+                      <p class="text-[10px] text-gray-400">팀 평균 MMR: <strong id="red-team-mmr" class="text-gray-200">0</strong></p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span id="red-predicted-rate" class="text-lg font-black text-red-400">50%</span>
+                    <p class="text-[10px] text-gray-500">예측 승률</p>
+                  </div>
+                </div>
+
+                <!-- 5 Red Roster Cards -->
+                <div id="red-roster-list" class="space-y-2.5">
+                  <!-- JS Injected -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Player Swap Tool (Direct Manual Adjustment) -->
+          <div class="bg-deeplol-surface border border-deeplol-border rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-3">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-arrows-left-right text-deeplol-cyan"></i>
+              <span>라인 맞교환(Swap): 특정 포지션을 클릭하거나 원하는 매칭으로 수동 교체할 수 있습니다.</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="swap-pos" class="bg-deeplol-card border border-deeplol-border rounded-lg px-2.5 py-1 text-gray-200 focus:outline-none">
+                <option value="TOP">TOP 라인 교체</option>
+                <option value="JUG">JUG 라인 교체</option>
+                <option value="MID">MID 라인 교체</option>
+                <option value="ADC">ADC 라인 교체</option>
+                <option value="SUP">SUP 라인 교체</option>
+              </select>
+              <button onclick="swapLaneLineup()" class="px-3 py-1 rounded-lg bg-deeplol-card hover:bg-deeplol-cardHover border border-deeplol-border text-gray-200 font-semibold transition">
+                선택 라인 스왑
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: 소환사 관리 & Deeplol 프로필 (SUMMONERS) -->
+    <!-- ======================================================== -->
+    <section id="tab-content-summoners" class="hidden space-y-6">
+      
+      <!-- Filter & Search Toolbar -->
+      <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+        <div class="flex items-center gap-3 flex-1 flex-wrap">
+          <div class="relative flex-1 min-w-[200px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+            <input id="search-input" oninput="renderSummonersList()" type="text" placeholder="소환사명 또는 모스트 챔피언 검색..." class="w-full bg-deeplol-card border border-deeplol-border rounded-xl pl-9 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-deeplol-gold placeholder-gray-500">
+          </div>
+
+          <select id="filter-tier-select" onchange="renderSummonersList()" class="bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-deeplol-gold">
+            <option value="ALL">모든 티어</option>
+            <option value="CHALLENGER">챌린저</option>
+            <option value="GRANDMASTER">그랜드마스터</option>
+            <option value="MASTER">마스터</option>
+            <option value="DIAMOND">다이아몬드</option>
+            <option value="EMERALD">에메랄드</option>
+            <option value="GOLD">골드</option>
+            <option value="SILVER">실버</option>
+          </select>
+
+          <select id="filter-pos-select" onchange="renderSummonersList()" class="bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-deeplol-gold">
+            <option value="ALL">모든 포지션</option>
+            <option value="TOP">탑 (TOP)</option>
+            <option value="JUG">정글 (JUG)</option>
+            <option value="MID">미드 (MID)</option>
+            <option value="ADC">원딜 (ADC)</option>
+            <option value="SUP">서폿 (SUP)</option>
+          </select>
+        </div>
+
+        <button onclick="openAddSummonerModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>새 소환사 등록</span>
+        </button>
+      </div>
+
+      <!-- Summoner Cards Grid -->
+      <div id="summoners-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: 매치 히스토리 (MATCH HISTORY) -->
+    <!-- ======================================================== -->
+    <section id="tab-content-history" class="hidden space-y-4">
+      <div class="bg-deeplol-surface border border-deeplol-border rounded-2xl p-4 flex items-center justify-between shadow-lg">
+        <div>
+          <h2 class="text-base font-bold text-gray-100 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-deeplol-gold"></i>
+            <span>내전 매치 히스토리 & MVP 기록</span>
+          </h2>
+          <p class="text-xs text-gray-400">로컬 스토리지에 자동 저장된 역대 내전 결과 및 라인업입니다.</p>
+        </div>
+
+        <button onclick="resetMatchHistory()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 text-xs transition flex items-center gap-1.5">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>기록 전체 삭제</span>
+        </button>
+      </div>
+
+      <!-- History List Container -->
+      <div id="match-history-list" class="space-y-3">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODALS -->
+  <!-- ======================================================== -->
+
+  <!-- Modal 1: 소환사 등록 / 수정 모달 -->
+  <div id="modal-summoner" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-deeplol-surface border border-deeplol-border w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeSummonerModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 id="modal-summoner-title" class="text-base font-bold text-deeplol-gold mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-user-gear"></i>
+        <span>소환사 등록</span>
+      </h3>
+
+      <form id="form-summoner" onsubmit="handleSummonerSubmit(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="summoner-form-id">
+
+        <div>
+          <label class="block text-gray-300 font-semibold mb-1">소환사명 *</label>
+          <input id="form-name" required type="text" placeholder="예: T1 Faker" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">주 포지션 *</label>
+            <select id="form-main-role" required class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+              <option value="TOP">TOP (탑)</option>
+              <option value="JUG">JUG (정글)</option>
+              <option value="MID">MID (미드)</option>
+              <option value="ADC">ADC (원딜)</option>
+              <option value="SUP">SUP (서폿)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">부 포지션</label>
+            <select id="form-sub-role" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+              <option value="MID">MID (미드)</option>
+              <option value="TOP">TOP (탑)</option>
+              <option value="JUG">JUG (정글)</option>
+              <option value="ADC">ADC (원딜)</option>
+              <option value="SUP">SUP (서폿)</option>
+              <option value="FILL">ALL (올라운더)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">티어 *</label>
+            <select id="form-tier" required class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+              <option value="CHALLENGER">CHALLENGER</option>
+              <option value="GRANDMASTER">GRANDMASTER</option>
+              <option value="MASTER">MASTER</option>
+              <option value="DIAMOND">DIAMOND</option>
+              <option value="EMERALD">EMERALD</option>
+              <option value="PLATINUM">PLATINUM</option>
+              <option value="GOLD">GOLD</option>
+              <option value="SILVER">SILVER</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">최근 폼 점수 (1~100)</label>
+            <input id="form-form-score" type="number" min="1" max="100" value="80" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-gray-300 font-semibold mb-1">모스트 챔피언 (쉼표 구분)</label>
+          <input id="form-champions" type="text" placeholder="예: 아지르, 오리아나, 사일러스" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-gray-100 focus:outline-none focus:border-deeplol-gold">
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-deeplol-border">
+          <div>
+            <label class="block text-gray-400 text-[10px] mb-1">내전 승리 수</label>
+            <input id="form-wins" type="number" min="0" value="0" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-2 py-1.5 text-center text-gray-100 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-gray-400 text-[10px] mb-1">내전 패배 수</label>
+            <input id="form-losses" type="number" min="0" value="0" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-2 py-1.5 text-center text-gray-100 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-gray-400 text-[10px] mb-1">평균 KDA</label>
+            <input id="form-kda" type="number" step="0.1" min="0" value="3.5" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-2 py-1.5 text-center text-gray-100 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeSummonerModal()" class="px-4 py-2 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover text-gray-300 font-semibold transition">
+            취소
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:brightness-110 text-gray-950 font-bold transition">
+            저장하기
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: 매치 결과 등록 & MVP 선정 모달 -->
+  <div id="modal-match-record" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-deeplol-surface border border-deeplol-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-extrabold text-gray-100 mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-trophy text-deeplol-gold"></i>
+        <span>내전 결과 및 MVP 등록</span>
+      </h3>
+      <p class="text-xs text-gray-400 mb-4">승리 팀과 경기 MVP를 선택하면 선수들의 전적과 폼 점수가 즉시 갱신됩니다.</p>
+
+      <!-- Win Team Selection -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <button type="button" onclick="setMatchWinner('BLUE')" id="record-btn-blue" class="p-4 rounded-xl border-2 border-blue-900/60 bg-blue-950/20 hover:bg-blue-900/30 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-lg shadow-blue-600/40">B</div>
+          <span class="block font-bold text-xs text-blue-400">블루팀 승리</span>
+        </button>
+
+        <button type="button" onclick="setMatchWinner('RED')" id="record-btn-red" class="p-4 rounded-xl border-2 border-red-900/60 bg-red-950/20 hover:bg-red-900/30 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-red-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-lg shadow-red-600/40">R</div>
+          <span class="block font-bold text-xs text-red-400">레드팀 승리</span>
+        </button>
+      </div>
+
+      <!-- MVP Select -->
+      <div class="mb-5">
+        <label class="block text-gray-300 text-xs font-semibold mb-1.5">
+          <i class="fa-solid fa-medal text-amber-400 mr-1"></i> 이번 경기 MVP 소환사
+        </label>
+        <select id="record-mvp-select" class="w-full bg-deeplol-card border border-deeplol-border rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-deeplol-gold">
+          <!-- Populated from current match 10 players -->
+        </select>
+      </div>
+
+      <div class="flex items-center justify-end gap-2">
+        <button onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-deeplol-card hover:bg-deeplol-cardHover text-gray-300 text-xs font-semibold">
+          취소
+        </button>
+        <button id="btn-save-record-submit" onclick="submitMatchResult()" disabled class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition">
+          전적 영구 반영하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // ----------------------------------------------------
+    // Constants & Deeplol Baseline Data
+    // ----------------------------------------------------
+    const TIER_POINTS = {
+      'CHALLENGER': 3800,
+      'GRANDMASTER': 3400,
+      'MASTER': 3000,
+      'DIAMOND': 2500,
+      'EMERALD': 2100,
+      'PLATINUM': 1700,
+      'GOLD': 1300,
+      'SILVER': 900
+    };
+
+    const ROLE_METADATA = {
+      'TOP': { name: 'TOP', icon: 'fa-shield-halved', color: 'text-amber-400' },
+      'JUG': { name: 'JUG', icon: 'fa-paw', color: 'text-emerald-400' },
+      'MID': { name: 'MID', icon: 'fa-wand-magic-sparkles', color: 'text-purple-400' },
+      'ADC': { name: 'ADC', icon: 'fa-crosshairs', color: 'text-red-400' },
+      'SUP': { name: 'SUP', icon: 'fa-heart', color: 'text-sky-400' },
+      'FILL': { name: 'ALL', icon: 'fa-shuffle', color: 'text-gray-400' }
+    };
+
+    const ORDERED_ROLES = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
+
+    // Pre-populated Korean Summoner Profiles (Faker, Chovy, Canyon, etc.)
+    const DEFAULT_SUMMONERS = [
+      { id: 'p1', name: 'Hide on bush', tier: 'CHALLENGER', mainRole: 'MID', subRole: 'TOP', most: ['아지르', '오리아나', '아리'], wins: 34, losses: 14, kda: 4.8, formScore: 94 },
+      { id: 'p2', name: 'Chovy', tier: 'CHALLENGER', mainRole: 'MID', subRole: 'TOP', most: ['요네', '사일러스', '트리스타나'], wins: 36, losses: 12, kda: 5.6, formScore: 98 },
+      { id: 'p3', name: 'Canyon', tier: 'GRANDMASTER', mainRole: 'JUG', subRole: 'MID', most: ['니달리', '리 신', '자르반 IV'], wins: 29, losses: 16, kda: 4.2, formScore: 91 },
+      { id: 'p4', name: 'Oner', tier: 'MASTER', mainRole: 'JUG', subRole: 'TOP', most: ['바이', '신 짜오', '세주아니'], wins: 26, losses: 19, kda: 3.8, formScore: 86 },
+      { id: 'p5', name: 'Zeus', tier: 'CHALLENGER', mainRole: 'TOP', subRole: 'ADC', most: ['제이스', '요네', '나르'], wins: 31, losses: 15, kda: 4.1, formScore: 92 },
+      { id: 'p6', name: 'Kiin', tier: 'GRANDMASTER', mainRole: 'TOP', subRole: 'MID', most: ['크산테', '럼블', '아트록스'], wins: 28, losses: 17, kda: 3.9, formScore: 89 },
+      { id: 'p7', name: 'Gumayusi', tier: 'CHALLENGER', mainRole: 'ADC', subRole: 'MID', most: ['바루스', '징크스', '루시안'], wins: 33, losses: 13, kda: 5.1, formScore: 93 },
+      { id: 'p8', name: 'Ruler', tier: 'CHALLENGER', mainRole: 'ADC', subRole: 'TOP', most: ['제리', '이즈리얼', '카이사'], wins: 32, losses: 14, kda: 5.3, formScore: 95 },
+      { id: 'p9', name: 'Keria', tier: 'CHALLENGER', mainRole: 'SUP', subRole: 'MID', most: ['쓰레쉬', '바드', '노틸러스'], wins: 37, losses: 11, kda: 5.5, formScore: 97 },
+      { id: 'p10', name: 'Lehends', tier: 'MASTER', mainRole: 'SUP', subRole: 'JUG', most: ['신지드', '블리츠크랭크', '레오나'], wins: 25, losses: 18, kda: 3.9, formScore: 85 },
+      { id: 'p11', name: 'ShowMaker', tier: 'GRANDMASTER', mainRole: 'MID', subRole: 'ADC', most: ['신드라', '조이', '카타리나'], wins: 27, losses: 17, kda: 4.3, formScore: 88 },
+      { id: 'p12', name: 'Deft', tier: 'GRANDMASTER', mainRole: 'ADC', subRole: 'MID', most: ['바루스', '진', '애쉬'], wins: 28, losses: 18, kda: 4.4, formScore: 89 },
+      { id: 'p13', name: 'BeryL', tier: 'DIAMOND', mainRole: 'SUP', subRole: 'FILL', most: ['하이머딩거', '렐', '탐 켄치'], wins: 22, losses: 20, kda: 3.2, formScore: 82 },
+      { id: 'p14', name: 'Doran', tier: 'MASTER', mainRole: 'TOP', subRole: 'JUG', most: ['그라가스', '나르', '잭스'], wins: 24, losses: 19, kda: 3.6, formScore: 84 }
+    ];
+
+    // State Variables with LocalStorage Support
+    let summoners = [];
+    let selectedPlayerIds = new Set();
+    let currentMatch = null;
+    let matchHistory = [];
+    let modalPendingWinner = null;
+
+    // Load LocalStorage
+    function initLocalStorage() {
+      const storedSummoners = localStorage.getItem('deeplol_scrim_summoners');
+      if (storedSummoners) {
+        try { summoners = JSON.parse(storedSummoners); } catch(e) { summoners = DEFAULT_SUMMONERS; }
+      } else {
+        summoners = DEFAULT_SUMMONERS;
+        saveSummoners();
+      }
+
+      const storedHistory = localStorage.getItem('deeplol_scrim_history');
+      if (storedHistory) {
+        try { matchHistory = JSON.parse(storedHistory); } catch(e) { matchHistory = []; }
+      }
+
+      // Default select 10 famous players
+      selectedPlayerIds = new Set(['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']);
+    }
+
+    function saveSummoners() {
+      localStorage.setItem('deeplol_scrim_summoners', JSON.stringify(summoners));
+    }
+
+    function saveHistory() {
+      localStorage.setItem('deeplol_scrim_history', JSON.stringify(matchHistory));
+    }
+
+    // ----------------------------------------------------
+    // MMR & Stat Calculations
+    // ----------------------------------------------------
+    function getPlayerMMR(player) {
+      const tierBase = TIER_POINTS[player.tier] || 1500;
+      const total = (player.wins || 0) + (player.losses || 0);
+      const winRate = total > 0 ? (player.wins / total) : 0.5;
+      
+      // Scrim Win rate adjustment: -150 ~ +150
+      const winRateBonus = (winRate - 0.5) * 300;
+
+      // Form score (0 ~ 100): baseline 75
+      const formBonus = ((player.formScore || 75) - 75) * 4;
+
+      return Math.round(tierBase + winRateBonus + formBonus);
+    }
+
+    function getPositionAffinityScore(player, assignedRole) {
+      if (player.mainRole === assignedRole) return 100;
+      if (player.subRole === assignedRole) return 70;
+      if (player.subRole === 'FILL') return 60;
+      return 20; // Off-role penalty
+    }
+
+    // ----------------------------------------------------
+    // Tab Navigation
+    // ----------------------------------------------------
+    function switchTab(tabKey) {
+      const tabs = ['balancer', 'summoners', 'history'];
+      tabs.forEach(t => {
+        const content = document.getElementById(`tab-content-${t}`);
+        const navBtn = document.getElementById(`nav-auto-${t}`) || document.getElementById(`nav-${t}`);
+        if (t === tabKey) {
+          content.classList.remove('hidden');
+          navBtn.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-deeplol-gold/15 text-deeplol-gold border border-deeplol-gold/30";
+        } else {
+          content.classList.add('hidden');
+          navBtn.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-gray-400 hover:text-gray-200 hover:bg-deeplol-card";
+        }
+      });
+
+      if (tabKey === 'summoners') renderSummonersList();
+      if (tabKey === 'history') renderMatchHistory();
+    }
+
+    // ----------------------------------------------------
+    // Toast Feedback
+    // ----------------------------------------------------
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'error' ? 'bg-red-950/90 border-red-500' : (type === 'success' ? 'bg-emerald-950/90 border-emerald-500' : 'bg-deeplol-card border-deeplol-gold/50');
+      const icon = type === 'error' ? 'fa-circle-exclamation text-red-400' : (type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-bell text-deeplol-gold');
+
+      toast.className = `flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-xs shadow-2xl ${bg} text-gray-100 transition duration-300 translate-y-3 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ----------------------------------------------------
+    // 10-Player Selection System
+    // ----------------------------------------------------
+    function renderSelectionGrid() {
+      const grid = document.getElementById('balancer-selection-grid');
+      grid.innerHTML = '';
+
+      summoners.forEach(s => {
+        const isSelected = selectedPlayerIds.has(s.id);
+        const mmr = getPlayerMMR(s);
+        const roleInfo = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
+
+        const tile = document.createElement('div');
+        tile.onclick = () => toggleSelectPlayer(s.id);
+        tile.className = `cursor-pointer p-2 rounded-xl border text-xs transition duration-200 select-none flex items-center justify-between ${
+          isSelected 
+            ? 'bg-amber-950/30 border-amber-500 shadow-md shadow-amber-950/40' 
+            : 'bg-deeplol-card border-deeplol-border hover:border-gray-500'
+        }`;
+
+        tile.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-4 text-center ${roleInfo.color} font-bold text-xs"><i class="fa-solid ${roleInfo.icon}"></i></span>
+            <div class="truncate">
+              <div class="font-bold text-gray-200 truncate text-[11px]">${s.name}</div>
+              <div class="text-[10px] text-gray-400">${s.tier.slice(0, 3)} · ${mmr}p</div>
+            </div>
+          </div>
+          <div class="w-4 h-4 rounded-md flex items-center justify-center border text-[9px] ${
+            isSelected ? 'bg-amber-500 border-amber-400 text-gray-950 font-black' : 'border-gray-700'
+          }">
+            ${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}
+          </div>
+        `;
+        grid.appendChild(tile);
+      });
+
+      updateSelectionCounter();
+      document.getElementById('nav-roster-count').textContent = summoners.length;
+    }
+
+    function toggleSelectPlayer(id) {
+      if (selectedPlayerIds.has(id)) {
+        selectedPlayerIds.delete(id);
+      } else {
+        if (selectedPlayerIds.size >= 10) {
+          showToast('10명까지만 선택 가능합니다.', 'error');
+          return;
+        }
+        selectedPlayerIds.add(id);
+      }
+      renderSelectionGrid();
+    }
+
+    function clearSelection() {
+      selectedPlayerIds.clear();
+      renderSelectionGrid();
+    }
+
+    function autoSelectTop10() {
+      const sorted = [...summoners].sort((a, b) => getPlayerMMR(b) - getPlayerMMR(a));
+      selectedPlayerIds = new Set(sorted.slice(0, 10).map(s => s.id));
+      renderSelectionGrid();
+      showToast('MMR 상위 10명이 자동 선택되었습니다.', 'success');
+    }
+
+    function updateSelectionCounter() {
+      const count = selectedPlayerIds.size;
+      const badge = document.getElementById('selected-badge');
+      const runBtn = document.getElementById('btn-run-balancing');
+
+      badge.textContent = `${count} / 10명 선택됨`;
+      badge.className = count === 10 
+        ? 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-950/40 border border-emerald-500 text-emerald-400' 
+        : 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-deeplol-card border border-deeplol-border text-amber-400';
+      
+      runBtn.disabled = (count !== 10);
+    }
+
+    // ----------------------------------------------------
+    // Deeplol Combinatorial Smart Balancing Engine
+    // ----------------------------------------------------
+    function getCombinations(arr, k) {
+      const results = [];
+      function backtrack(start, combo) {
+        if (combo.length === k) {
+          results.push([...combo]);
+          return;
+        }
+        for (let i = start; i < arr.length; i++) {
+          combo.push(arr[i]);
+          backtrack(i + 1, combo);
+          combo.pop();
+        }
+      }
+      backtrack(0, []);
+      return results;
+    }
+
+    function getPermutations(arr) {
+      if (arr.length <= 1) return [arr];
+      const result = [];
+      for (let i = 0; i < arr.length; i++) {
+        const current = arr[i];
+        const remaining = arr.slice(0, i).concat(arr.slice(i + 1));
+        const remPerms = getPermutations(remaining);
+        for (let p of remPerms) {
+          result.push([current, ...p]);
+        }
+      }
+      return result;
+    }
+
+    function assignOptimalRoles(players5) {
+      // 5! = 120 role permutations to find highest affinity
+      const perms = getPermutations(players5);
+      let bestPerm = players5;
+      let highestScore = -1;
+
+      for (let perm of perms) {
+        let score = 0;
+        for (let i = 0; i < 5; i++) {
+          score += getPositionAffinityScore(perm[i], ORDERED_ROLES[i]);
+        }
+        if (score > highestScore) {
+          highestScore = score;
+          bestPerm = perm;
+        }
+      }
+      return bestPerm;
+    }
+
+    function runSmartBalancing() {
+      if (selectedPlayerIds.size !== 10) return;
+
+      const pool = summoners.filter(s => selectedPlayerIds.has(s.id));
+      const teamCombos = getCombinations(pool, 5);
+
+      let bestMatch = null;
+      let minDeviation = Infinity;
+
+      // Evaluate partitions
+      for (let teamA of teamCombos) {
+        const teamAIds = new Set(teamA.map(p => p.id));
+        const teamB = pool.filter(p => !teamAIds.has(p.id));
+
+        const blueAssigned = assignOptimalRoles(teamA);
+        const redAssigned = assignOptimalRoles(teamB);
+
+        const blueMMRSum = blueAssigned.reduce((acc, p) => acc + getPlayerMMR(p), 0);
+        const redMMRSum = redAssigned.reduce((acc, p) => acc + getPlayerMMR(p), 0);
+        const teamMMRDiff = Math.abs(blueMMRSum - redMMRSum);
+
+        // Calculate lane-by-lane MMR diff
+        let laneGapSum = 0;
+        for (let i = 0; i < 5; i++) {
+          laneGapSum += Math.abs(getPlayerMMR(blueAssigned[i]) - getPlayerMMR(redAssigned[i]));
+        }
+
+        // Role satisfaction penalty
+        let roleScore = 0;
+        for (let i = 0; i < 5; i++) {
+          roleScore += getPositionAffinityScore(blueAssigned[i], ORDERED_ROLES[i]);
+          roleScore += getPositionAffinityScore(redAssigned[i], ORDERED_ROLES[i]);
+        }
+        const rolePenalty = 1000 - roleScore;
+
+        const compositeScore = (teamMMRDiff * 1.6) + (laneGapSum * 0.45) + (rolePenalty * 1.1);
+
+        if (compositeScore < minDeviation) {
+          minDeviation = compositeScore;
+          bestMatch = {
+            blue: blueAssigned,
+            red: redAssigned,
+            blueAvgMMR: Math.round(blueMMRSum / 5),
+            redAvgMMR: Math.round(redMMRSum / 5),
+            totalDiff: teamMMRDiff,
+            avgDiff: Math.round(teamMMRDiff / 5),
+            roleSatisfaction: Math.round((roleScore / 1000) * 100)
+          };
+        }
+      }
+
+      currentMatch = bestMatch;
+      renderMatchArena();
+      showToast('스마트 포지션 밸런싱이 완료되었습니다!', 'success');
+    }
+
+    function rerollBalancing() {
+      if (!currentMatch) return;
+      // Slight shuffle perturbation & rerun
+      runSmartBalancing();
+    }
+
+    function swapLaneLineup() {
+      if (!currentMatch) return;
+      const targetPos = document.getElementById('swap-pos').value;
+      const idx = ORDERED_ROLES.indexOf(targetPos);
+      if (idx === -1) return;
+
+      const temp = currentMatch.blue[idx];
+      currentMatch.blue[idx] = currentMatch.red[idx];
+      currentMatch.red[idx] = temp;
+
+      // Recalculate
+      const blueMMRSum = currentMatch.blue.reduce((acc, p) => acc + getPlayerMMR(p), 0);
+      const redMMRSum = currentMatch.red.reduce((acc, p) => acc + getPlayerMMR(p), 0);
+      currentMatch.blueAvgMMR = Math.round(blueMMRSum / 5);
+      currentMatch.redAvgMMR = Math.round(redMMRSum / 5);
+      currentMatch.totalDiff = Math.abs(blueMMRSum - redMMRSum);
+      currentMatch.avgDiff = Math.round(currentMatch.totalDiff / 5);
+
+      renderMatchArena();
+      showToast(`${targetPos} 라인 선수가 상호 스왑되었습니다.`, 'info');
+    }
+
+    // ----------------------------------------------------
+    // Match Board Rendering
+    // ----------------------------------------------------
+    function renderMatchArena() {
+      if (!currentMatch) return;
+
+      document.getElementById('balancer-placeholder').classList.add('hidden');
+      document.getElementById('balancer-board').classList.remove('hidden');
+
+      const { blue, red, blueAvgMMR, redAvgMMR, avgDiff, roleSatisfaction } = currentMatch;
+
+      // Stats Summary
+      document.getElementById('stat-avg-diff').textContent = `${avgDiff} pt (총 ${currentMatch.totalDiff} pt)`;
+      document.getElementById('stat-role-score').textContent = `${roleSatisfaction}% 충족`;
+
+      // Logistic win probability curve
+      const delta = blueAvgMMR - redAvgMMR;
+      const blueProb = Math.min(Math.max(50 + (delta * 0.08), 15), 85).toFixed(1);
+      const redProb = (100 - blueProb).toFixed(1);
+
+      document.getElementById('blue-team-mmr').textContent = `${blueAvgMMR} pt`;
+      document.getElementById('red-team-mmr').textContent = `${redAvgMMR} pt`;
+      document.getElementById('blue-predicted-rate').textContent = `${blueProb}%`;
+      document.getElementById('red-predicted-rate').textContent = `${redProb}%`;
+      document.getElementById('stat-win-prob').textContent = `블루 ${blueProb}% vs 레드 ${redProb}%`;
+
+      renderTeamLaneRoster('blue', blue, red);
+      renderTeamLaneRoster('red', red, blue);
+    }
+
+    function renderTeamLaneRoster(teamColor, teamRoster, enemyRoster) {
+      const container = document.getElementById(`${teamColor}-roster-list`);
+      container.innerHTML = '';
+
+      teamRoster.forEach((player, idx) => {
+        const assignedRole = ORDERED_ROLES[idx];
+        const roleInfo = ROLE_METADATA[assignedRole];
+        const enemy = enemyRoster[idx];
+
+        const playerMMR = getPlayerMMR(player);
+        const enemyMMR = getPlayerMMR(enemy);
+        const laneDelta = playerMMR - enemyMMR;
+
+        const isOffRole = player.mainRole !== assignedRole && player.subRole !== assignedRole && player.subRole !== 'FILL';
+        const isSubRole = player.subRole === assignedRole;
+
+        const total = (player.wins || 0) + (player.losses || 0);
+        const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
+
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+          teamColor === 'blue'
+            ? 'bg-deeplol-card/80 border-blue-900/40 hover:border-blue-500/60'
+            : 'bg-deeplol-card/80 border-red-900/40 hover:border-red-500/60'
+        }`;
+
+        card.innerHTML = `
+          <!-- Lane & Summoner Identity -->
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-deeplol-surface border border-deeplol-border flex flex-col items-center justify-center shrink-0">
+              <i class="fa-solid ${roleInfo.icon} ${roleInfo.color} text-xs"></i>
+              <span class="text-[9px] font-bold text-gray-400 uppercase leading-none mt-0.5">${assignedRole}</span>
+            </div>
+
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-gray-100 truncate">${player.name}</span>
+                <span class="tier-badge tier-${player.tier.toLowerCase()}">${player.tier}</span>
+                ${isOffRole ? '<span class="text-[9px] px-1 bg-red-950/70 text-red-300 rounded font-semibold border border-red-800">이탈</span>' : ''}
+                ${isSubRole ? '<span class="text-[9px] px-1 bg-amber-950/70 text-amber-300 rounded font-semibold border border-amber-800">부포</span>' : ''}
+              </div>
+              <div class="text-[10px] text-gray-400 mt-0.5">
+                모스트: <span class="text-gray-300">${(player.most || []).slice(0, 2).join(', ') || '자유'}</span>
+                <span class="mx-1">·</span>
+                폼 <strong class="text-amber-400">${player.formScore || 75}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lane Matchup Status -->
+          <div class="text-right shrink-0">
+            <div class="font-extrabold text-[11px] ${laneDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${laneDelta >= 0 ? `+${laneDelta} pt 우세` : `${laneDelta} pt 열세`}
+            </div>
+            <div class="text-[10px] text-gray-400">
+              ${winRate}% (${player.wins}승 ${player.losses}패)
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // ----------------------------------------------------
+    // Record Match & MVP System
+    // ----------------------------------------------------
+    function openRecordMatchModal() {
+      if (!currentMatch) return;
+      modalPendingWinner = null;
+
+      const mvpSelect = document.getElementById('record-mvp-select');
+      mvpSelect.innerHTML = '';
+      
+      const allTen = [...currentMatch.blue, ...currentMatch.red];
+      allTen.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.tier} - ${p.mainRole})`;
+        mvpSelect.appendChild(opt);
+      });
+
+      document.getElementById('record-btn-blue').classList.remove('border-blue-400', 'ring-2', 'ring-blue-500');
+      document.getElementById('record-btn-red').classList.remove('border-red-400', 'ring-2', 'ring-red-500');
+      document.getElementById('btn-save-record-submit').disabled = true;
+
+      document.getElementById('modal-match-record').classList.remove('hidden');
+    }
+
+    function closeRecordMatchModal() {
+      document.getElementById('modal-match-record').classList.add('hidden');
+    }
+
+    function setMatchWinner(team) {
+      modalPendingWinner = team;
+      const bBtn = document.getElementById('record-btn-blue');
+      const rBtn = document.getElementById('record-btn-red');
+      
+      if (team === 'BLUE') {
+        bBtn.classList.add('border-blue-400', 'ring-2', 'ring-blue-500');
+        rBtn.classList.remove('border-red-400', 'ring-2', 'ring-red-500');
+      } else {
+        rBtn.classList.add('border-red-400', 'ring-2', 'ring-red-500');
+        bBtn.classList.remove('border-blue-400', 'ring-2', 'ring-blue-500');
+      }
+      document.getElementById('btn-save-record-submit').disabled = false;
+    }
+
+    function submitMatchResult() {
+      if (!modalPendingWinner || !currentMatch) return;
+
+      const winningPlayers = modalPendingWinner === 'BLUE' ? currentMatch.blue : currentMatch.red;
+      const losingPlayers = modalPendingWinner === 'BLUE' ? currentMatch.red : currentMatch.blue;
+
+      const winIds = new Set(winningPlayers.map(p => p.id));
+      const loseIds = new Set(losingPlayers.map(p => p.id));
+      const mvpId = document.getElementById('record-mvp-select').value;
+      const mvpPlayer = summoners.find(s => s.id === mvpId);
+
+      // Update Summoners Stats in Real-time
+      summoners = summoners.map(s => {
+        if (winIds.has(s.id)) {
+          return {
+            ...s,
+            wins: (s.wins || 0) + 1,
+            formScore: Math.min(100, (s.formScore || 75) + (s.id === mvpId ? 5 : 2))
+          };
+        }
+        if (loseIds.has(s.id)) {
+          return {
+            ...s,
+            losses: (s.losses || 0) + 1,
+            formScore: Math.max(30, (s.formScore || 75) - 2)
+          };
+        }
+        return s;
+      });
+
+      // Save History Entry
+      const historyItem = {
+        id: 'match-' + Date.now(),
+        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        winner: modalPendingWinner,
+        mvp: mvpPlayer ? mvpPlayer.name : 'Unknown',
+        blueAvgMMR: currentMatch.blueAvgMMR,
+        redAvgMMR: currentMatch.redAvgMMR,
+        blueLineup: currentMatch.blue.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier })),
+        redLineup: currentMatch.red.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier }))
+      };
+
+      matchHistory.unshift(historyItem);
+      
+      // Persist
+      saveSummoners();
+      saveHistory();
+
+      closeRecordMatchModal();
+      showToast(`${modalPendingWinner}팀 승리 및 MVP(${historyItem.mvp}) 전적이 영구 반영되었습니다!`, 'success');
+
+      // Sync views
+      renderMatchArena();
+      renderSelectionGrid();
+      renderSummonersList();
+      renderMatchHistory();
+    }
+
+    // ----------------------------------------------------
+    // Summoner List & Deeplol Card Renderer
+    // ----------------------------------------------------
+    function renderSummonersList() {
+      const container = document.getElementById('summoners-card-container');
+      container.innerHTML = '';
+
+      const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const tierFilter = document.getElementById('filter-tier-select')?.value || 'ALL';
+      const posFilter = document.getElementById('filter-pos-select')?.value || 'ALL';
+
+      const filtered = summoners.filter(s => {
+        const matchName = s.name.toLowerCase().includes(query) || (s.most || []).some(m => m.toLowerCase().includes(query));
+        const matchTier = tierFilter === 'ALL' || s.tier === tierFilter;
+        const matchPos = posFilter === 'ALL' || s.mainRole === posFilter;
+        return matchName && matchTier && matchPos;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-10 text-center text-gray-500 bg-deeplol-surface border border-deeplol-border rounded-2xl">
+            <i class="fa-solid fa-user-slash text-2xl mb-2"></i>
+            <p class="text-xs">조건에 해당하는 소환사가 없습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(s => {
+        const mmr = getPlayerMMR(s);
+        const total = (s.wins || 0) + (s.losses || 0);
+        const winRate = total > 0 ? Math.round((s.wins / total) * 100) : 0;
+        const mainRole = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
+        const subRole = ROLE_METADATA[s.subRole] || ROLE_METADATA.FILL;
+
+        const card = document.createElement('div');
+        card.className = "bg-deeplol-surface border border-deeplol-border hover:border-deeplol-gold/60 rounded-2xl p-4 shadow-lg transition duration-200 relative group flex flex-col justify-between";
+
+        card.innerHTML = `
+          <div>
+            <!-- Top Identity & Actions -->
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-deeplol-card border border-deeplol-border flex items-center justify-center text-deeplol-gold text-lg shadow-inner">
+                  <i class="fa-solid fa-shield"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <h3 class="font-extrabold text-sm text-gray-100">${s.name}</h3>
+                    <span class="tier-badge tier-${s.tier.toLowerCase()}">${s.tier}</span>
+                  </div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">
+                    내전 MMR <strong class="text-deeplol-gold">${mmr}</strong> pt
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <button onclick="editSummoner('${s.id}')" title="수정" class="p-1.5 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-deeplol-card text-xs">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="deleteSummoner('${s.id}')" title="삭제" class="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-deeplol-card text-xs">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats Bar (Deeplol style) -->
+            <div class="bg-deeplol-card rounded-xl p-2.5 border border-deeplol-border text-xs grid grid-cols-3 gap-2 text-center mb-3">
+              <div>
+                <span class="text-[10px] text-gray-400 block">내전 승률</span>
+                <span class="font-black ${winRate >= 50 ? 'text-amber-400' : 'text-gray-300'}">${winRate}%</span>
+                <span class="text-[9px] text-gray-500 block">${s.wins}승 ${s.losses}패</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-gray-400 block">평균 KDA</span>
+                <span class="font-black text-sky-400">${s.kda || 3.5} : 1</span>
+                <span class="text-[9px] text-gray-500 block">캐리력 지수</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-gray-400 block">최근 폼</span>
+                <span class="font-black ${s.formScore >= 85 ? 'text-emerald-400' : 'text-yellow-400'}">${s.formScore || 75}점</span>
+                <span class="text-[9px] text-gray-500 block">최근 5경기</span>
+              </div>
+            </div>
+
+            <!-- Positions -->
+            <div class="flex items-center gap-2 mb-3 text-[11px]">
+              <span class="text-gray-400">포지션:</span>
+              <span class="px-2 py-0.5 rounded-md bg-deeplol-card text-gray-200 font-semibold flex items-center gap-1 border border-deeplol-border">
+                <i class="fa-solid ${mainRole.icon} ${mainRole.color}"></i> 주: ${mainRole.name}
+              </span>
+              <span class="px-2 py-0.5 rounded-md bg-deeplol-card text-gray-400 flex items-center gap-1 border border-deeplol-border">
+                <i class="fa-solid ${subRole.icon}"></i> 부: ${subRole.name}
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom: Champions -->
+          <div class="pt-2 border-t border-deeplol-border flex items-center justify-between text-[11px] text-gray-400">
+            <span>모스트 챔피언</span>
+            <span class="text-gray-200 font-medium truncate ml-2">${(s.most || []).join(', ') || '없음'}</span>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // ----------------------------------------------------
+    // Summoner Modal CRUD
+    // ----------------------------------------------------
+    function openAddSummonerModal() {
+      document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>새 소환사 등록</span>';
+      document.getElementById('form-summoner').reset();
+      document.getElementById('summoner-form-id').value = '';
+      document.getElementById('modal-summoner').classList.remove('hidden');
+    }
+
+    function editSummoner(id) {
+      const p = summoners.find(s => s.id === id);
+      if (!p) return;
+
+      document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> <span>소환사 정보 수정</span>';
+      document.getElementById('summoner-form-id').value = p.id;
+      document.getElementById('form-name').value = p.name;
+      document.getElementById('form-main-role').value = p.mainRole;
+      document.getElementById('form-sub-role').value = p.subRole;
+      document.getElementById('form-tier').value = p.tier;
+      document.getElementById('form-form-score').value = p.formScore || 75;
+      document.getElementById('form-champions').value = (p.most || []).join(', ');
+      document.getElementById('form-wins').value = p.wins || 0;
+      document.getElementById('form-losses').value = p.losses || 0;
+      document.getElementById('form-kda').value = p.kda || 3.5;
+
+      document.getElementById('modal-summoner').classList.remove('hidden');
+    }
+
+    function closeSummonerModal() {
+      document.getElementById('modal-summoner').classList.add('hidden');
+    }
+
+    function handleSummonerSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('summoner-form-id').value;
+      const name = document.getElementById('form-name').value.trim();
+      const mainRole = document.getElementById('form-main-role').value;
+      const subRole = document.getElementById('form-sub-role').value;
+      const tier = document.getElementById('form-tier').value;
+      const formScore = parseInt(document.getElementById('form-form-score').value, 10);
+      const champsRaw = document.getElementById('form-champions').value;
+      const most = champsRaw ? champsRaw.split(',').map(c => c.trim()).filter(Boolean) : [];
+      const wins = parseInt(document.getElementById('form-wins').value, 10);
+      const losses = parseInt(document.getElementById('form-losses').value, 10);
+      const kda = parseFloat(document.getElementById('form-kda').value);
+
+      if (id) {
+        summoners = summoners.map(s => s.id === id ? { ...s, name, mainRole, subRole, tier, formScore, most, wins, losses, kda } : s);
+        showToast('소환사 정보가 성공적으로 수정되었습니다.', 'success');
+      } else {
+        const newPlayer = {
+          id: 'p-' + Date.now(),
+          name, mainRole, subRole, tier, formScore, most, wins, losses, kda
+        };
+        summoners.unshift(newPlayer);
+        selectedPlayerIds.add(newPlayer.id);
+        showToast('새 소환사가 등록되었습니다.', 'success');
+      }
+
+      saveSummoners();
+      closeSummonerModal();
+      renderSelectionGrid();
+      renderSummonersList();
+    }
+
+    function deleteSummoner(id) {
+      summoners = summoners.filter(s => s.id !== id);
+      selectedPlayerIds.delete(id);
+      saveSummoners();
+      renderSelectionGrid();
+      renderSummonersList();
+      showToast('소환사가 명단에서 삭제되었습니다.', 'info');
+    }
+
+    // ----------------------------------------------------
+    // History Renderer
+    // ----------------------------------------------------
+    function renderMatchHistory() {
+      const container = document.getElementById('match-history-list');
+      container.innerHTML = '';
+      document.getElementById('nav-history-count').textContent = matchHistory.length;
+
+      if (matchHistory.length === 0) {
+        container.innerHTML = `
+          <div class="p-10 text-center text-gray-500 bg-deeplol-surface border border-deeplol-border rounded-2xl">
+            <i class="fa-solid fa-gamepad text-2xl mb-2"></i>
+            <p class="text-xs">기록된 내전 매치가 없습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      matchHistory.forEach(m => {
+        const isBlueWin = m.winner === 'BLUE';
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-2xl border text-xs bg-deeplol-surface ${
+          isBlueWin ? 'border-l-4 border-l-blue-500 border-deeplol-border' : 'border-l-4 border-l-red-500 border-deeplol-border'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between pb-2 mb-3 border-b border-deeplol-border">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded font-black text-[11px] ${
+                isBlueWin ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'bg-red-600/20 text-red-400 border border-red-500/30'
+              }">
+                ${m.winner} TEAM WIN
+              </span>
+              <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold text-[10px]">
+                <i class="fa-solid fa-crown mr-1"></i>MVP: ${m.mvp}
+              </span>
+              <span class="text-gray-400 text-[11px]">${m.date}</span>
+            </div>
+            <div class="text-[11px] text-gray-400">
+              Blue: <span class="font-bold text-gray-200">${m.blueAvgMMR}p</span> vs Red: <span class="font-bold text-gray-200">${m.redAvgMMR}p</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="p-2.5 rounded-xl bg-blue-950/20 border border-blue-900/30">
+              <span class="text-[10px] font-bold text-blue-400 block mb-1">BLUE TEAM</span>
+              <div class="text-[11px] text-gray-300 flex flex-wrap gap-x-2 gap-y-1">
+                ${m.blueLineup.map(p => `<span>${p.name} <span class="text-[9px] text-gray-500">(${p.tier})</span></span>`).join(', ')}
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-red-950/20 border border-red-900/30">
+              <span class="text-[10px] font-bold text-red-400 block mb-1">RED TEAM</span>
+              <div class="text-[11px] text-gray-300 flex flex-wrap gap-x-2 gap-y-1">
+                ${m.redLineup.map(p => `<span>${p.name} <span class="text-[9px] text-gray-500">(${p.tier})</span></span>`).join(', ')}
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function resetMatchHistory() {
+      if (matchHistory.length === 0) return;
+      matchHistory = [];
+      saveHistory();
+      renderMatchHistory();
+      showToast('모든 내전 전적이 초기화되었습니다.', 'info');
+    }
+
+    // ----------------------------------------------------
+    // Window Onload Entry
+    // ----------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      initLocalStorage();
+      renderSelectionGrid();
+      renderSummonersList();
+      renderMatchHistory();
+
+      // Run initial preview
+      runSmartBalancing();
+    });
+  </script>
+</body>
+</html>
