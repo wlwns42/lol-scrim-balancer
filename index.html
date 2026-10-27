@@ -62,6 +62,8 @@
     .dark .tier-silver { color: #94a3b8; }
     .tier-bronze { background: rgba(217, 119, 6, 0.15); color: #b45309; border: 1px solid rgba(217, 119, 6, 0.4); }
     .dark .tier-bronze { color: #fbbf24; }
+    .tier-iron { background: rgba(100, 116, 139, 0.15); color: #334155; border: 1px solid rgba(100, 116, 139, 0.4); }
+    .dark .tier-iron { color: #94a3b8; }
   </style>
 </head>
 <body class="min-h-screen flex antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
@@ -78,7 +80,7 @@
           <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">PRO SERVERLESS ENGINE</span>
         </div>
       </div>
-      <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 hover:scale-105 transition">
+      <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 hover:scale-105 transition" title="다크/라이트 모드">
         <i id="theme-icon" class="fa-solid fa-sun text-xs"></i>
       </button>
     </div>
@@ -137,7 +139,7 @@
       <button onclick="clearSelection()" class="w-full py-1.5 text-center text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition border border-amber-500/20">
         <i class="fa-solid fa-rotate-left mr-1"></i> 오늘 10인 선택 비우기
       </button>
-      <button onclick="resetToVerifiedDefaults()" class="w-full py-1.5 text-center text-[11px] font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition">
+      <button onclick="resetToVerifiedDefaults()" class="w-full py-1.5 text-center text-[11px] font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition border border-rose-500/20">
         <i class="fa-solid fa-arrows-rotate mr-1"></i> 실제 전적 데이터로 강제 초기화
       </button>
     </div>
@@ -176,9 +178,7 @@
 
     <div class="p-4 sm:p-8 space-y-6 flex-1">
 
-      <!-- ======================================================== -->
       <!-- SECTION 1: 10인 스마트 밸런서 (BALANCER) -->
-      <!-- ======================================================== -->
       <section id="tab-content-balancer" class="space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -232,11 +232,6 @@
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-slate-500 dark:text-gray-400">승률 시뮬레이션:</span>
                   <span id="stat-win-prob" class="text-xs font-bold text-slate-700 dark:text-gray-200">50% vs 50%</span>
-                </div>
-                <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-slate-500 dark:text-gray-400">포지션 만족도:</span>
-                  <span id="stat-role-score" class="text-xs font-bold text-emerald-500">96% 충족</span>
                 </div>
               </div>
 
@@ -317,9 +312,7 @@
         </div>
       </section>
 
-      <!-- ======================================================== -->
       <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) -->
-      <!-- ======================================================== -->
       <section id="tab-content-summoners" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
           <div class="flex items-center gap-3 flex-1 flex-wrap">
@@ -332,9 +325,7 @@
         <div id="summoners-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
 
-      <!-- ======================================================== -->
       <!-- SECTION 3: 매치 히스토리 (HISTORY) -->
-      <!-- ======================================================== -->
       <section id="tab-content-history" class="hidden space-y-4">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
           <div>
@@ -351,9 +342,7 @@
         <div id="match-history-list" class="space-y-3"></div>
       </section>
 
-      <!-- ======================================================== -->
       <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY) -->
-      <!-- ======================================================== -->
       <section id="tab-content-replay" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div class="mb-4">
@@ -456,7 +445,7 @@
           </div>
           <div>
             <label for="form-solo-games" class="block text-slate-500 mb-1">솔랭 판수</label>
-            <input id="form-solo-games" type="number" value="351" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+            <input id="form-solo-games" type="number" value="283" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -466,7 +455,7 @@
           </div>
           <div>
             <label for="form-flex-games" class="block text-slate-500 mb-1">자랭 판수</label>
-            <input id="form-flex-games" type="number" value="23" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+            <input id="form-flex-games" type="number" value="25" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
           </div>
         </div>
         <div>
@@ -509,7 +498,7 @@
   </div>
 
   <script>
-    // 11인 실제 FOW 전적 완벽 고정 데이터
+    // 11인 실제 FOW 전적 데이터
     const VERIFIED_PROFILES = {
       '선릉 오디세우스#KR2': {
         tier: 'MASTER', flexBaseTier: 'EMERALD', soloTier: 'M (301LP)', flexTier: 'E1 (49LP)',
@@ -597,6 +586,7 @@
       document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
     }
 
+    // 실제 전적 데이터로 강제 초기화 함수
     function resetToVerifiedDefaults() {
       summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
         id: 'p-' + idx,
@@ -616,7 +606,7 @@
         try { summoners = JSON.parse(storedS); } catch(e) { summoners = []; }
       }
 
-      // 11명 전원 실제 데이터 자동 결합
+      // 이전 잘못된 캐시(판수 100판 일괄값 등)가 있거나 11명 미만이면 실제 데이터로 로드
       if (summoners.length < 11 || summoners.some(s => s.soloGames === 100 && s.flexGames === 30)) {
         summoners = Object.keys(VERIFIED_PROFILES).map((name, idx) => ({
           id: 'p-' + idx,
@@ -647,6 +637,7 @@
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
     }
 
+    // 모든 화면 렌더링
     function renderAllViews() {
       renderSelectionGrid();
       renderSummonersList();
@@ -682,12 +673,6 @@
       };
     }
 
-    function getPositionAffinityScore(player, assignedRole) {
-      if (player.mainRole === assignedRole) return 100;
-      if (player.subRole === assignedRole) return 72;
-      return 25;
-    }
-
     // Vercel Serverless Function 호출 연동
     async function fetchRiotData() {
       let rawQuery = document.getElementById('quick-search-input').value.trim();
@@ -700,7 +685,6 @@
       const [name, tag] = rawQuery.split('#');
       const fullName = `${name}#${tag}`;
 
-      // 1. 사전 검증 프리셋 즉시 확인
       if (VERIFIED_PROFILES[fullName]) {
         addOrUpdateSummoner(fullName, VERIFIED_PROFILES[fullName]);
         return;
@@ -930,7 +914,7 @@
       });
     }
 
-    // 전체 멤버 목록 카드 그리드
+    // 전체 멤버 목록 카드 그리드 (수정 옆 개별 삭제 휴지통 버튼 완벽 복원)
     function renderSummonersList() {
       const container = document.getElementById('summoners-card-container');
       if (!container) return;
@@ -957,9 +941,16 @@
                   <div class="text-[11px] text-slate-400 mt-0.5">내전 종합 MMR <strong class="text-amber-500">${mmrData.mmr}</strong> pt</div>
                 </div>
               </div>
-              <button onclick="editSummoner('${s.id}')" class="p-1 text-slate-400 hover:text-amber-500 text-xs">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
+
+              <!-- 수정 버튼 및 개별 삭제(휴지통) 버튼 -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="editSummoner('${s.id}')" title="스펙 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="deleteSummoner('${s.id}')" title="멤버 영구 삭제" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
 
             <div class="bg-slate-50 dark:bg-[#161d2a] rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 text-xs mb-2">
@@ -992,6 +983,19 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    // 소환사 1명 개별 영구 삭제 함수
+    function deleteSummoner(id) {
+      const p = summoners.find(s => s.id === id);
+      const name = p ? p.name : '선택한 소환사';
+      if (confirm(`정말 [${name}] 소환사를 명단에서 완전히 삭제하시겠습니까?`)) {
+        summoners = summoners.filter(s => s.id !== id);
+        selectedPlayerIds.delete(id);
+        saveLocalData();
+        renderAllViews();
+        showToast(`[${name}] 소환사가 삭제되었습니다.`, 'info');
+      }
     }
 
     // 좌측 서랍 렌더링
@@ -1049,12 +1053,77 @@
 
     function closeMemberDetailModal() { document.getElementById('modal-member-detail').classList.add('hidden'); }
 
+    // 리플레이 보관함 렌더링 함수 완벽 구현 (ReferenceError 방지)
+    function renderReplayArchiveList() {
+      const container = document.getElementById('replay-archive-list');
+      if (!container) return;
+      container.innerHTML = '';
+      document.getElementById('nav-replay-count').textContent = replayArchives.length;
+
+      if (replayArchives.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">보관된 리플레이가 없습니다. 내전 종료 후 .rofl 파일을 드래그하여 저장하세요.</div>`;
+        return;
+      }
+
+      replayArchives.forEach(r => {
+        const item = document.createElement('div');
+        item.className = "p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#161d2a] flex items-center justify-between";
+        item.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-file-video text-amber-500 text-sm"></i>
+            <div>
+              <span class="font-bold text-slate-800 dark:text-gray-200 block">${r.fileName}</span>
+              <span class="text-[10px] text-slate-400">${r.date} · ${r.size}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function handleDragOver(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.add('border-amber-500'); }
+    function handleDragLeave(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.remove('border-amber-500'); }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('rofl-dropzone').classList.remove('border-amber-500');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) processRoflFile(e.dataTransfer.files[0]);
+    }
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files[0]) processRoflFile(e.target.files[0]);
+    }
+
+    function processRoflFile(file) {
+      if (!file.name.endsWith('.rofl')) {
+        showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
+        return;
+      }
+      const newArchive = {
+        id: 'rofl-' + Date.now(),
+        fileName: file.name,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      replayArchives.unshift(newArchive);
+      saveLocalData();
+      renderReplayArchiveList();
+      showToast(`리플레이(${file.name})가 보관함에 영구 저장되었습니다!`, 'success');
+    }
+
     function switchTab(tabKey) {
       ['balancer', 'summoners', 'history', 'replay'].forEach(t => {
         document.getElementById(`tab-content-${t}`)?.classList.toggle('hidden', t !== tabKey);
+        const b = document.getElementById(`nav-${t}`);
+        if (b) {
+          if (t === tabKey) {
+            b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30";
+          } else {
+            b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]";
+          }
+        }
       });
       if (tabKey === 'summoners') renderSummonersList();
       if (tabKey === 'history') renderMatchHistory();
+      if (tabKey === 'replay') renderReplayArchiveList();
     }
 
     function openAddSummonerModal() {
@@ -1124,18 +1193,15 @@
       });
 
       names.forEach((name, i) => {
-        const clean = name.trim();
-        const existing = summoners.find(s => s.name === clean);
+        const cleanName = name.trim();
+        const existing = summoners.find(s => s.name === cleanName);
         if (!existing) {
-          const preset = VERIFIED_PROFILES[clean] || {
+          const preset = VERIFIED_PROFILES[cleanName] || {
             tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E3 (50LP)', flexTier: 'PL2 (20LP)',
             soloGames: 120, flexGames: 30, mainRole: ORDERED_ROLES[i % 5], subRole: 'FILL',
-            most: ['카이사', '사일러스'], formScore: 80
+            most: ['카이사'], formScore: 80
           };
-          summoners.push({
-            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
-            name: clean, ...preset, wins: 0, losses: 0
-          });
+          summoners.push({ id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4), name: cleanName, ...preset, wins: 0, losses: 0 });
         }
       });
 
@@ -1160,6 +1226,49 @@
         saveLocalData();
         renderMatchHistory();
       }
+    }
+
+    function openRecordMatchModal() {
+      if (!currentMatch) return;
+      modalPendingWinner = null;
+      const sel = document.getElementById('record-mvp-select');
+      sel.innerHTML = '';
+      [...currentMatch.blue, ...currentMatch.red].forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.tier})`;
+        sel.appendChild(opt);
+      });
+      document.getElementById('btn-save-record-submit').disabled = true;
+      document.getElementById('modal-match-record').classList.remove('hidden');
+    }
+
+    function closeRecordMatchModal() { document.getElementById('modal-match-record').classList.add('hidden'); }
+    function setMatchWinner(team) {
+      modalPendingWinner = team;
+      document.getElementById('record-btn-blue').className = team === 'BLUE' ? 'p-4 rounded-xl border-2 border-blue-500 ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20 text-center transition' : 'p-4 rounded-xl border-2 border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/20 text-center transition';
+      document.getElementById('record-btn-red').className = team === 'RED' ? 'p-4 rounded-xl border-2 border-red-500 ring-2 ring-red-500 bg-red-50 dark:bg-red-950/20 text-center transition' : 'p-4 rounded-xl border-2 border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 text-center transition';
+      document.getElementById('btn-save-record-submit').disabled = false;
+    }
+
+    function submitMatchResult() {
+      if (!modalPendingWinner || !currentMatch) return;
+      const winning = modalPendingWinner === 'BLUE' ? currentMatch.blue : currentMatch.red;
+      const winIds = new Set(winning.map(p => p.id));
+      const mvp = summoners.find(s => s.id === document.getElementById('record-mvp-select').value);
+
+      summoners = summoners.map(s => winIds.has(s.id) ? { ...s, wins: (s.wins||0)+1 } : { ...s, losses: (s.losses||0)+1 });
+      matchHistory.unshift({
+        id: 'm-' + Date.now(),
+        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        winner: modalPendingWinner,
+        mvp: mvp ? mvp.name : 'Unknown'
+      });
+
+      saveLocalData();
+      closeRecordMatchModal();
+      renderAllViews();
+      showToast(`${modalPendingWinner}팀 승리가 반영되었습니다!`, 'success');
     }
 
     function showToast(msg, type = 'info') {
