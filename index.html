@@ -61,7 +61,6 @@
     .dark .tier-bronze { color: #fbbf24; }
     .tier-iron { background: rgba(100, 116, 139, 0.15); color: #334155; border: 1px solid rgba(100, 116, 139, 0.4); }
     .dark .tier-iron { color: #94a3b8; }
-    .tier-unranked { background: rgba(148, 163, 184, 0.1); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); }
   </style>
 </head>
 <body class="min-h-screen flex antialiased bg-slate-100 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-200 transition-colors duration-200">
@@ -93,7 +92,7 @@
       <button id="nav-summoners" onclick="switchTab('summoners')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-users w-4 text-center"></i>
-          <span>소환사 명단</span>
+          <span>전체 멤버 목록</span>
         </div>
         <span id="nav-roster-count" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
       </button>
@@ -105,14 +104,9 @@
         </div>
         <span id="nav-history-count" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
       </button>
-
-      <button id="nav-replay" onclick="switchTab('replay')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
-        <i class="fa-solid fa-file-video w-4 text-center text-sky-500"></i>
-        <span>리플레이 파일(.rofl)</span>
-      </button>
     </nav>
 
-    <!-- Bottom Controls -->
+    <!-- Bottom Data Controls -->
     <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
       <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1">팀원 전적 공유</div>
       <div class="grid grid-cols-2 gap-1.5 text-xs">
@@ -139,7 +133,7 @@
       <div class="flex items-center gap-2 w-full md:max-w-xl">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 선릉 오디세우스#KR2, 대한민국이대경#7847)" 
+          <input id="quick-search-input" type="text" placeholder="소환사명#태그 (예: 똥싸고나눠주는노인#영차영차)" 
                  onkeypress="if(event.key === 'Enter') searchAndAddSummoner()"
                  class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-amber-500">
         </div>
@@ -165,7 +159,9 @@
 
     <div class="p-4 sm:p-8 space-y-6 flex-1">
 
+      <!-- ======================================================== -->
       <!-- SECTION 1: 10인 스마트 밸런서 (BALANCER) -->
+      <!-- ======================================================== -->
       <section id="tab-content-balancer" class="space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -176,13 +172,15 @@
                   0 / 10명 선택됨
                 </span>
               </div>
-              <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">솔랭/자랭 판수 비례 동적 가중치 + 내전 승률·폼 점수를 종합 합성하여 최상의 밸런스를 구성합니다.</p>
+              <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                타일을 클릭해 선택하거나 <i class="fa-solid fa-circle-xmark text-rose-500"></i> 버튼을 눌러 오늘 명단에서 바로 제외할 수 있습니다.
+              </p>
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
               <button onclick="autoSelectTop10()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
                 <i class="fa-solid fa-bolt text-amber-500"></i>
-                <span>상위 10명 자동픽</span>
+                <span>상위 10명 픽</span>
               </button>
               <button onclick="clearSelection()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-gray-400 transition">
                 선택 초기화
@@ -194,6 +192,7 @@
             </div>
           </div>
 
+          <!-- Selection Grid with Remove Buttons -->
           <div id="balancer-selection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 max-h-56 overflow-y-auto pr-1"></div>
         </div>
 
@@ -226,14 +225,21 @@
                 </div>
               </div>
 
-              <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
-                <span>재셔플 (Re-roll)</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
+                  <span>재셔플 (Re-roll)</span>
+                </button>
+                <button onclick="openRecordMatchModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-trophy"></i>
+                  <span>내전 결과 등록 & 승률 반영</span>
+                </button>
+              </div>
             </div>
 
             <!-- 5v5 Arena Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-11 gap-4 items-stretch">
+              <!-- Blue Team -->
               <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
                 <div>
                   <div class="flex items-center justify-between pb-3 mb-3 border-b border-blue-100 dark:border-blue-900/40">
@@ -250,6 +256,7 @@
                 </div>
               </div>
 
+              <!-- VS Divider -->
               <div class="hidden lg:flex lg:col-span-1 flex-col items-center justify-center space-y-4 text-slate-400">
                 <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
                 <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#161d2a] border border-amber-500/40 flex items-center justify-center text-amber-500 font-black text-xs shadow-md">VS</div>
@@ -257,6 +264,7 @@
                 <div class="w-px h-20 bg-slate-200 dark:bg-slate-800"></div>
               </div>
 
+              <!-- Red Team -->
               <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-red-200 dark:border-red-900/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
                 <div>
                   <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-100 dark:border-red-900/40">
@@ -278,7 +286,7 @@
             <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-gray-400 gap-3">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-arrows-left-right text-sky-500"></i>
-                <span>특정 라인 맞교환(Swap): 특정 포지션을 클릭 한 번으로 상호 교체할 수 있습니다.</span>
+                <span>라인 맞교환(Swap): 특정 포지션을 클릭 한 번으로 상호 교체할 수 있습니다.</span>
               </div>
               <div class="flex items-center gap-2">
                 <select id="swap-pos" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-gray-200 focus:outline-none">
@@ -289,7 +297,7 @@
                   <option value="SUP">SUP 라인 스왑</option>
                 </select>
                 <button onclick="swapLaneLineup()" class="px-3 py-1 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 dark:hover:bg-[#1c2435] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-200 font-semibold transition">
-                  선택 라인 스왑
+                  선택 라인 교체
                 </button>
               </div>
             </div>
@@ -297,7 +305,7 @@
         </div>
       </section>
 
-      <!-- SECTION 2: 소환사 명단 (SUMMONERS) -->
+      <!-- SECTION 2: 소환사 전체 명단 (SUMMONERS) -->
       <section id="tab-content-summoners" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
           <div class="flex items-center gap-3 flex-1 flex-wrap">
@@ -345,30 +353,6 @@
         <div id="match-history-list" class="space-y-3"></div>
       </section>
 
-      <!-- SECTION 4: 리플레이 파일 업로드 -->
-      <section id="tab-content-replay" class="hidden space-y-6">
-        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-          <div class="mb-4">
-            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
-              <i class="fa-solid fa-file-video text-amber-500"></i>
-              <span>내전 리플레이 파일(.rofl) 추가 등록</span>
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">다운로드받은 롤 리플레이(.rofl) 파일을 드래그하여 경기 지표를 추출하세요.</p>
-          </div>
-
-          <div id="rofl-dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
-               class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-400 rounded-2xl p-8 text-center bg-slate-50/60 dark:bg-[#161d2a]/40 cursor-pointer transition">
-            <input type="file" id="rofl-file-input" accept=".rofl" onchange="handleFileSelect(event)" class="hidden">
-            <div onclick="document.getElementById('rofl-file-input').click()">
-              <div class="w-12 h-12 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-amber-500 text-xl mb-2 shadow-md">
-                <i class="fa-solid fa-file-arrow-up"></i>
-              </div>
-              <h3 class="text-xs font-bold text-slate-800 dark:text-gray-200">리플레이(.rofl) 파일을 이곳에 놓거나 클릭하세요</h3>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </div>
   </main>
 
@@ -394,16 +378,16 @@
         <input type="hidden" id="summoner-form-id">
         <div>
           <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">소환사명#태그 *</label>
-          <input id="form-name" required type="text" placeholder="예: 선릉 오디세우스#KR2" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+          <input id="form-name" required type="text" placeholder="예: 똥싸고나눠주는노인#영차영차" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">주 포지션 *</label>
             <select id="form-main-role" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
-              <option value="ADC">ADC (원딜)</option>
-              <option value="MID">MID (미드)</option>
               <option value="TOP">TOP (탑)</option>
               <option value="JUG">JUG (정글)</option>
+              <option value="MID">MID (미드)</option>
+              <option value="ADC">ADC (원딜)</option>
               <option value="SUP">SUP (서폿)</option>
             </select>
           </div>
@@ -428,27 +412,27 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">솔로랭크 티어 & LP</label>
-              <input id="form-solo-tier" type="text" placeholder="예: M 301LP 또는 언랭" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-solo-tier" type="text" placeholder="예: E4 1LP 또는 언랭" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">솔랭 전적 판수</label>
-              <input id="form-solo-games" type="number" min="0" value="100" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-solo-games" type="number" min="0" value="283" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">자유랭크 티어 & LP</label>
-              <input id="form-flex-tier" type="text" placeholder="예: E1 49LP" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-flex-tier" type="text" placeholder="예: PL4 82LP" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
             <div>
               <label class="block text-slate-500 text-[10px] mb-1">자랭 전적 판수</label>
-              <input id="form-flex-games" type="number" min="0" value="20" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+              <input id="form-flex-games" type="number" min="0" value="25" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
             </div>
           </div>
         </div>
         <div>
           <label class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">모스트 챔피언 (쉼표 구분)</label>
-          <input id="form-champions" type="text" placeholder="예: 진, 이즈리얼, 시비르" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+          <input id="form-champions" type="text" placeholder="예: 요릭, 다리우스, 쉔" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
         </div>
         <div class="flex items-center justify-end gap-2 pt-2">
           <button type="button" onclick="closeSummonerModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 font-semibold transition">취소</button>
@@ -458,32 +442,55 @@
     </div>
   </div>
 
+  <!-- Modal 3: 내전 결과 수동 등록 모달 -->
+  <div id="modal-match-record" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-100 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-base font-extrabold text-slate-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-trophy text-amber-500"></i>
+        <span>내전 결과 및 MVP 등록</span>
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">승리 팀과 이번 경기 MVP를 선택하면 선수들의 전적과 폼 점수가 즉시 갱신됩니다.</p>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <button type="button" onclick="setMatchWinner('BLUE')" id="record-btn-blue" class="p-4 rounded-xl border-2 border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/20 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-md shadow-blue-600/40">B</div>
+          <span class="block font-bold text-xs text-blue-600 dark:text-blue-400">블루팀 승리</span>
+        </button>
+        <button type="button" onclick="setMatchWinner('RED')" id="record-btn-red" class="p-4 rounded-xl border-2 border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 text-center transition">
+          <div class="w-9 h-9 rounded-full bg-red-600 text-white font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-md shadow-red-600/40">R</div>
+          <span class="block font-bold text-xs text-red-600 dark:text-red-400">레드팀 승리</span>
+        </button>
+      </div>
+      <div class="mb-5">
+        <label class="block text-slate-700 dark:text-gray-300 text-xs font-semibold mb-1.5">
+          <i class="fa-solid fa-medal text-amber-500 mr-1"></i> 경기 MVP 선정
+        </label>
+        <select id="record-mvp-select" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500"></select>
+      </div>
+      <div class="flex items-center justify-end gap-2">
+        <button onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-gray-300 text-xs font-semibold">취소</button>
+        <button id="btn-save-record-submit" onclick="submitMatchResult()" disabled class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition">전적 영구 반영하기</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // FOW.KR Verified Profiles (실제 스펙 프리셋)
+    // 실제 전적 데이터베이스 프리셋 (선릉 오디세우스, 대한민국이대경, 똥싸고나눠주는노인 등 완벽 등록)
     const VERIFIED_PROFILES = {
       '선릉 오디세우스#KR2': {
-        tier: 'MASTER',
-        flexBaseTier: 'EMERALD',
-        soloTier: 'M (301LP)',
-        flexTier: 'E1 (49LP)',
-        soloGames: 351,
-        flexGames: 23,
-        mainRole: 'ADC',
-        subRole: 'MID',
-        most: ['진', '이즈리얼', '시비르', '케이틀린', '카이사'],
-        formScore: 92
+        tier: 'MASTER', flexBaseTier: 'EMERALD', soloTier: 'M (301LP)', flexTier: 'E1 (49LP)',
+        soloGames: 351, flexGames: 23, mainRole: 'ADC', subRole: 'MID',
+        most: ['진', '이즈리얼', '시비르', '케이틀린', '카이사'], formScore: 92
       },
       '대한민국이대경#7847': {
-        tier: 'PLATINUM',
-        flexBaseTier: 'PLATINUM',
-        soloTier: '언랭 (배치중)',
-        flexTier: 'PL3 (2LP)',
-        soloGames: 0,
-        flexGames: 82,
-        mainRole: 'SUP',
-        subRole: 'MID',
-        most: ['럭스', '쉔', '모르가나', '뽀삐'],
-        formScore: 80
+        tier: 'PLATINUM', flexBaseTier: 'PLATINUM', soloTier: '언랭 (배치중)', flexTier: 'PL3 (2LP)',
+        soloGames: 0, flexGames: 82, mainRole: 'SUP', subRole: 'MID',
+        most: ['럭스', '쉔', '모르가나', '뽀삐'], formScore: 80
+      },
+      '똥싸고나눠주는노인#영차영차': {
+        tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E4 (1LP)', flexTier: 'PL4 (82LP)',
+        soloGames: 283, flexGames: 25, mainRole: 'TOP', subRole: 'JUG',
+        most: ['요릭', '다리우스', '쉔', '피오라', '잭스'], formScore: 82
       },
       '김창숙 부띠끄 부산 영도점#0615': {
         tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E3 (40LP)', flexTier: 'PL1 (20LP)',
@@ -504,10 +511,6 @@
       'UDT 62기#UDT': {
         tier: 'DIAMOND', flexBaseTier: 'DIAMOND', soloTier: 'D3 (60LP)', flexTier: 'D4 (20LP)',
         soloGames: 260, flexGames: 60, mainRole: 'TOP', subRole: 'MID', most: ['크산테', '나르'], formScore: 88
-      },
-      '똥싸고나눠주는노인#영차영차': {
-        tier: 'GOLD', flexBaseTier: 'GOLD', soloTier: 'G2 (80LP)', flexTier: 'G3 (10LP)',
-        soloGames: 70, flexGames: 40, mainRole: 'SUP', subRole: 'JUG', most: ['노틸러스', '레오나'], formScore: 75
       },
       '따듯한 봄 햇살#KR1': {
         tier: 'EMERALD', flexBaseTier: 'PLATINUM', soloTier: 'E4 (20LP)', flexTier: 'PL2 (60LP)',
@@ -544,6 +547,7 @@
     let selectedPlayerIds = new Set();
     let currentMatch = null;
     let matchHistory = [];
+    let modalPendingWinner = null;
 
     function initTheme() {
       const savedTheme = localStorage.getItem('scrim_theme') || 'dark';
@@ -570,9 +574,9 @@
         summoners = [];
       }
 
-      // 등록된 플레이어 검증 프로필 동기화
+      // 검증 프로필 자동 교정 적용
       summoners = summoners.map(s => {
-        const cleanName = s.name.replace(/[\u2066\u2069\u200E\u200F]/g, '').trim();
+        const cleanName = s.name.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '').trim();
         if (VERIFIED_PROFILES[cleanName]) {
           return { ...s, name: cleanName, ...VERIFIED_PROFILES[cleanName] };
         }
@@ -651,8 +655,7 @@
         return;
       }
 
-      // 유니코드 숨김 문자 제거
-      rawQuery = rawQuery.replace(/[\u2066\u2069\u200E\u200F]/g, '').trim();
+      rawQuery = rawQuery.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '').trim();
 
       const btn = document.getElementById('btn-quick-search');
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> FOW 전적 분석 중...';
@@ -669,7 +672,6 @@
         profileData = { ...VERIFIED_PROFILES[fullName] };
       }
 
-      // 2. 미등록 시 팝업 수정 가능하도록 기본값 제공
       if (!profileData) {
         profileData = {
           tier: 'EMERALD',
@@ -707,7 +709,7 @@
       renderSummonersList();
       document.getElementById('quick-search-input').value = '';
 
-      showToast(`[${fullName}] 님의 전적이 등록되었습니다! (연필 아이콘을 눌러 언제든 즉시 수정 가능)`, 'success');
+      showToast(`[${fullName}] 님의 전적이 등록되었습니다! (연필 아이콘을 눌러 언제든 수정 가능)`, 'success');
       switchTab('summoners');
     }
 
@@ -722,22 +724,17 @@
         return;
       }
 
-      // 롤 특수 문자(LRI/PDI 및 괄호) 제거
       raw = raw.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '');
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
       const names = [];
 
       lines.forEach(line => {
-        // '떠났습니다' 줄은 무시
         if (line.includes('떠났습니다')) return;
 
-        // '참가하셨습니다' 또는 '참가했습니다' 검출
         if (line.includes('참가하셨습니다') || line.includes('참가했습니다')) {
-          // '님이' 앞부분 추출
           const front = line.replace(/\s*님이\s*로비에\s*참가(하셨|했)습니다.*$/, '').trim();
           if (front) {
-            // 태그가 분리되어 있을 경우 합치기 (예: "핵탄 영수장 # 1114" -> "핵탄 영수장#1114")
             const formatted = front.replace(/\s*#\s*/, '#').trim();
             if (!names.includes(formatted)) {
               names.push(formatted);
@@ -832,7 +829,7 @@
     }
 
     function switchTab(tabKey) {
-      ['balancer', 'replay', 'summoners', 'history'].forEach(t => {
+      ['balancer', 'summoners', 'history'].forEach(t => {
         const c = document.getElementById(`tab-content-${t}`);
         const b = document.getElementById(`nav-${t}`);
         if (t === tabKey) {
@@ -861,7 +858,7 @@
       }, 3200);
     }
 
-    // Selection Grid
+    // Selection Grid (삭제/선택제외 버튼 추가)
     function renderSelectionGrid() {
       const grid = document.getElementById('balancer-selection-grid');
       grid.innerHTML = '';
@@ -878,18 +875,24 @@
         const role = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
 
         const tile = document.createElement('div');
-        tile.onclick = () => toggleSelectPlayer(s.id);
-        tile.className = `cursor-pointer p-2 rounded-xl border text-xs transition duration-150 select-none flex items-center justify-between ${
+        tile.className = `p-2 rounded-xl border text-xs transition duration-150 select-none flex items-center justify-between gap-1.5 ${
           isSel 
             ? 'bg-amber-500/10 border-amber-500 font-bold' 
             : 'bg-slate-50 dark:bg-[#161d2a] border-slate-200 dark:border-slate-800'
         }`;
+
         tile.innerHTML = `
-          <div class="flex items-center gap-1.5 truncate">
+          <div onclick="toggleSelectPlayer('${s.id}')" class="flex items-center gap-1.5 truncate flex-1 cursor-pointer">
             <span class="${role.color}"><i class="fa-solid ${role.icon}"></i></span>
             <span class="truncate text-slate-800 dark:text-gray-200">${s.name}</span>
           </div>
-          <span class="text-[10px] text-slate-400">${mmrData.mmr}p</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[10px] text-slate-400">${mmrData.mmr}p</span>
+            <!-- 오늘 10인 선택 해제/제외 버튼 -->
+            <button onclick="removePlayerFromSelection('${s.id}')" title="오늘 선택 제외" class="text-slate-400 hover:text-rose-500 p-0.5">
+              <i class="fa-solid fa-circle-xmark text-xs"></i>
+            </button>
+          </div>
         `;
         grid.appendChild(tile);
       });
@@ -907,6 +910,12 @@
         selectedPlayerIds.add(id);
       }
       renderSelectionGrid();
+    }
+
+    function removePlayerFromSelection(id) {
+      selectedPlayerIds.delete(id);
+      renderSelectionGrid();
+      showToast('소환사가 선택에서 제외되었습니다.', 'info');
     }
 
     function clearSelection() {
@@ -1121,6 +1130,74 @@
       });
     }
 
+    // Modal Results
+    function openRecordMatchModal() {
+      if (!currentMatch) return;
+      modalPendingWinner = null;
+
+      const mvpSelect = document.getElementById('record-mvp-select');
+      mvpSelect.innerHTML = '';
+      [...currentMatch.blue, ...currentMatch.red].forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.tier} - ${p.mainRole})`;
+        mvpSelect.appendChild(opt);
+      });
+
+      document.getElementById('record-btn-blue').classList.remove('border-blue-500', 'ring-2');
+      document.getElementById('record-btn-red').classList.remove('border-red-500', 'ring-2');
+      document.getElementById('btn-save-record-submit').disabled = true;
+      document.getElementById('modal-match-record').classList.remove('hidden');
+    }
+
+    function closeRecordMatchModal() { document.getElementById('modal-match-record').classList.add('hidden'); }
+
+    function setMatchWinner(team) {
+      modalPendingWinner = team;
+      const bBtn = document.getElementById('record-btn-blue');
+      const rBtn = document.getElementById('record-btn-red');
+      if (team === 'BLUE') {
+        bBtn.classList.add('border-blue-500', 'ring-2');
+        rBtn.classList.remove('border-red-500', 'ring-2');
+      } else {
+        rBtn.classList.add('border-red-500', 'ring-2');
+        bBtn.classList.remove('border-blue-500', 'ring-2');
+      }
+      document.getElementById('btn-save-record-submit').disabled = false;
+    }
+
+    function submitMatchResult() {
+      if (!modalPendingWinner || !currentMatch) return;
+      const winning = modalPendingWinner === 'BLUE' ? currentMatch.blue : currentMatch.red;
+      const losing = modalPendingWinner === 'BLUE' ? currentMatch.red : currentMatch.blue;
+      const winIds = new Set(winning.map(p => p.id));
+      const loseIds = new Set(losing.map(p => p.id));
+      const mvpId = document.getElementById('record-mvp-select').value;
+      const mvp = summoners.find(s => s.id === mvpId);
+
+      summoners = summoners.map(s => {
+        if (winIds.has(s.id)) return { ...s, wins: (s.wins||0)+1, formScore: Math.min(100, (s.formScore||75) + 3) };
+        if (loseIds.has(s.id)) return { ...s, losses: (s.losses||0)+1, formScore: Math.max(30, (s.formScore||75) - 2) };
+        return s;
+      });
+
+      matchHistory.unshift({
+        id: 'match-' + Date.now(),
+        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        winner: modalPendingWinner,
+        mvp: mvp ? mvp.name : 'Unknown',
+        blueLineup: currentMatch.blue.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier })),
+        redLineup: currentMatch.red.map(p => ({ name: p.name, role: p.mainRole, tier: p.tier }))
+      });
+
+      saveSummoners();
+      saveHistory();
+      closeRecordMatchModal();
+      showToast(`${modalPendingWinner}팀 승리 및 내전 전적이 영구 반영되었습니다!`, 'success');
+      renderMatchArena();
+      renderSelectionGrid();
+    }
+
     // Summoner List & Spec Cards
     function renderSummonersList() {
       const container = document.getElementById('summoners-card-container');
@@ -1209,7 +1286,6 @@
       });
     }
 
-    // Modal Edit & Add
     function openAddSummonerModal() {
       document.getElementById('modal-summoner-title').innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>새 소환사 등록</span>';
       document.getElementById('form-summoner').reset();
@@ -1253,7 +1329,7 @@
       } else {
         const p = {
           id: 'p-' + Date.now(),
-          name, mainRole, subRole: 'FILL', tier, flexBaseTier: 'EMERALD',
+          name, mainRole, subRole: 'FILL', tier, flexBaseTier: 'PLATINUM',
           soloTier, flexTier, soloGames, flexGames, most: champs,
           wins: 0, losses: 0, kda: 3.5, formScore: 80
         };
@@ -1320,31 +1396,6 @@
         renderMatchHistory();
         showToast('매치 히스토리가 초기화되었습니다.', 'info');
       }
-    }
-
-    // ROFL Drag and Drop
-    function handleDragOver(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.add('drag-hover'); }
-    function handleDragLeave(e) { e.preventDefault(); document.getElementById('rofl-dropzone').classList.remove('drag-hover'); }
-    function handleDrop(e) {
-      e.preventDefault();
-      document.getElementById('rofl-dropzone').classList.remove('drag-hover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) processRoflFile(e.dataTransfer.files[0]);
-    }
-    function handleFileSelect(e) {
-      if (e.target.files && e.target.files[0]) processRoflFile(e.target.files[0]);
-    }
-
-    function processRoflFile(file) {
-      if (!file.name.endsWith('.rofl')) {
-        showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
-        return;
-      }
-
-      showToast(`리플레이(${file.name})를 분석 중입니다...`, 'info');
-      setTimeout(() => {
-        showToast('리플레이 파일이 등록되었습니다. 현재 명단의 전적 및 폼 점수가 갱신됩니다.', 'success');
-        switchTab('balancer');
-      }, 700);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
