@@ -14,8 +14,8 @@ async function getChampionMap() {
     const map = {};
     for (const key in champData.data) {
       const champ = champData.data[key];
-      map[champ.key] = champ.name; // ID(숫자문자열) -> 한글명 (예: "799" -> "암베사")
-      map[champ.id.toLowerCase()] = champ.name; // 영문ID -> 한글명 (예: "ambessa" -> "암베사")
+      map[champ.key] = champ.name; // ID(숫자문자열) -> 한글명
+      map[champ.id.toLowerCase()] = champ.name; // 영문ID -> 한글명
     }
     CACHED_CHAMP_MAP = map;
     return map;
@@ -24,7 +24,7 @@ async function getChampionMap() {
   }
 }
 
-// Vercel Serverless Function: Riot Games Official API Proxy
+// Vercel Serverless Function: Riot Games Official API Only
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -89,35 +89,38 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. 최신 챔피언 한글 맵 로드
+    // 3. 최신 챔피언 한글 이름 맵 로드
     const champMap = await getChampionMap();
 
-    // 4. 🌟 이번 시즌 실시간 솔로랭크(420) 최근 매치 분석 -> 최다 플레이 챔피언 Top 3 추출
+    // 4. 🌟 라이엇 공식 match-v5: 최근 랭크 매치 15판 분석 -> 최다 픽 챔피언 Top 3
     let mostChamps = [];
     try {
+      // 랭크 게임 전체(솔랭/자랭) 매치 ID 목록 15개 조회
       const matchIdsRes = await fetch(
-        `https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&count=15&api_key=${RIOT_API_KEY}`
+        `https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?type=ranked&count=15&api_key=${RIOT_API_KEY}`
       );
       const matchIds = await matchIdsRes.json();
 
       if (Array.isArray(matchIds) && matchIds.length > 0) {
         const champCounts = {};
         
-        // 최근 랭크 매치 8경기를 병렬 조회하여 챔피언 빈도수 집계
-        const targetMatches = matchIds.slice(0, 8);
-        await Promise.all(targetMatches.map(async (mId) => {
+        // Rate Limit(요청 제한) 방지를 위해 최대 10개만 순차 조회
+        for (const mId of matchIds.slice(0, 10)) {
           try {
             const mRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${mId}?api_key=${RIOT_API_KEY}`);
             if (mRes.ok) {
               const mData = await mRes.json();
               const p = mData.info?.participants?.find(part => part.puuid === puuid);
-              if (p && p.championName) {
-                const korName = champMap[p.championName.toLowerCase()] || champMap[p.championId?.toString()] || p.championName;
-                champCounts[korName] = (champCounts[korName] || 0) + 1;
+              if (p) {
+                // 챔피언 영문명 또는 ID 기반 한글 매핑
+                const champName = champMap[p.championName?.toLowerCase()] || champMap[p.championId?.toString()] || p.championName;
+                if (champName) {
+                  champCounts[champName] = (champCounts[champName] || 0) + 1;
+                }
               }
             }
-          } catch (e) {}
-        }));
+          } catch (err) {}
+        }
 
         const sorted = Object.keys(champCounts).sort((a, b) => champCounts[b] - champCounts[a]);
         if (sorted.length > 0) {
@@ -126,7 +129,7 @@ export default async function handler(req, res) {
       }
     } catch (e) {}
 
-    // 5. 랭크 판수가 부족하여 매치 모스트가 안 나올 경우 숙련도 Top 3로 자동 대체(Fallback)
+    // 5. 최근 랭크 판수가 전혀 없을 때만 숙련도 Top 3로 보완
     if (mostChamps.length === 0) {
       try {
         const masteryRes = await fetch(
