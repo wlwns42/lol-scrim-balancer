@@ -1131,6 +1131,51 @@ async function saveLocalData() {
         return null;
       }
     }
+// 🌟 FOW 최근 시즌 누적 최다 판수 챔피언 Top 3 크롤링 파서
+    async function fetchFowMostChampions(name, tag) {
+      try {
+        const cleanName = encodeURIComponent(name.trim());
+        const cleanTag = encodeURIComponent(tag.trim());
+        const targetUrl = `https://fow.kr/find/${cleanName}-${cleanTag}`;
+        
+        // CORS 우회 프록시 경유
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        const html = data.contents;
+        if (!html) return null;
+
+        const champCounts = {};
+        // FOW 챔피언 테이블 행 파싱 (챔피언명 및 게임 수)
+        const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+        let match;
+        while ((match = rowRegex.exec(html)) !== null) {
+          const rowHtml = match[1];
+          const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) ||
+                            rowHtml.match(/tipsy_live[^>]*>([^<]+)<\/td>/i) ||
+                            rowHtml.match(/>([가-힣A-Za-z\s]{2,10})<\/td>\s*<td[^>]*>\d+<\/td>/i);
+          
+          const gamesMatch = rowHtml.match(/<td[^>]*>(\d+)<\/td>/i);
+
+          if (nameMatch && gamesMatch) {
+            const cName = nameMatch[1].trim();
+            const games = parseInt(gamesMatch[1], 10);
+            if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체'].includes(cName)) {
+              champCounts[cName] = (champCounts[cName] || 0) + games;
+            }
+          }
+        }
+
+        const sorted = Object.keys(champCounts).sort((a, b) => champCounts[b] - champCounts[a]);
+        return sorted.length > 0 ? sorted.slice(0, 3) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 🌟 FOW 모스트 최우선 반영 비동기 함수로 교체
     async function applyRiotAPIData(data) {
       const solo = data.soloRank;
       const flex = data.flexRank;
@@ -1144,7 +1189,7 @@ async function saveLocalData() {
       const sGames = solo ? solo.totalGames : 0;
       const fGames = flex ? flex.totalGames : 0;
 
-      // 🌟 1순위: FOW에서 최근 3년 누적 최다 판수 모스트 크롤링 시도
+      // 🌟 1순위: FOW에서 최근 시즌 누적 최다 판수 모스트 크롤링 시도
       let finalMost = data.mostChamps || [];
       if (data.name && data.name.includes('#')) {
         const [n, t] = data.name.split('#');
