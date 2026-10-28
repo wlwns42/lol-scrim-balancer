@@ -109,18 +109,19 @@
       </button>
 
       <button id="nav-replay" onclick="switchTab('replay')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
-        <button id="nav-most" onclick="switchTab('most')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-trophy w-4 text-center text-amber-500"></i>
-          <span>내전 모스트</span>
-        </div>
-        <span id="nav-most-count" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold">0</span>
-      </button>
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-file-video w-4 text-center text-sky-500"></i>
           <span>리플레이 보관함(.rofl)</span>
         </div>
         <span id="nav-replay-count" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-500">0</span>
+      </button>
+
+      <button id="nav-most" onclick="switchTab('most')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-trophy w-4 text-center text-amber-500"></i>
+          <span>내전 모스트</span>
+        </div>
+        <span id="nav-most-count" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold">0</span>
       </button>
     </nav>
 
@@ -1469,32 +1470,6 @@ const card = document.createElement('div');
                 </button>
               </div>
             </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161d2a] flex items-center justify-center text-amber-500 text-lg">
-                  <i class="fa-solid fa-shield"></i>
-                </div>
-                <div>
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <h3 class="font-extrabold text-sm text-slate-800 dark:text-gray-100">${s.name}</h3>
-                    <span class="tier-badge tier-${(s.tier||'unranked').toLowerCase()}">${s.tier}</span>
-                  </div>
-                  <div class="text-[11px] text-slate-400 mt-0.5">
-                    내전 최종 MMR <strong class="text-amber-500 font-bold">${mmrData.mmr}</strong> pt 
-                    <span class="text-[9px] text-slate-400">(내전반영 ${mmrData.scrimWeightPct}%)</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 수정 및 개별 삭제 버튼 -->
-              <div class="flex items-center gap-1.5">
-                <button onclick="editSummoner('${s.id}')" title="스펙 및 라인 우선순위 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button onclick="deleteSummoner('${s.id}')" title="멤버 영구 삭제" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </div>
 
             <!-- 1~4순위 포지션 태그 -->
             <div class="flex items-center gap-1.5 mb-2 text-[10px] flex-wrap">
@@ -1830,7 +1805,7 @@ const card = document.createElement('div');
     }
 
     function switchTab(tabKey) {
-      ['balancer', 'summoners', 'history', 'replay'].forEach(t => {
+      ['balancer', 'summoners', 'history', 'replay', 'most'].forEach(t => {
         document.getElementById(`tab-content-${t}`)?.classList.toggle('hidden', t !== tabKey);
         const b = document.getElementById(`nav-${t}`);
         if (b) {
@@ -1844,6 +1819,7 @@ const card = document.createElement('div');
       if (tabKey === 'summoners') renderSummonersList();
       if (tabKey === 'history') renderMatchHistory();
       if (tabKey === 'replay') renderReplayArchiveList();
+      if (tabKey === 'most') renderMostStatsTable();
     }
 
     function openAddSummonerModal() {
