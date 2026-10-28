@@ -2404,6 +2404,7 @@ async function saveLocalData() {
           matchHistory.unshift({
             id: 'm-' + Date.now(),
             date: dateStr,
+            dateKey: selectedSchedDateKey || getFormattedDateKey(new Date()),
             matchId: detectedMatchId,
             winner: blueWin ? 'BLUE' : 'RED',
             mvp: mvpPlayer,
@@ -2754,6 +2755,7 @@ async function saveLocalData() {
       matchHistory.unshift({
         id: 'm-' + Date.now(),
         date: dateStr,
+        dateKey: selectedSchedDateKey || getFormattedDateKey(new Date()),
         matchId: matchId,
         winner: selectedWinnerTeam,
         mvp: mvp,
@@ -2850,7 +2852,13 @@ async function saveLocalData() {
         const cellDate = new Date(year, month, d);
         const dateKey = getFormattedDateKey(cellDate);
         const isSelected = (dateKey === selectedSchedDateKey);
-        const hasMatch = scrimSchedules[dateKey] && scrimSchedules[dateKey].participants && scrimSchedules[dateKey].participants.length > 0;
+        
+        // 내전 예정 (주황색 점)
+        const hasScheduled = scrimSchedules[dateKey] && scrimSchedules[dateKey].participants && scrimSchedules[dateKey].participants.length > 0;
+        
+        // 내전 완료 (초록색 점)
+        const completedMatches = matchHistory.filter(m => (m.dateKey === dateKey) || (m.date && m.date.includes(`${month + 1}.${d}`)) || (m.date && m.date.includes(`${month + 1}월 ${d}일`)));
+        const hasCompleted = completedMatches.length > 0;
 
         const cell = document.createElement('button');
         cell.type = 'button';
@@ -2859,7 +2867,9 @@ async function saveLocalData() {
         let cellClasses = 'py-2 rounded-xl flex flex-col items-center justify-center relative transition select-none ';
         if (isSelected) {
           cellClasses += 'bg-blue-600 text-white font-black shadow-md ';
-        } else if (hasMatch) {
+        } else if (hasCompleted) {
+          cellClasses += 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-500 font-bold hover:bg-emerald-500/20 ';
+        } else if (hasScheduled) {
           cellClasses += 'bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold hover:bg-amber-500/20 ';
         } else {
           cellClasses += 'hover:bg-slate-100 dark:hover:bg-[#161d2a] text-slate-700 dark:text-gray-200 ';
@@ -2868,10 +2878,76 @@ async function saveLocalData() {
         cell.className = cellClasses;
         cell.innerHTML = `
           <span>${d}</span>
-          ${hasMatch ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-amber-500'} absolute bottom-1"></span>` : ''}
+          <div class="flex items-center gap-0.5 absolute bottom-1">
+            ${hasScheduled ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-amber-500'}"></span>` : ''}
+            ${hasCompleted ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-emerald-300' : 'bg-emerald-500'}"></span>` : ''}
+          </div>
         `;
         grid.appendChild(cell);
       }
+
+      renderCompletedMatchesUnderCalendar(selectedSchedDateKey);
+    }
+
+    // 🌟 달력에서 선택한 날짜에 완료된 내전 경기 결과를 달력 밑에 렌더링
+    function renderCompletedMatchesUnderCalendar(dateKey) {
+      const container = document.getElementById('cal-completed-matches-list');
+      const countBadge = document.getElementById('cal-completed-count-badge');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const parts = dateKey.split('-');
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+
+      const dayMatches = matchHistory.filter(m => (m.dateKey === dateKey) || (m.date && m.date.includes(`${month}.${day}`)) || (m.date && m.date.includes(`${month}월 ${day}일`)));
+
+      if (countBadge) countBadge.textContent = `${dayMatches.length}경기 완료`;
+
+      if (dayMatches.length === 0) {
+        container.innerHTML = `<div class="p-3 text-center text-[11px] text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-200 dark:border-slate-800">이 날짜에 진행 완료된 내전 기록이 없습니다.</div>`;
+        return;
+      }
+
+      dayMatches.forEach((m, idx) => {
+        const isBlueWin = (m.winner === 'BLUE');
+        const card = document.createElement('div');
+        card.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#161d2a] text-xs space-y-1.5 shadow-sm";
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between font-bold text-[11px] pb-1 border-b border-slate-200 dark:border-slate-800">
+            <span class="${isBlueWin ? 'text-blue-500' : 'text-rose-500'} font-black flex items-center gap-1">
+              <i class="fa-solid fa-trophy text-amber-500"></i> ${m.winner}팀 승리 👑 (${m.duration || '경기 완료'})
+            </span>
+            <span class="text-amber-500 font-extrabold text-[10px]">MVP: ${m.mvp}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px]">
+            <div class="p-1.5 rounded-lg ${isBlueWin ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-slate-200/50 dark:bg-slate-800/40'}">
+              <span class="text-blue-500 font-extrabold block mb-1">블루팀 (${isBlueWin ? '승리' : '패배'}):</span>
+              <div class="space-y-0.5">
+                ${(m.blue || []).map(p => `
+                  <div class="flex justify-between items-center text-slate-700 dark:text-gray-300">
+                    <span class="truncate font-semibold">${p.name}</span>
+                    <span class="text-slate-400 font-mono">${p.kda || p.champion || ''}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="p-1.5 rounded-lg ${!isBlueWin ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-slate-200/50 dark:bg-slate-800/40'}">
+              <span class="text-rose-500 font-extrabold block mb-1">레드팀 (${!isBlueWin ? '승리' : '패배'}):</span>
+              <div class="space-y-0.5">
+                ${(m.red || []).map(p => `
+                  <div class="flex justify-between items-center text-slate-700 dark:text-gray-300">
+                    <span class="truncate font-semibold">${p.name}</span>
+                    <span class="text-slate-400 font-mono">${p.kda || p.champion || ''}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
     }
 
     function changeCalMonth(delta) {
@@ -3149,15 +3225,25 @@ async function saveLocalData() {
 
     function updateAdminButtonUI() {
       const btn = document.getElementById('btn-admin-auth');
-      if (!btn) return;
+      const resetBtn = document.getElementById('btn-hard-reset');
+      const histBtn = document.getElementById('btn-reset-history');
+
       if (isAdminLoggedIn) {
-        btn.className = "px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-gray-950 border border-amber-400 shadow-md";
-        btn.innerHTML = `<i class="fa-solid fa-crown text-gray-950"></i> <span>관리자(이준희)</span>`;
-        btn.title = "클릭하여 관리자 로그아웃";
+        if (btn) {
+          btn.className = "px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-gray-950 border border-amber-400 shadow-md";
+          btn.innerHTML = `<i class="fa-solid fa-crown text-gray-950"></i> <span>관리자(이준희)</span>`;
+          btn.title = "클릭하여 관리자 로그아웃";
+        }
+        if (resetBtn) resetBtn.classList.remove('hidden');
+        if (histBtn) histBtn.classList.remove('hidden');
       } else {
-        btn.className = "px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-gray-300 hover:text-amber-500";
-        btn.innerHTML = `<i class="fa-solid fa-lock text-slate-400"></i> <span>관리자 로그인</span>`;
-        btn.title = "클릭하여 관리자 로그인";
+        if (btn) {
+          btn.className = "px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-gray-300 hover:text-amber-500";
+          btn.innerHTML = `<i class="fa-solid fa-lock text-slate-400"></i> <span>관리자 로그인</span>`;
+          btn.title = "클릭하여 관리자 로그인";
+        }
+        if (resetBtn) resetBtn.classList.add('hidden');
+        if (histBtn) histBtn.classList.add('hidden');
       }
     }
 
@@ -3588,10 +3674,20 @@ async function saveLocalData() {
     function likeCurrentPost(postId) {
       const p = communityPosts.find(item => item.id === postId);
       if (!p) return;
+
+      const likedList = JSON.parse(localStorage.getItem('scrim_liked_posts') || '[]');
+      if (likedList.includes(postId)) {
+        showToast('이미 추천하신 게시글입니다! (1인 1회 제한)', 'error');
+        return;
+      }
+
       p.likes = (p.likes || 0) + 1;
+      likedList.push(postId);
+      localStorage.setItem('scrim_liked_posts', JSON.stringify(likedList));
+
       saveLocalData();
       openViewPostModal(postId);
-      showToast('추천이 반영되었습니다! 👍', 'success');
+      showToast('게시글을 추천했습니다! 👍', 'success');
     }
 
 
