@@ -567,7 +567,7 @@
     }
 
     // 🌟 데이터 영구 보존: 기존 데이터가 있으면 절대 덮어쓰거나 날리지 않음
-    function initData() {
+async function initData() {
       const storedS = localStorage.getItem('scrim_balancer_summoners');
       if (storedS) {
         try { summoners = JSON.parse(storedS); } catch(e) { summoners = []; }
@@ -583,7 +583,6 @@
         try { replayArchives = JSON.parse(storedR); } catch(e) { replayArchives = []; }
       }
 
-      // 브라우저가 완전히 비어있을 때만 기본 11명 세팅
       if (!summoners || summoners.length === 0) {
         const defaultNames = [
           '선릉 오디세우스#KR2', '대한민국이대경#7847', '똥싸고나눠주는노인#영차영차',
@@ -608,7 +607,6 @@
         }));
       }
 
-      // 기존 데이터에 1~4순위 필드가 누락되었을 경우 기본값 매핑
       summoners = summoners.map((s, idx) => {
         const p1 = s.rolePrefs ? s.rolePrefs[0] : (s.mainRole || ORDERED_ROLES[idx % 5]);
         const p2 = s.rolePrefs ? s.rolePrefs[1] : (s.subRole || ORDERED_ROLES[(idx + 1) % 5]);
@@ -622,14 +620,57 @@
       });
 
       selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
-      saveLocalData();
       renderAllViews();
+
+      // 🌟 서버에서 실시간 공유 데이터 로드 및 4초 주기 자동 동기화
+      await fetchCloudData();
+      setInterval(fetchCloudData, 4000);
     }
 
-    function saveLocalData() {
+async function saveLocalData() {
       localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
       localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
+
+      // 🌟 데이터 변경 즉시 클라우드 서버로 자동 업로드 (모바일 동기화)
+      try {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            summoners,
+            matchHistory,
+            replayArchives,
+            updatedAt: Date.now()
+          })
+        });
+      } catch (e) {}
+    }
+
+    // 🌟 서버에서 최신 공유 데이터를 읽어와 화면 자동 갱신
+    async function fetchCloudData() {
+      try {
+        const res = await fetch('/api/sync');
+        if (!res.ok) return;
+        const cloudData = await res.json();
+
+        if (cloudData && Array.isArray(cloudData.summoners) && cloudData.summoners.length > 0) {
+          const localUpdated = parseInt(localStorage.getItem('scrim_last_sync_time') || '0', 10);
+          if ((cloudData.updatedAt || 0) > localUpdated || summoners.length <= 11) {
+            summoners = cloudData.summoners;
+            if (cloudData.matchHistory) matchHistory = cloudData.matchHistory;
+            if (cloudData.replayArchives) replayArchives = cloudData.replayArchives;
+
+            localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
+            localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
+            localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
+            localStorage.setItem('scrim_last_sync_time', (cloudData.updatedAt || Date.now()).toString());
+
+            selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
+            renderAllViews();
+          }
+        }
+      } catch (e) {}
     }
 
     function renderAllViews() {
