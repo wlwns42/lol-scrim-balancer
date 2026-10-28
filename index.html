@@ -243,7 +243,7 @@
                 </div>
                 <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-slate-500">포지션 만족도:</span>
+                  <span class="text-xs text-slate-500">선호 라인 만족도:</span>
                   <span id="stat-role-score" class="text-xs font-bold text-emerald-500">100% 충족</span>
                 </div>
                 <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
@@ -326,7 +326,7 @@
         </div>
       </section>
 
-      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS - 주/부 포지션 표시 및 개별 삭제) -->
+      <!-- SECTION 2: 전체 멤버 목록 (SUMMONERS) -->
       <section id="tab-content-summoners" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
           <div class="flex items-center gap-3 flex-1 flex-wrap">
@@ -356,7 +356,7 @@
         <div id="match-history-list" class="space-y-4"></div>
       </section>
 
-      <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY - 드래그 시 100% 완전 자동 분석) -->
+      <!-- SECTION 4: 리플레이 파일 보관함 (REPLAY) -->
       <section id="tab-content-replay" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div class="mb-4">
@@ -418,55 +418,83 @@
     </div>
   </div>
 
-  <!-- 3. 소환사 수동 등록/수정 모달 (주/부 포지션 선택 포함) -->
+  <!-- 3. 소환사 수동 등록/수정 모달 (1순위~4순위 포지션 우선순위 선택 완비) -->
   <div id="modal-summoner" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
       <button onclick="closeSummonerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
-      <h3 id="modal-summoner-title" class="text-base font-bold text-amber-500 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-gear"></i> <span>소환사 스펙 확인 / 수정</span></h3>
+      <h3 id="modal-summoner-title" class="text-base font-bold text-amber-500 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-gear"></i> <span>소환사 스펙 & 포지션 우선순위 설정</span></h3>
       <form id="form-summoner" onsubmit="handleSummonerSubmit(event)" class="space-y-3.5 text-xs">
         <input type="hidden" id="summoner-form-id">
         <div>
           <label for="form-name" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">소환사명#태그 *</label>
           <input id="form-name" required type="text" placeholder="예: 선릉 오디세우스#KR2" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">
         </div>
-        <div class="grid grid-cols-3 gap-2">
-          <div>
-            <label for="form-main-role" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">주 포지션 *</label>
-            <select id="form-main-role" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2">
-              <option value="TOP">TOP (탑)</option>
-              <option value="JUG">JUG (정글)</option>
-              <option value="MID">MID (미드)</option>
-              <option value="ADC">ADC (원딜)</option>
-              <option value="SUP">SUP (서폿)</option>
-            </select>
+
+        <!-- 1순위 ~ 4순위 포지션 우선순위 선택 UI -->
+        <div class="p-3 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+          <div class="text-[11px] font-bold text-slate-700 dark:text-gray-200 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-ol text-amber-500"></i> 포지션 희망 우선순위 (1~4순위)
           </div>
-          <div>
-            <label for="form-sub-role" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">부 포지션 *</label>
-            <select id="form-sub-role" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2">
-              <option value="MID">MID (미드)</option>
-              <option value="TOP">TOP (탑)</option>
-              <option value="JUG">JUG (정글)</option>
-              <option value="ADC">ADC (원딜)</option>
-              <option value="SUP">SUP (서폿)</option>
-              <option value="FILL">ALL (상관없음)</option>
-            </select>
-          </div>
-          <div>
-            <label for="form-tier" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">대표 티어 *</label>
-            <select id="form-tier" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2">
-              <option value="CHALLENGER">CHALLENGER</option>
-              <option value="GRANDMASTER">GRANDMASTER</option>
-              <option value="MASTER">MASTER</option>
-              <option value="DIAMOND">DIAMOND</option>
-              <option value="EMERALD" selected>EMERALD</option>
-              <option value="PLATINUM">PLATINUM</option>
-              <option value="GOLD">GOLD</option>
-              <option value="SILVER">SILVER</option>
-              <option value="BRONZE">BRONZE</option>
-              <option value="IRON">IRON</option>
-            </select>
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <label for="form-pref-1" class="block text-slate-500 text-[10px] mb-1">1순위 (주라인)</label>
+              <select id="form-pref-1" required class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 font-bold text-amber-500">
+                <option value="TOP">TOP</option>
+                <option value="JUG">JUG</option>
+                <option value="MID" selected>MID</option>
+                <option value="ADC">ADC</option>
+                <option value="SUP">SUP</option>
+              </select>
+            </div>
+            <div>
+              <label for="form-pref-2" class="block text-slate-500 text-[10px] mb-1">2순위</label>
+              <select id="form-pref-2" required class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 font-bold text-sky-500">
+                <option value="TOP">TOP</option>
+                <option value="JUG">JUG</option>
+                <option value="MID">MID</option>
+                <option value="ADC" selected>ADC</option>
+                <option value="SUP">SUP</option>
+              </select>
+            </div>
+            <div>
+              <label for="form-pref-3" class="block text-slate-500 text-[10px] mb-1">3순위</label>
+              <select id="form-pref-3" required class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-gray-200">
+                <option value="TOP" selected>TOP</option>
+                <option value="JUG">JUG</option>
+                <option value="MID">MID</option>
+                <option value="ADC">ADC</option>
+                <option value="SUP">SUP</option>
+              </select>
+            </div>
+            <div>
+              <label for="form-pref-4" class="block text-slate-500 text-[10px] mb-1">4순위</label>
+              <select id="form-pref-4" required class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-gray-200">
+                <option value="TOP">TOP</option>
+                <option value="JUG" selected>JUG</option>
+                <option value="MID">MID</option>
+                <option value="ADC">ADC</option>
+                <option value="SUP">SUP</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        <div>
+          <label for="form-tier" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">대표 티어 *</label>
+          <select id="form-tier" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">
+            <option value="CHALLENGER">CHALLENGER</option>
+            <option value="GRANDMASTER">GRANDMASTER</option>
+            <option value="MASTER">MASTER</option>
+            <option value="DIAMOND">DIAMOND</option>
+            <option value="EMERALD" selected>EMERALD</option>
+            <option value="PLATINUM">PLATINUM</option>
+            <option value="GOLD">GOLD</option>
+            <option value="SILVER">SILVER</option>
+            <option value="BRONZE">BRONZE</option>
+            <option value="IRON">IRON</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label for="form-solo-tier" class="block text-slate-500 mb-1">솔로랭크 표시</label>
@@ -538,6 +566,7 @@
       document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
     }
 
+    // 🌟 데이터 영구 보존: 기존 데이터가 있으면 절대 덮어쓰거나 날리지 않음
     function initData() {
       const storedS = localStorage.getItem('scrim_balancer_summoners');
       if (storedS) {
@@ -554,7 +583,7 @@
         try { replayArchives = JSON.parse(storedR); } catch(e) { replayArchives = []; }
       }
 
-      // 11명 기본 명단이 없거나 비어있을 때 안전하게 기본 세팅
+      // 브라우저가 완전히 비어있을 때만 기본 11명 세팅
       if (!summoners || summoners.length === 0) {
         const defaultNames = [
           '선릉 오디세우스#KR2', '대한민국이대경#7847', '똥싸고나눠주는노인#영차영차',
@@ -570,7 +599,8 @@
           soloGames: 0,
           flexGames: 0,
           mainRole: ORDERED_ROLES[idx % 5],
-          subRole: 'FILL',
+          subRole: ORDERED_ROLES[(idx + 1) % 5],
+          rolePrefs: [ORDERED_ROLES[idx % 5], ORDERED_ROLES[(idx + 1) % 5], ORDERED_ROLES[(idx + 2) % 5], ORDERED_ROLES[(idx + 3) % 5]],
           most: [],
           formScore: 75,
           wins: 0,
@@ -578,11 +608,18 @@
         }));
       }
 
-      summoners = summoners.map(s => ({
-        ...s,
-        mainRole: s.mainRole || 'MID',
-        subRole: s.subRole || 'FILL'
-      }));
+      // 기존 데이터에 1~4순위 필드가 누락되었을 경우 기본값 매핑
+      summoners = summoners.map((s, idx) => {
+        const p1 = s.rolePrefs ? s.rolePrefs[0] : (s.mainRole || ORDERED_ROLES[idx % 5]);
+        const p2 = s.rolePrefs ? s.rolePrefs[1] : (s.subRole || ORDERED_ROLES[(idx + 1) % 5]);
+        const remaining = ORDERED_ROLES.filter(r => r !== p1 && r !== p2);
+        return {
+          ...s,
+          mainRole: p1,
+          subRole: p2,
+          rolePrefs: s.rolePrefs || [p1, p2, remaining[0] || 'TOP', remaining[1] || 'JUG']
+        };
+      });
 
       selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
       saveLocalData();
@@ -603,7 +640,7 @@
       renderReplayArchiveList();
     }
 
-    // 🌟 핵심: 내전 히스토리 80% 가중치 반영 MMR 계산 공식
+    // 🌟 내전 히스토리 80% 가중치 반영 MMR 계산 공식
     function getPlayerMMR(p) {
       const soloBase = TIER_POINTS[p.tier] || 1500;
       const flexBase = TIER_POINTS[p.flexBaseTier] || (soloBase - 200);
@@ -650,12 +687,14 @@
       };
     }
 
-    // 포지션 만족도 평가 점수 (주 포지션: 100, 부 포지션: 75, 기타: 25)
+    // 🌟 1순위(100) ~ 4순위(25) 포지션 우선순위 만족도 계산
     function getPositionAffinityScore(player, assignedRole) {
-      if (player.mainRole === assignedRole) return 100;
-      if (player.subRole === assignedRole) return 75;
-      if (player.subRole === 'FILL') return 60;
-      return 25;
+      const prefs = player.rolePrefs || [player.mainRole, player.subRole];
+      if (prefs[0] === assignedRole) return 100;
+      if (prefs[1] === assignedRole) return 75;
+      if (prefs[2] === assignedRole) return 50;
+      if (prefs[3] === assignedRole) return 25;
+      return 0; // 5순위 비선호
     }
 
     // 실시간 라이엇 전적 단일 조회
@@ -751,6 +790,7 @@
         flexGames: fGames,
         mainRole: idx >= 0 ? summoners[idx].mainRole : 'ADC',
         subRole: idx >= 0 ? summoners[idx].subRole : 'MID',
+        rolePrefs: idx >= 0 ? (summoners[idx].rolePrefs || ['ADC', 'MID', 'TOP', 'JUG']) : ['ADC', 'MID', 'TOP', 'JUG'],
         most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (idx >= 0 ? summoners[idx].most : []),
         formScore: idx >= 0 ? summoners[idx].formScore : 85,
         wins: idx >= 0 ? summoners[idx].wins : 0,
@@ -787,7 +827,7 @@
 
         tile.innerHTML = `
           <div onclick="toggleSelectPlayer('${s.id}')" class="flex items-center gap-1.5 truncate flex-1 cursor-pointer">
-            <span class="${mainR.color}" title="주:${s.mainRole} / 부:${s.subRole}"><i class="fa-solid ${mainR.icon}"></i></span>
+            <span class="${mainR.color}" title="1순위:${s.rolePrefs?.[0] || s.mainRole} / 2순위:${s.rolePrefs?.[1] || s.subRole}"><i class="fa-solid ${mainR.icon}"></i></span>
             <span class="truncate text-slate-800 dark:text-gray-200">${s.name}</span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
@@ -881,7 +921,7 @@
       return { assigned: bestPerm, score: highestScore };
     }
 
-    // 주/부 포지션 최적 스마트 밸런싱 실행
+    // 🌟 1~4순위 포지션 우선순위 및 내전 80% 가중치 기반 스마트 밸런싱 실행
     function runSmartBalancing() {
       if (selectedPlayerIds.size !== 10) return;
       const pool = summoners.filter(s => selectedPlayerIds.has(s.id));
@@ -942,7 +982,7 @@
 
       document.getElementById('balancer-placeholder').classList.add('hidden');
       document.getElementById('balancer-board').classList.remove('hidden');
-      showToast('주/부 포지션 최적 밸런싱이 완료되었습니다! (드래그 스왑 가능)', 'success');
+      showToast('1~4순위 희망 포지션 최적 밸런싱이 완료되었습니다! (드래그 스왑 가능)', 'success');
     }
 
     function rerollBalancing() { runSmartBalancing(); }
@@ -995,9 +1035,12 @@
         const eMMR = getPlayerMMR(enemy).mmr;
         const delta = pMMR - eMMR;
 
-        const isMain = player.mainRole === role;
-        const isSub = player.subRole === role;
-        const roleFitBadge = isMain ? '<span class="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-500 font-bold">주</span>' : (isSub ? '<span class="text-[9px] px-1 rounded bg-sky-500/10 text-sky-500 font-bold">부</span>' : '<span class="text-[9px] px-1 rounded bg-rose-500/10 text-rose-400 font-bold">타</span>');
+        const prefs = player.rolePrefs || [player.mainRole, player.subRole];
+        let roleFitBadge = '<span class="text-[9px] px-1 rounded bg-rose-500/10 text-rose-400 font-bold">5지망</span>';
+        if (prefs[0] === role) roleFitBadge = '<span class="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-500 font-bold">1지망</span>';
+        else if (prefs[1] === role) roleFitBadge = '<span class="text-[9px] px-1 rounded bg-sky-500/10 text-sky-500 font-bold">2지망</span>';
+        else if (prefs[2] === role) roleFitBadge = '<span class="text-[9px] px-1 rounded bg-amber-500/10 text-amber-500 font-bold">3지망</span>';
+        else if (prefs[3] === role) roleFitBadge = '<span class="text-[9px] px-1 rounded bg-purple-500/10 text-purple-400 font-bold">4지망</span>';
 
         const card = document.createElement('div');
         card.setAttribute('draggable', 'true');
@@ -1022,7 +1065,7 @@
                 ${roleFitBadge}
               </div>
               <div class="text-[10px] text-slate-400">
-                내전 종합 <strong class="text-amber-500 font-bold">${pMMR}pt</strong> · (내전비중 ${getPlayerMMR(player).scrimWeightPct}%)
+                내전 종합 <strong class="text-amber-500 font-bold">${pMMR}pt</strong> · (내전반영 ${getPlayerMMR(player).scrimWeightPct}%)
               </div>
             </div>
           </div>
@@ -1071,8 +1114,7 @@
         const mmrData = getPlayerMMR(s);
         const totalScrim = (s.wins || 0) + (s.losses || 0);
         const winRate = totalScrim > 0 ? Math.round((s.wins / totalScrim) * 100) : 0;
-        const mainR = ROLE_METADATA[s.mainRole] || ROLE_METADATA.FILL;
-        const subR = ROLE_METADATA[s.subRole] || ROLE_METADATA.FILL;
+        const prefs = s.rolePrefs || [s.mainRole, s.subRole];
 
         const card = document.createElement('div');
         card.className = "bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between";
@@ -1095,8 +1137,9 @@
                 </div>
               </div>
 
+              <!-- 수정 및 개별 삭제 버튼 -->
               <div class="flex items-center gap-1.5">
-                <button onclick="editSummoner('${s.id}')" title="스펙 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
+                <button onclick="editSummoner('${s.id}')" title="스펙 및 라인 우선순위 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
                 <button onclick="deleteSummoner('${s.id}')" title="멤버 영구 삭제" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition">
@@ -1105,16 +1148,12 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-2 mb-2 text-xs">
-              <span class="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-500 font-bold flex items-center gap-1">
-                <i class="fa-solid ${mainR.icon}"></i> 주: ${mainR.name}
-              </span>
-              <span class="px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-500 font-bold flex items-center gap-1">
-                <i class="fa-solid ${subR.icon}"></i> 부: ${subR.name}
-              </span>
-              <span class="text-[10px] text-slate-400 ml-auto">
-                내전 <strong>${totalScrim}전 ${s.wins||0}승 ${s.losses||0}패 (${winRate}%)</strong>
-              </span>
+            <!-- 1~4순위 포지션 태그 -->
+            <div class="flex items-center gap-1.5 mb-2 text-[10px] flex-wrap">
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 font-bold">1순위: ${prefs[0]||'MID'}</span>
+              <span class="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-500 font-bold">2순위: ${prefs[1]||'ADC'}</span>
+              <span class="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-400">3순위: ${prefs[2]||'TOP'}</span>
+              <span class="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-400">4순위: ${prefs[3]||'JUG'}</span>
             </div>
 
             <div class="bg-slate-50 dark:bg-[#161d2a] rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 text-xs mb-2">
@@ -1129,7 +1168,7 @@
                 </div>
               </div>
               <div class="pt-2 flex justify-between text-[10px] text-slate-400">
-                <span>최근 폼(AI-Score): <strong class="text-emerald-500">${s.formScore||75}점</strong></span>
+                <span>내전: <strong class="text-amber-500">${totalScrim}전 ${s.wins||0}승 ${s.losses||0}패 (${winRate}%)</strong></span>
                 <span>모스트: <strong class="text-slate-300 truncate max-w-[120px] inline-block align-bottom">${(s.most || []).join(', ') || '없음'}</strong></span>
               </div>
             </div>
@@ -1172,7 +1211,7 @@
         item.innerHTML = `
           <div onclick="openMemberDetailModal('${s.id}')" class="truncate flex-1 cursor-pointer hover:text-amber-500">
             <span class="font-bold text-[10px]">${s.name}</span>
-            <span class="text-[9px] text-slate-400 block">주:${s.mainRole}/부:${s.subRole} · ${mmr.mmr}p</span>
+            <span class="text-[9px] text-slate-400 block">${s.rolePrefs?.[0]||s.mainRole}/${s.rolePrefs?.[1]||s.subRole} · ${mmr.mmr}p</span>
           </div>
           <button onclick="toggleSelectPlayer('${s.id}')" class="${isSel ? 'text-amber-500' : 'text-slate-400'}">
             <i class="fa-solid ${isSel ? 'fa-check-circle' : 'fa-plus-circle'}"></i>
@@ -1186,6 +1225,7 @@
       const s = summoners.find(p => p.id === id);
       if (!s) return;
       const mmr = getPlayerMMR(s);
+      const prefs = s.rolePrefs || [s.mainRole, s.subRole];
       document.getElementById('modal-member-detail-body').innerHTML = `
         <div class="flex items-center justify-between pb-3 border-b mb-3">
           <div>
@@ -1194,11 +1234,11 @@
           </div>
           <div class="text-right">
             <span class="text-sm font-bold text-amber-500">${mmr.mmr} pt</span>
-            <span class="text-[9px] text-slate-400 block">(내전 80% 가중치)</span>
+            <span class="text-[9px] text-slate-400 block">(내전 80% 가중치 반영)</span>
           </div>
         </div>
         <div class="text-xs space-y-2">
-          <p>포지션: <strong>주 [${s.mainRole}] / 부 [${s.subRole}]</strong></p>
+          <p>포지션 우선순위: <strong>1순위 [${prefs[0]||'-'}] > 2순위 [${prefs[1]||'-'}] > 3순위 [${prefs[2]||'-'}] > 4순위 [${prefs[3]||'-'}]</strong></p>
           <p>내전 전적: <strong>${(s.wins||0)+(s.losses||0)}전 ${s.wins||0}승 ${s.losses||0}패</strong> (최근 폼 ${s.formScore||75}점)</p>
           <p>솔로랭크: <strong>${s.soloTier}</strong> (${s.soloGames}판)</p>
           <p>자유랭크: <strong>${s.flexTier}</strong> (${s.flexGames}판)</p>
@@ -1469,8 +1509,13 @@
       if (!p) return;
       document.getElementById('summoner-form-id').value = p.id;
       document.getElementById('form-name').value = p.name;
-      document.getElementById('form-main-role').value = p.mainRole || 'MID';
-      document.getElementById('form-sub-role').value = p.subRole || 'FILL';
+      
+      const prefs = p.rolePrefs || [p.mainRole || 'MID', p.subRole || 'ADC', 'TOP', 'JUG'];
+      document.getElementById('form-pref-1').value = prefs[0] || 'MID';
+      document.getElementById('form-pref-2').value = prefs[1] || 'ADC';
+      document.getElementById('form-pref-3').value = prefs[2] || 'TOP';
+      document.getElementById('form-pref-4').value = prefs[3] || 'JUG';
+
       document.getElementById('form-tier').value = p.tier;
       document.getElementById('form-solo-tier').value = p.soloTier || '';
       document.getElementById('form-flex-tier').value = p.flexTier || '';
@@ -1486,10 +1531,17 @@
       e.preventDefault();
       const id = document.getElementById('summoner-form-id').value;
       const name = document.getElementById('form-name').value.trim();
+
+      const p1 = document.getElementById('form-pref-1').value;
+      const p2 = document.getElementById('form-pref-2').value;
+      const p3 = document.getElementById('form-pref-3').value;
+      const p4 = document.getElementById('form-pref-4').value;
+
       const player = {
         name,
-        mainRole: document.getElementById('form-main-role').value,
-        subRole: document.getElementById('form-sub-role').value,
+        mainRole: p1,
+        subRole: p2,
+        rolePrefs: [p1, p2, p3, p4],
         tier: document.getElementById('form-tier').value,
         soloTier: document.getElementById('form-solo-tier').value.trim() || '언랭',
         flexTier: document.getElementById('form-flex-tier').value.trim() || '언랭',
@@ -1512,7 +1564,7 @@
       saveLocalData();
       closeSummonerModal();
       renderAllViews();
-      showToast('소환사 정보가 저장되었습니다.', 'success');
+      showToast('소환사 정보 및 포지션 우선순위가 저장되었습니다.', 'success');
     }
 
     function openLobbyModal() { document.getElementById('modal-lobby').classList.remove('hidden'); }
@@ -1541,7 +1593,8 @@
             soloGames: 0,
             flexGames: 0,
             mainRole: ORDERED_ROLES[i % 5],
-            subRole: 'FILL',
+            subRole: ORDERED_ROLES[(i + 1) % 5],
+            rolePrefs: [ORDERED_ROLES[i % 5], ORDERED_ROLES[(i + 1) % 5], 'TOP', 'JUG'],
             most: [],
             formScore: 75,
             wins: 0,
@@ -1560,7 +1613,7 @@
     function exportDataToFile() {
       const payload = {
         app: 'SCRIM-BALANCER',
-        version: '8.0',
+        version: '9.0',
         exportedAt: new Date().toISOString(),
         summoners,
         matchHistory,
@@ -1591,7 +1644,7 @@
             if (data.selectedPlayerIds) selectedPlayerIds = new Set(data.selectedPlayerIds);
             saveLocalData();
             renderAllViews();
-            showToast('공유받은 전적이 성공적으로 동기화되었습니다!', 'success');
+            showToast('공유받은 전적이 성공적으로 복구되었습니다!', 'success');
           }
         } catch(err) {
           showToast('올바른 백업 파일이 아닙니다.', 'error');
