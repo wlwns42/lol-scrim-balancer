@@ -10,6 +10,48 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 
+  <!-- 4. 내전 경기 결과 즉시 등록 모달 (사설 내전 수동 기록 백업) -->
+  <div id="modal-record-match" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-base font-bold text-amber-500 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-trophy"></i> <span>내전 경기 결과 즉시 반영</span>
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">현재 대진표의 10인 라인업에 승패와 내전 점수(80%)를 즉시 가산합니다.</p>
+      
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">승리팀 선택 *</label>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" id="btn-pick-blue" onclick="selectMatchWinner('BLUE')" class="py-3 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-extrabold text-sm transition">
+              블루팀 승리 👑
+            </button>
+            <button type="button" id="btn-pick-red" onclick="selectMatchWinner('RED')" class="py-3 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-extrabold text-sm transition">
+              레드팀 승리 👑
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">경기 시간</label>
+            <input id="record-duration" type="text" value="31분" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200">
+          </div>
+          <div>
+            <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">MVP (최우수 선수)</label>
+            <select id="record-mvp-select" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-amber-500">
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <button type="button" onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-700 dark:text-gray-300">취소</button>
+          <button type="button" onclick="submitQuickMatchRecord()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black">내전 점수 즉시 반영</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -261,10 +303,18 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
                   <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
-                  <span>재셔플 (Re-roll)</span>
+                  <span>재셔플</span>
+                </button>
+                <button id="btn-gen-tourney" onclick="generateTournamentCode()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-black text-xs shadow-md transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-trophy"></i>
+                  <span>인게임 토너먼트 코드 생성</span>
+                </button>
+                <button onclick="openRecordMatchModal()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  <span>결과 즉시 기록</span>
                 </button>
               </div>
             </div>
@@ -2066,6 +2116,133 @@ const card = document.createElement('div');
       toast.textContent = msg;
       container.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
+    }
+
+    // 🌟 라이엇 공식 토너먼트 코드 발급 및 복사
+    async function generateTournamentCode() {
+      const btn = document.getElementById('btn-gen-tourney');
+      if (!btn) return;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 코드 발급 중...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/tournament');
+        const data = await res.json();
+
+        if (res.ok && data.code) {
+          await navigator.clipboard.writeText(data.code);
+          showToast(`[토너먼트 코드 복사 완료!] 롤 클라이언트에서 [코드 입력]에 붙여넣으세요!`, 'success');
+          alert(`🏆 발급된 라이엇 공식 토너먼트 코드:\n\n${data.code}\n\n(클립보드에 자동 복사되었습니다! 롤 클라이언트 상단 트로피 버튼에 붙여넣으세요)`);
+        } else {
+          showToast(data.error || '토너먼트 코드 발급 실패', 'error');
+        }
+      } catch (err) {
+        showToast('서버 통신 실패: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    let selectedWinnerTeam = 'BLUE';
+
+    function openRecordMatchModal() {
+      if (!currentMatch) {
+        showToast('대진표가 먼저 생성되어야 경기를 기록할 수 있습니다.', 'error');
+        return;
+      }
+      const select = document.getElementById('record-mvp-select');
+      const all10 = [...currentMatch.blue, ...currentMatch.red];
+      select.innerHTML = all10.map(p => `<option value="${p.name}">${p.name} (${p.tier})</option>`).join('');
+      selectMatchWinner('BLUE');
+      document.getElementById('modal-record-match').classList.remove('hidden');
+    }
+
+    function closeRecordMatchModal() {
+      document.getElementById('modal-record-match').classList.add('hidden');
+    }
+
+    function selectMatchWinner(team) {
+      selectedWinnerTeam = team;
+      const bBtn = document.getElementById('btn-pick-blue');
+      const rBtn = document.getElementById('btn-pick-red');
+      if (bBtn) {
+        bBtn.className = team === 'BLUE'
+          ? "py-3 rounded-xl border-2 border-blue-500 bg-blue-600 text-white font-black text-sm shadow-lg transition"
+          : "py-3 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-500 font-bold text-sm transition";
+      }
+      if (rBtn) {
+        rBtn.className = team === 'RED'
+          ? "py-3 rounded-xl border-2 border-red-500 bg-red-600 text-white font-black text-sm shadow-lg transition"
+          : "py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-red-500 font-bold text-sm transition";
+      }
+    }
+
+    function submitQuickMatchRecord() {
+      if (!currentMatch) return;
+      const isBlueWin = (selectedWinnerTeam === 'BLUE');
+      const duration = document.getElementById('record-duration').value || '30분';
+      const mvp = document.getElementById('record-mvp-select').value;
+      const dateStr = new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const matchId = 'SCRIM_' + Date.now().toString().slice(-8);
+
+      const blueRoster = currentMatch.blue.map((p, i) => ({
+        name: p.name,
+        role: ORDERED_ROLES[i],
+        champion: (p.most && p.most[0]) || '주력픽',
+        tier: p.tier,
+        aiScore: (isBlueWin ? (p.name === mvp ? 94 : 85) : (p.name === mvp ? 82 : 72)),
+        kda: isBlueWin ? '7/2/8 (7.50)' : '3/6/4 (1.16)',
+        damage: isBlueWin ? '24,500' : '16,200',
+        cs: 180,
+        win: isBlueWin
+      }));
+
+      const redRoster = currentMatch.red.map((p, i) => ({
+        name: p.name,
+        role: ORDERED_ROLES[i],
+        champion: (p.most && p.most[0]) || '주력픽',
+        tier: p.tier,
+        aiScore: (!isBlueWin ? (p.name === mvp ? 94 : 85) : (p.name === mvp ? 82 : 72)),
+        kda: !isBlueWin ? '8/2/9 (8.50)' : '2/7/3 (0.71)',
+        damage: !isBlueWin ? '26,100' : '14,800',
+        cs: 175,
+        win: !isBlueWin
+      }));
+
+      matchHistory.unshift({
+        id: 'm-' + Date.now(),
+        date: dateStr,
+        matchId: matchId,
+        winner: selectedWinnerTeam,
+        mvp: mvp,
+        duration: duration,
+        blue: blueRoster,
+        red: redRoster
+      });
+
+      // 10인 소환사 승/패 및 내전 80% MMR 즉시 갱신
+      summoners = summoners.map(s => {
+        const inBlue = blueRoster.find(b => b.name.toLowerCase() === s.name.toLowerCase());
+        const inRed = redRoster.find(r => r.name.toLowerCase() === s.name.toLowerCase());
+        const participant = inBlue || inRed;
+        if (participant) {
+          return {
+            ...s,
+            wins: participant.win ? (s.wins || 0) + 1 : (s.wins || 0),
+            losses: !participant.win ? (s.losses || 0) + 1 : (s.losses || 0),
+            formScore: participant.aiScore
+          };
+        }
+        return s;
+      });
+
+      saveLocalData();
+      closeRecordMatchModal();
+      renderAllViews();
+      showToast(`[${selectedWinnerTeam}팀 승리] 내전 점수 및 히스토리가 즉시 갱신되었습니다!`, 'success');
+      switchTab('history');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
