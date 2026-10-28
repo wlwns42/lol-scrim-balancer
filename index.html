@@ -109,6 +109,13 @@
       </button>
 
       <button id="nav-replay" onclick="switchTab('replay')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <button id="nav-most" onclick="switchTab('most')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-trophy w-4 text-center text-amber-500"></i>
+          <span>내전 모스트</span>
+        </div>
+        <span id="nav-most-count" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold">0</span>
+      </button>
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-file-video w-4 text-center text-sky-500"></i>
           <span>리플레이 보관함(.rofl)</span>
@@ -389,6 +396,47 @@
             <span>보관된 내전 리플레이 파일 목록</span>
           </h3>
           <div id="replay-archive-list" class="space-y-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: 내전 모스트 챔피언 통계 (OP.GG 상세 표 스타일) -->
+      <section id="tab-content-most" class="hidden space-y-4">
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-500"></i>
+              <span>내전 챔피언 통계 (내전 모스트)</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-gray-400">내전 매치 히스토리에서 실제로 플레이한 모든 챔피언의 승률, KDA, 딜량, 킬 지표를 집계합니다.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-slate-500">소환사 필터:</label>
+            <select id="most-summoner-filter" onchange="renderMostStatsTable()" class="bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-gray-200 focus:outline-none">
+              <option value="ALL">전체 내전 참가자 합산</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead class="bg-slate-50 dark:bg-[#161d2a] text-slate-500 dark:text-slate-400 text-[11px] border-b border-slate-200 dark:border-slate-800 font-semibold select-none">
+                <tr>
+                  <th class="py-3 px-3 text-center w-10">#</th>
+                  <th class="py-3 px-4">Champion</th>
+                  <th class="py-3 px-4 text-center">Played</th>
+                  <th class="py-3 px-4 text-center">KDA</th>
+                  <th class="py-3 px-4 text-center">AI Score</th>
+                  <th class="py-3 px-4 text-right">DMG</th>
+                  <th class="py-3 px-4 text-right">CS</th>
+                  <th class="py-3 px-4 text-center">Multi Kill</th>
+                </tr>
+              </thead>
+              <tbody id="most-stats-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                <!-- 자바스크립트로 자동 렌더링 -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -1218,11 +1266,39 @@ async function saveLocalData() {
         const winRate = totalScrim > 0 ? Math.round((s.wins / totalScrim) * 100) : 0;
         const prefs = s.rolePrefs || [s.mainRole, s.subRole];
 
-        const card = document.createElement('div');
-        card.className = "bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between";
+const card = document.createElement('div');
+        card.className = "bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-sm flex flex-col justify-between cursor-pointer transition select-none";
+        card.onclick = () => openMemberDetailModal(s.id); // 🌟 카드 클릭 시 빠른 멤버 서랍과 동일한 상세 팝업 오픈
+
         card.innerHTML = `
           <div>
             <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161d2a] flex items-center justify-center text-amber-500 text-lg">
+                  <i class="fa-solid fa-shield"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h3 class="font-extrabold text-sm text-slate-800 dark:text-gray-100">${s.name}</h3>
+                    <span class="tier-badge tier-${(s.tier||'unranked').toLowerCase()}">${s.tier}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">
+                    내전 최종 MMR <strong class="text-amber-500 font-bold">${mmrData.mmr}</strong> pt 
+                    <span class="text-[9px] text-slate-400">(내전반영 ${mmrData.scrimWeightPct}%)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 수정 및 개별 삭제 버튼 (카드 클릭 전파 방지) -->
+              <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                <button onclick="editSummoner('${s.id}')" title="스펙 및 라인 우선순위 수정" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="deleteSummoner('${s.id}')" title="멤버 영구 삭제" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
               <div class="flex items-center gap-2.5">
                 <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161d2a] flex items-center justify-center text-amber-500 text-lg">
                   <i class="fa-solid fa-shield"></i>
