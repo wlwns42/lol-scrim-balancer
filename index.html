@@ -554,6 +554,30 @@
         try { replayArchives = JSON.parse(storedR); } catch(e) { replayArchives = []; }
       }
 
+      // 11명 기본 명단이 없거나 비어있을 때 안전하게 기본 세팅
+      if (!summoners || summoners.length === 0) {
+        const defaultNames = [
+          '선릉 오디세우스#KR2', '대한민국이대경#7847', '똥싸고나눠주는노인#영차영차',
+          '김창숙 부띠끄 부산 영도점#0615', '조용하고성실하게#KR99', '입다물면 승리#KR1',
+          '후니곰캐리#3075', 'UDT 62기#UDT', '따듯한 봄 햇살#KR1', '한끼두끼X끼#밥먹자', '핵탄 영수장#1114'
+        ];
+        summoners = defaultNames.map((name, idx) => ({
+          id: 'p-' + idx,
+          name: name,
+          tier: 'UNRANKED',
+          soloTier: '조회 대기',
+          flexTier: '조회 대기',
+          soloGames: 0,
+          flexGames: 0,
+          mainRole: ORDERED_ROLES[idx % 5],
+          subRole: 'FILL',
+          most: [],
+          formScore: 75,
+          wins: 0,
+          losses: 0
+        }));
+      }
+
       summoners = summoners.map(s => ({
         ...s,
         mainRole: s.mainRole || 'MID',
@@ -579,7 +603,7 @@
       renderReplayArchiveList();
     }
 
-    // 🌟 핵심 개편: 내전 히스토리 80% 가중치 반영 MMR 계산 공식
+    // 🌟 핵심: 내전 히스토리 80% 가중치 반영 MMR 계산 공식
     function getPlayerMMR(p) {
       const soloBase = TIER_POINTS[p.tier] || 1500;
       const flexBase = TIER_POINTS[p.flexBaseTier] || (soloBase - 200);
@@ -599,6 +623,7 @@
       const scrimLosses = parseInt(p.losses || 0, 10);
       const totalScrimGames = scrimWins + scrimLosses;
 
+      // 내전 전적이 없는 신규 인원은 기존 랭크를 100% 기준으로 사용
       if (totalScrimGames === 0) {
         return {
           mmr: Math.round(rawRankMMR),
@@ -608,11 +633,13 @@
         };
       }
 
+      // 내전 실력 지표 (승률 + 딥롤 폼 지표)
       const scrimWinRate = scrimWins / totalScrimGames;
       const winRateImpact = (scrimWinRate - 0.5) * 800;
       const formImpact = ((p.formScore || 75) - 75) * 8.0;
       const pureScrimScore = rawRankMMR + winRateImpact + formImpact;
 
+      // 내전 점수 80% + 솔랭/자랭 20% 결합
       const compositeMMR = (pureScrimScore * 0.8) + (rawRankMMR * 0.2);
 
       return {
@@ -623,6 +650,7 @@
       };
     }
 
+    // 포지션 만족도 평가 점수 (주 포지션: 100, 부 포지션: 75, 기타: 25)
     function getPositionAffinityScore(player, assignedRole) {
       if (player.mainRole === assignedRole) return 100;
       if (player.subRole === assignedRole) return 75;
@@ -630,6 +658,7 @@
       return 25;
     }
 
+    // 실시간 라이엇 전적 단일 조회
     async function fetchRiotData() {
       let rawQuery = document.getElementById('quick-search-input').value.trim();
       if (!rawQuery || !rawQuery.includes('#')) {
@@ -665,6 +694,7 @@
       }
     }
 
+    // 등록된 전체 소환사 라이엇 서버 실시간 일괄 갱신
     async function refreshAllFromRiotAPI() {
       if (summoners.length === 0) {
         showToast('갱신할 소환사가 없습니다.', 'info');
@@ -851,7 +881,7 @@
       return { assigned: bestPerm, score: highestScore };
     }
 
-    // 🌟 주/부 포지션 최적 스마트 밸런싱 실행
+    // 주/부 포지션 최적 스마트 밸런싱 실행
     function runSmartBalancing() {
       if (selectedPlayerIds.size !== 10) return;
       const pool = summoners.filter(s => selectedPlayerIds.has(s.id));
@@ -1460,4 +1490,129 @@
         name,
         mainRole: document.getElementById('form-main-role').value,
         subRole: document.getElementById('form-sub-role').value,
-        tier:
+        tier: document.getElementById('form-tier').value,
+        soloTier: document.getElementById('form-solo-tier').value.trim() || '언랭',
+        flexTier: document.getElementById('form-flex-tier').value.trim() || '언랭',
+        soloGames: parseInt(document.getElementById('form-solo-games').value, 10) || 0,
+        flexGames: parseInt(document.getElementById('form-flex-games').value, 10) || 0,
+        most: document.getElementById('form-champions').value.split(',').map(c => c.trim()).filter(Boolean),
+        formScore: 85
+      };
+
+      if (id) {
+        summoners = summoners.map(s => s.id === id ? { ...s, ...player } : s);
+      } else {
+        player.id = 'p-' + Date.now();
+        player.wins = 0;
+        player.losses = 0;
+        summoners.unshift(player);
+        selectedPlayerIds.add(player.id);
+      }
+
+      saveLocalData();
+      closeSummonerModal();
+      renderAllViews();
+      showToast('소환사 정보가 저장되었습니다.', 'success');
+    }
+
+    function openLobbyModal() { document.getElementById('modal-lobby').classList.remove('hidden'); }
+    function closeLobbyModal() { document.getElementById('modal-lobby').classList.add('hidden'); }
+
+    function parseLobbyChat() {
+      let raw = document.getElementById('lobby-text-area').value.replace(/[\u2066\u2069\u200E\u200F⁦⁩]/g, '');
+      const names = [];
+      raw.split('\n').forEach(l => {
+        if (l.includes('참가하셨습니다') || l.includes('참가했습니다')) {
+          const front = l.replace(/\s*님이\s*로비에\s*참가.*$/, '').replace(/\s*#\s*/, '#').trim();
+          if (front && !names.includes(front)) names.push(front);
+        }
+      });
+
+      names.forEach((name, i) => {
+        const cleanName = name.trim();
+        const existing = summoners.find(s => s.name === cleanName);
+        if (!existing) {
+          summoners.push({
+            id: 'p-' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name: cleanName,
+            tier: 'UNRANKED',
+            soloTier: '조회 대기',
+            flexTier: '조회 대기',
+            soloGames: 0,
+            flexGames: 0,
+            mainRole: ORDERED_ROLES[i % 5],
+            subRole: 'FILL',
+            most: [],
+            formScore: 75,
+            wins: 0,
+            losses: 0
+          });
+        }
+      });
+
+      selectedPlayerIds = new Set(names.slice(0, 10).map(n => summoners.find(s => s.name === n)?.id).filter(Boolean));
+      saveLocalData();
+      closeLobbyModal();
+      renderAllViews();
+      showToast(`${names.length}명의 로비 인원이 등록되었습니다. 상단 [라이엇 서버 전원 최신 전적 갱신]을 눌러 실제 전적을 불러오세요!`, 'success');
+    }
+
+    function exportDataToFile() {
+      const payload = {
+        app: 'SCRIM-BALANCER',
+        version: '8.0',
+        exportedAt: new Date().toISOString(),
+        summoners,
+        matchHistory,
+        replayArchives
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `scrim-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('전적 백업 파일이 다운로드되었습니다.', 'success');
+    }
+
+    function importDataFromFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (data.summoners && Array.isArray(data.summoners)) {
+            summoners = data.summoners;
+            matchHistory = data.matchHistory || [];
+            replayArchives = data.replayArchives || [];
+            if (data.selectedPlayerIds) selectedPlayerIds = new Set(data.selectedPlayerIds);
+            saveLocalData();
+            renderAllViews();
+            showToast('공유받은 전적이 성공적으로 동기화되었습니다!', 'success');
+          }
+        } catch(err) {
+          showToast('올바른 백업 파일이 아닙니다.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `px-4 py-2 rounded-xl text-xs ${type === 'error' ? 'bg-red-600' : 'bg-slate-800 text-amber-400'} text-white shadow-xl`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      initData();
+    });
+  </script>
+</body>
+</html>
