@@ -673,7 +673,60 @@ async function saveLocalData() {
       } catch (e) {}
     }
 
+// 🌟 히스토리 자동 분석 및 절제된 캐리력 보너스(하드캐리 +40pt / SVP +20pt) 산출
+    function syncStatsFromHistory() {
+      if (!matchHistory || matchHistory.length === 0) return;
+
+      summoners.forEach(s => {
+        let w = 0, l = 0, formSum = 0, count = 0, carryBonusTotal = 0;
+
+        matchHistory.forEach(m => {
+          const bluePlayers = m.blue || [];
+          const redPlayers = m.red || [];
+          const allPlayers = [...bluePlayers, ...redPlayers];
+
+          const isBlue = bluePlayers.some(p => p.name.toLowerCase() === s.name.toLowerCase());
+          const isRed = redPlayers.some(p => p.name.toLowerCase() === s.name.toLowerCase());
+
+          if (isBlue || isRed) {
+            count++;
+            const myTeam = isBlue ? bluePlayers : redPlayers;
+            const isWinner = isBlue ? (m.winner === 'BLUE') : (m.winner === 'RED');
+            const myData = (isBlue ? bluePlayers : redPlayers).find(p => p.name.toLowerCase() === s.name.toLowerCase());
+
+            if (isWinner) w++; else l++;
+
+            if (myData) {
+              const myScore = parseInt(myData.aiScore || 75, 10);
+              formSum += myScore;
+
+              // 1. 하드캐리 판정: 승리팀 & AI-Score 85점 이상 & 경기 내 점수 1위
+              const maxGameScore = Math.max(...allPlayers.map(p => parseInt(p.aiScore || 0, 10)));
+              if (isWinner && myScore >= 85 && myScore === maxGameScore) {
+                carryBonusTotal += 40; // 절제된 캐리 보너스 +40pt
+              }
+
+              // 2. 패배팀 에이스(SVP) 판정: 패배팀이지만 AI-Score 78점 이상 & 경기 1~2위급 활약
+              const sortedScores = allPlayers.map(p => parseInt(p.aiScore || 0, 10)).sort((a,b) => b - a);
+              const rankInGame = sortedScores.indexOf(myScore) + 1;
+              if (!isWinner && myScore >= 78 && rankInGame <= 2) {
+                carryBonusTotal += 20; // 억울한 패배 방어 보너스 +20pt
+              }
+            }
+          }
+        });
+
+        if (count > 0) {
+          s.wins = w;
+          s.losses = l;
+          s.formScore = Math.round(formSum / count);
+          s.carryBonus = carryBonusTotal;
+        }
+      });
+    }
+
     function renderAllViews() {
+      syncStatsFromHistory(); // 🌟 매치 히스토리와 캐리력 보정 실시간 동기화
       renderSelectionGrid();
       renderSummonersList();
       renderSidebarDrawerList();
@@ -681,7 +734,7 @@ async function saveLocalData() {
       renderReplayArchiveList();
     }
 
-    // 🌟 내전 히스토리 80% 가중치 반영 MMR 계산 공식
+// 🌟 통계적 신뢰도(판수 K-Factor) + 절제된 캐리력 보정 내전 80% MMR 엔진
     function getPlayerMMR(p) {
       const soloBase = TIER_POINTS[p.tier] || 1500;
       const flexBase = TIER_POINTS[p.flexBaseTier] || (soloBase - 200);
@@ -701,7 +754,6 @@ async function saveLocalData() {
       const scrimLosses = parseInt(p.losses || 0, 10);
       const totalScrimGames = scrimWins + scrimLosses;
 
-      // 내전 전적이 없는 신규 인원은 기존 랭크를 100% 기준으로 사용
       if (totalScrimGames === 0) {
         return {
           mmr: Math.round(rawRankMMR),
@@ -711,13 +763,22 @@ async function saveLocalData() {
         };
       }
 
-      // 내전 실력 지표 (승률 + 딥롤 폼 지표)
-      const scrimWinRate = scrimWins / totalScrimGames;
-      const winRateImpact = (scrimWinRate - 0.5) * 800;
-      const formImpact = ((p.formScore || 75) - 75) * 8.0;
-      const pureScrimScore = rawRankMMR + winRateImpact + formImpact;
+      // 1. 판수 신뢰도 계수 (K-Factor): 1~3판 1.5배, 4~7판 1.2배, 8판 이상 1.0배
+      let kFactor = 1.0;
+      if (totalScrimGames <= 3) kFactor = 1.5;
+      else if (totalScrimGames <= 7) kFactor = 1.2;
 
-      // 내전 점수 80% + 솔랭/자랭 20% 결합
+      // 2. 승률 및 체급 지표 (과도한 널뛰기 방지형 계수 적용)
+      const scrimWinRate = scrimWins / totalScrimGames;
+      const winRateImpact = (scrimWinRate - 0.5) * 500 * kFactor;
+      
+      // 3. 인게임 폼(AI-Score) 및 캐리 보너스 누적치 반영
+      const formImpact = ((p.formScore || 75) - 75) * 5.0 * kFactor;
+      const carryBonusImpact = (p.carryBonus || 0);
+
+      const pureScrimScore = rawRankMMR + winRateImpact + formImpact + carryBonusImpact;
+
+      // 내전 실적 80% + 기초 랭크 20% 결합
       const compositeMMR = (pureScrimScore * 0.8) + (rawRankMMR * 0.2);
 
       return {
