@@ -1085,98 +1085,7 @@ async function saveLocalData() {
       btn.disabled = false;
       showToast(`${successCount}명의 실시간 최신 라이엇 티어 및 판수가 갱신되었습니다!`, 'success');
     }
-    
-    // 🌟 FOW 3년치(최근 시즌 누적) 최다 판수 챔피언 크롤링 함수
-    async function fetchFowMostChampions(name, tag) {
-      try {
-        const cleanName = encodeURIComponent(name.trim());
-        const cleanTag = encodeURIComponent(tag.trim());
-        const targetUrl = `https://fow.kr/find/${cleanName}-${cleanTag}`;
-        
-        // 브라우저 CORS 우회 프록시
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) return null;
-        
-        const data = await res.json();
-        const html = data.contents;
-        if (!html) return null;
-
-        const champCounts = {};
-        // FOW 챔피언 테이블 행 파싱 (챔피언명 및 게임 수)
-        const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-        let match;
-        while ((match = rowRegex.exec(html)) !== null) {
-          const rowHtml = match[1];
-          // 챔피언 한글명 추출
-          const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) ||
-                            rowHtml.match(/tipsy_live[^>]*>([^<]+)<\/td>/i) ||
-                            rowHtml.match(/>([가-힣A-Za-z\s]{2,10})<\/td>\s*<td[^>]*>\d+<\/td>/i);
-          
-          // 게임 수(판수) 추출
-          const gamesMatch = rowHtml.match(/<td[^>]*>(\d+)<\/td>/i);
-
-          if (nameMatch && gamesMatch) {
-            const cName = nameMatch[1].trim();
-            const games = parseInt(gamesMatch[1], 10);
-            if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체'].includes(cName)) {
-              champCounts[cName] = (champCounts[cName] || 0) + games;
-            }
-          }
-        }
-
-        const sorted = Object.keys(champCounts).sort((a, b) => champCounts[b] - champCounts[a]);
-        return sorted.length > 0 ? sorted.slice(0, 3) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-// 🌟 FOW 최근 시즌 누적 최다 판수 챔피언 Top 3 크롤링 파서
-    async function fetchFowMostChampions(name, tag) {
-      try {
-        const cleanName = encodeURIComponent(name.trim());
-        const cleanTag = encodeURIComponent(tag.trim());
-        const targetUrl = `https://fow.kr/find/${cleanName}-${cleanTag}`;
-        
-        // CORS 우회 프록시 경유
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) return null;
-        
-        const data = await res.json();
-        const html = data.contents;
-        if (!html) return null;
-
-        const champCounts = {};
-        // FOW 챔피언 테이블 행 파싱 (챔피언명 및 게임 수)
-        const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-        let match;
-        while ((match = rowRegex.exec(html)) !== null) {
-          const rowHtml = match[1];
-          const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) ||
-                            rowHtml.match(/tipsy_live[^>]*>([^<]+)<\/td>/i) ||
-                            rowHtml.match(/>([가-힣A-Za-z\s]{2,10})<\/td>\s*<td[^>]*>\d+<\/td>/i);
-          
-          const gamesMatch = rowHtml.match(/<td[^>]*>(\d+)<\/td>/i);
-
-          if (nameMatch && gamesMatch) {
-            const cName = nameMatch[1].trim();
-            const games = parseInt(gamesMatch[1], 10);
-            if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체'].includes(cName)) {
-              champCounts[cName] = (champCounts[cName] || 0) + games;
-            }
-          }
-        }
-
-        const sorted = Object.keys(champCounts).sort((a, b) => champCounts[b] - champCounts[a]);
-        return sorted.length > 0 ? sorted.slice(0, 3) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    // 🌟 FOW 모스트 최우선 반영 비동기 함수로 교체
-    async function applyRiotAPIData(data) {
+     function applyRiotAPIData(data) {
       const solo = data.soloRank;
       const flex = data.flexRank;
 
@@ -1188,16 +1097,6 @@ async function saveLocalData() {
 
       const sGames = solo ? solo.totalGames : 0;
       const fGames = flex ? flex.totalGames : 0;
-
-      // 🌟 1순위: FOW에서 최근 시즌 누적 최다 판수 모스트 크롤링 시도
-      let finalMost = data.mostChamps || [];
-      if (data.name && data.name.includes('#')) {
-        const [n, t] = data.name.split('#');
-        const fowChamps = await fetchFowMostChampions(n, t);
-        if (fowChamps && fowChamps.length > 0) {
-          finalMost = fowChamps;
-        }
-      }
 
       const idx = summoners.findIndex(s => s.name.toLowerCase() === data.name.toLowerCase());
       const updatedPlayer = {
@@ -1212,7 +1111,7 @@ async function saveLocalData() {
         mainRole: idx >= 0 ? summoners[idx].mainRole : 'ADC',
         subRole: idx >= 0 ? summoners[idx].subRole : 'MID',
         rolePrefs: idx >= 0 ? (summoners[idx].rolePrefs || ['ADC', 'MID', 'TOP', 'JUG']) : ['ADC', 'MID', 'TOP', 'JUG'],
-        most: finalMost.length > 0 ? finalMost : (idx >= 0 ? summoners[idx].most : []),
+        most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (idx >= 0 ? summoners[idx].most : []),
         formScore: idx >= 0 ? summoners[idx].formScore : 85,
         wins: idx >= 0 ? summoners[idx].wins : 0,
         losses: idx >= 0 ? summoners[idx].losses : 0
@@ -1226,7 +1125,7 @@ async function saveLocalData() {
       renderAllViews();
     }
 
-    function openAddModalWithData(name, tag) {
+        function openAddModalWithData(name, tag) {
       document.getElementById('form-name').value = `${name}#${tag}`;
       document.getElementById('modal-summoner').classList.remove('hidden');
     }
