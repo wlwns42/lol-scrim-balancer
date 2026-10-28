@@ -127,9 +127,17 @@
       </button>
     </div>
 
-    <!-- Navigation Menu -->
+        <!-- Navigation Menu -->
     <nav class="p-3 space-y-1.5 text-xs font-semibold">
-      <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30">
+      <button id="nav-schedule" onclick="switchTab('schedule')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-calendar-days w-4 text-center text-amber-500"></i>
+          <span>내전 일정 (RSVP)</span>
+        </div>
+        <span id="nav-schedule-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold">오늘</span>
+      </button>
+
+      <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
         <i class="fa-solid fa-scale-balanced w-4 text-center"></i>
         <span>10인 스마트 밸런서</span>
       </button>
@@ -164,6 +172,15 @@
           <span>내전 모스트</span>
         </div>
         <span id="nav-most-count" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold">0</span>
+      </button>
+
+      <!-- 🌟 맨 밑 항목: 자유게시판 -->
+      <button id="nav-community" onclick="switchTab('community')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-comments w-4 text-center text-emerald-500"></i>
+          <span>자유게시판</span>
+        </div>
+        <span id="nav-post-count" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold">0</span>
       </button>
     </nav>
 
@@ -246,7 +263,156 @@
     <div class="p-4 sm:p-8 space-y-6 flex-1">
 
       <!-- SECTION 1: 10인 스마트 밸런서 (BALANCER) -->
-      <section id="tab-content-balancer" class="space-y-6">
+            <!-- SECTION 0: 내전 일정 & 참가 투표 (SCHEDULE - 접속 시 기본 화면) -->
+      <section id="tab-content-schedule" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- 좌측: 인터랙티브 캘린더 -->
+          <div class="lg:col-span-5 bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-amber-500 text-base"></i>
+                <h3 id="cal-month-year" class="font-black text-sm text-slate-800 dark:text-gray-100">2026년 10월</h3>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="changeCalMonth(-1)" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-600 dark:text-gray-300 transition text-xs">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button onclick="goToCalToday()" class="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-bold text-xs transition">
+                  오늘
+                </button>
+                <button onclick="changeCalMonth(1)" class="p-1.5 rounded-lg bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-600 dark:text-gray-300 transition text-xs">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 요일 헤더 -->
+            <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 select-none">
+              <span class="text-rose-500">일</span>
+              <span>월</span>
+              <span>화</span>
+              <span>수</span>
+              <span>목</span>
+              <span>금</span>
+              <span class="text-sky-500">토</span>
+            </div>
+
+            <!-- 날짜 그리드 -->
+            <div id="cal-days-grid" class="grid grid-cols-7 gap-1.5 text-center text-xs"></div>
+
+            <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> 내전 예정</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> 선택한 날짜</span>
+            </div>
+          </div>
+
+          <!-- 우측: 선택한 날짜의 내전 매치 보드 & 원클릭 참가/불참 투표 -->
+          <div class="lg:col-span-7 bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-extrabold text-xs">
+                    <i class="fa-solid fa-bullhorn mr-1"></i>내전 매치 보드
+                  </span>
+                  <h2 id="sched-selected-date-text" class="text-base font-black text-slate-900 dark:text-gray-100">
+                    2026년 10월 29일 (오늘)
+                  </h2>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">오늘 경기 참석 여부를 투표하고 시작 시간을 확정하세요!</p>
+              </div>
+
+              <!-- 시작 시간 설정 인풋 -->
+              <div class="flex items-center gap-2 bg-slate-50 dark:bg-[#161d2a] p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                <i class="fa-regular fa-clock text-amber-500 text-sm"></i>
+                <label for="sched-match-time" class="text-xs font-bold text-slate-600 dark:text-gray-300">시작 시간:</label>
+                <input id="sched-match-time" type="time" value="22:00" onchange="updateScheduleTime(this.value)" class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-amber-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- 참가 인원 달성 게이지 바 -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold">
+                <span class="text-slate-700 dark:text-gray-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-users text-amber-500"></i> 참가 현황 (<span id="sched-roster-count" class="text-amber-500">0</span> / 10명)
+                </span>
+                <span id="sched-status-badge" class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#161d2a] text-slate-500 text-[11px]">
+                  인원 모집 중
+                </span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-[#161d2a] h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800">
+                <div id="sched-progress-bar" class="h-full bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-400 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- 10명 모였을 때 뜨는 골드 배너: 밸런서 즉시 연동 버튼 -->
+            <div id="sched-ready-banner" class="hidden p-3.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border-2 border-amber-500 flex items-center justify-between gap-3 animate-pulse">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-champagne-glasses text-amber-500 text-lg"></i>
+                <div>
+                  <h4 class="font-black text-amber-500 text-xs">🎉 10인 풀파티 완성!</h4>
+                  <p class="text-[11px] text-slate-600 dark:text-gray-300">지금 바로 밸런서로 이동하여 팀을 나눌 수 있습니다.</p>
+                </div>
+              </div>
+              <button onclick="launchBalancerWithSchedule()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-xs shadow-lg transition shrink-0 flex items-center gap-1.5">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span>스마트 밸런서로 즉시 대진 생성</span>
+              </button>
+            </div>
+
+            <!-- 빠른 참가 / 불참 투표 폼 -->
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 space-y-3">
+              <div class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-hand text-amber-500"></i> 내전 참가 투표하기
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div class="sm:col-span-5">
+                  <select id="sched-player-select" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-200 focus:outline-none">
+                    <!-- 멤버 목록 자동 렌더링 -->
+                  </select>
+                </div>
+                <div class="sm:col-span-3">
+                  <select id="sched-role-pref" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
+                    <option value="ALL">포지션 상관없음</option>
+                    <option value="TOP">TOP (탑)</option>
+                    <option value="JUG">JUG (정글)</option>
+                    <option value="MID">MID (미드)</option>
+                    <option value="ADC">ADC (원딜)</option>
+                    <option value="SUP">SUP (서폿)</option>
+                  </select>
+                </div>
+                <div class="sm:col-span-4 flex items-center gap-2">
+                  <button onclick="submitRsvp(true)" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i> 참가
+                  </button>
+                  <button onclick="submitRsvp(false)" class="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-rose-500/20 hover:text-rose-500 text-slate-600 dark:text-gray-400 font-bold text-xs transition">
+                    불참
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 참가 확정자 명단 (10인 슬롯) -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-clipboard-user text-amber-500"></i> 참가 확정 인원 명단
+                </h4>
+                <button onclick="clearCurrentScheduleRoster()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">
+                  <i class="fa-solid fa-rotate-left mr-0.5"></i> 명단 비우기
+                </button>
+              </div>
+              <div id="sched-roster-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 min-h-[140px]">
+                <!-- 자바스크립트로 참가자 칩 렌더링 -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+      <section id="tab-content-balancer" class="hidden space-y-6">
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div>
@@ -407,7 +573,7 @@
           <div>
             <h2 class="text-base font-bold text-slate-900 dark:text-gray-100 flex items-center gap-2">
               <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
-              <span>내전 매치 히스토리</span>
+              <span>내전 매치 히스토리 (DEEPLOL 스타일)</span>
             </h2>
             <p class="text-xs text-slate-500 dark:text-gray-400">리플레이(.rofl) 파일을 넣으면 자동으로 10인 KDA/딜량/AI-Score가 누적됩니다.</p>
           </div>
@@ -494,6 +660,148 @@
           </div>
         </div>
       </section>
+
+      <!-- SECTION 6: 자유게시판 (COMMUNITY - 첨부 이미지 스타일 100% 반영) -->
+      <section id="tab-content-community" class="hidden space-y-4">
+        <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          
+          <!-- 상단 툴바: 분류, 정렬, 필터 드롭다운 및 우측 [쓰기, 검색, 목록] 버튼 -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <!-- 좌측 드롭다운 메뉴군 (스크린샷 스타일) -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="relative">
+                <select id="board-category-filter" onchange="renderCommunityBoard()" class="appearance-none bg-[#343b44] dark:bg-[#252c38] text-white text-xs font-bold px-3 py-1.5 pr-7 rounded-md cursor-pointer focus:outline-none">
+                  <option value="ALL">분류 ▾</option>
+                  <option value="공지">공지</option>
+                  <option value="인기">인기</option>
+                  <option value="잡담">잡담</option>
+                  <option value="내전후기">내전후기</option>
+                  <option value="훈수/전략">훈수/전략</option>
+                  <option value="건의">건의</option>
+                </select>
+              </div>
+
+              <div class="relative">
+                <select id="board-sort-filter" onchange="renderCommunityBoard()" class="appearance-none bg-[#343b44] dark:bg-[#252c38] text-white text-xs font-bold px-3 py-1.5 pr-7 rounded-md cursor-pointer focus:outline-none">
+                  <option value="latest">정렬 ▾</option>
+                  <option value="latest">최신순</option>
+                  <option value="views">조회수순</option>
+                  <option value="likes">추천순</option>
+                </select>
+              </div>
+
+              <div class="relative">
+                <select id="board-type-filter" onchange="renderCommunityBoard()" class="appearance-none bg-[#343b44] dark:bg-[#252c38] text-white text-xs font-bold px-3 py-1.5 pr-7 rounded-md cursor-pointer focus:outline-none">
+                  <option value="ALL">필터 ▾</option>
+                  <option value="ALL">전체 글</option>
+                  <option value="popular">추천 3개 이상</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 우측 액션 버튼군 (스크린샷 블랙 버튼 스타일) -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="relative flex-1 sm:w-48">
+                <input id="board-search-input" onkeyup="if(event.key==='Enter') renderCommunityBoard()" type="text" placeholder="제목/글쓴이 검색..." class="w-full bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs focus:outline-none">
+              </div>
+              <button onclick="renderCommunityBoard()" class="px-3 py-1.5 rounded-md bg-[#222831] hover:bg-[#2d333b] text-white font-bold text-xs transition">
+                검색
+              </button>
+              <button onclick="openWritePostModal()" class="px-3.5 py-1.5 rounded-md bg-[#222831] hover:bg-[#2d333b] text-amber-400 font-extrabold text-xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-pen-nib"></i> <span>쓰기</span>
+              </button>
+              <button onclick="resetBoardFilters()" class="px-3 py-1.5 rounded-md bg-[#222831] hover:bg-[#2d333b] text-slate-300 font-bold text-xs transition">
+                목록
+              </button>
+            </div>
+          </div>
+
+          <!-- 게시판 테이블 영역 (스크롤바 포함 및 부드러운 스크롤) -->
+          <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+            <div class="overflow-x-auto max-h-[580px] overflow-y-auto">
+              <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="sticky top-0 bg-slate-100 dark:bg-[#161d2a] text-slate-600 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800 select-none z-10">
+                  <tr>
+                    <th class="py-3 px-3 text-center w-14">번호</th>
+                    <th class="py-3 px-2 w-16 text-center">분류</th>
+                    <th class="py-3 px-4 min-w-[280px]">제목</th>
+                    <th class="py-3 px-4 text-center w-36">글쓴이</th>
+                    <th class="py-3 px-3 text-center w-20">날짜</th>
+                    <th class="py-3 px-3 text-center w-16">조회 수</th>
+                    <th class="py-3 px-3 text-center w-14">추천</th>
+                  </tr>
+                </thead>
+                <tbody id="board-posts-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                  <!-- 게시글 자바스크립트로 렌더링 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 하단 안내 -->
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+            <span>💡 누구나 자유롭게 닉네임을 적고 의견, 훈수, 내전 피드백, 공지를 작성할 수 있습니다.</span>
+            <span id="board-total-count" class="font-bold">총 0개의 게시글</span>
+          </div>
+
+        </div>
+      </section>
+
+  <!-- 🌟 게시판 글쓰기 모달 (닉네임 작성칸 필수 완비) -->
+  <div id="modal-board-write" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeWritePostModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-base font-bold text-amber-500 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-pen-nib"></i> <span>자유게시판 새 글 쓰기</span>
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">각자 다른 본인 닉네임을 적고 자유롭게 글을 작성하세요.</p>
+
+      <form onsubmit="handlePostSubmit(event)" class="space-y-3.5 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="post-author" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">글쓴이 닉네임 *</label>
+            <input id="post-author" required type="text" placeholder="예: 준희, 정현, KiiiKiii 등" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200 font-bold focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label for="post-category" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">카테고리 *</label>
+            <select id="post-category" required class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-800 dark:text-gray-200 focus:outline-none focus:border-amber-500">
+              <option value="잡담">잡담</option>
+              <option value="공지">공지</option>
+              <option value="내전후기">내전후기</option>
+              <option value="훈수/전략">훈수/전략</option>
+              <option value="건의">건의</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="post-title" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">글 제목 *</label>
+          <input id="post-title" required type="text" placeholder="제목을 입력하세요" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200 font-extrabold focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label for="post-content" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">내용 *</label>
+          <textarea id="post-content" required rows="6" placeholder="내전 피드백이나 자유로운 이야기를 작성해 주세요." class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-gray-200 focus:outline-none focus:border-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <button type="button" onclick="closeWritePostModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-700 dark:text-gray-300 font-semibold">취소</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-gray-950 font-black">등록하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🌟 게시판 글 상세 보기 모달 (댓글 & 추천 기능) -->
+  <div id="modal-board-view" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative max-h-[90vh] flex flex-col">
+      <button onclick="closeViewPostModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      
+      <div id="modal-post-view-content" class="flex-1 overflow-y-auto pr-1 space-y-4">
+        <!-- 자바스크립트로 본문 렌더링 -->
+      </div>
+    </div>
+  </div>
 
     </div>
   </main>
@@ -620,7 +928,7 @@
             </select>
           </div>
           <div>
-            <label for="form-peak-detail" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">최고 티어</label>
+            <label for="form-peak-detail" class="block text-slate-700 dark:text-gray-300 font-semibold mb-1">최고 세부/LP (30% 반영)</label>
             <input id="form-peak-detail" type="text" placeholder="예: DI I (75LP) / M (200LP)" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-purple-400">
           </div>
         </div>
@@ -762,6 +1070,12 @@ async function initData() {
         recalculateMatchMMR();
       }
 
+      initScheduleData();
+      initCommunityData();
+
+      // 🌟 서버 접속 시 무조건 [내전 일정] 화면부터 기본으로 켜짐!
+      switchTab('schedule');
+
       // 🌟 서버에서 실시간 공유 데이터 로드 및 4초 주기 자동 동기화
       await fetchCloudData();
       setInterval(fetchCloudData, 4000);
@@ -772,13 +1086,16 @@ async function saveLocalData() {
       localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
       localStorage.setItem('scrim_selected_ids', JSON.stringify(Array.from(selectedPlayerIds)));
+      localStorage.setItem('scrim_schedules_data', JSON.stringify(scrimSchedules));
+      localStorage.setItem('scrim_community_posts', JSON.stringify(communityPosts));
+
       if (currentMatch) {
         localStorage.setItem('scrim_current_match', JSON.stringify(currentMatch));
       } else {
         localStorage.removeItem('scrim_current_match');
       }
 
-      // 🌟 10인 선택 명단 및 실시간 대진표까지 전원 완벽 동기화 전송
+      // 🌟 내전 일정 및 자유게시판 글까지 전원 실시간 동기화 전송
       try {
         await fetch('/api/sync', {
           method: 'POST',
@@ -787,6 +1104,8 @@ async function saveLocalData() {
             summoners,
             matchHistory,
             replayArchives,
+            scrimSchedules,
+            communityPosts,
             selectedPlayerIds: Array.from(selectedPlayerIds),
             currentMatch: currentMatch || null,
             updatedAt: Date.now()
@@ -825,12 +1144,24 @@ async function saveLocalData() {
               document.getElementById('balancer-board')?.classList.add('hidden');
             }
 
+            if (cloudData.scrimSchedules) {
+              scrimSchedules = cloudData.scrimSchedules;
+              localStorage.setItem('scrim_schedules_data', JSON.stringify(scrimSchedules));
+            }
+            if (cloudData.communityPosts && Array.isArray(cloudData.communityPosts)) {
+              communityPosts = cloudData.communityPosts;
+              localStorage.setItem('scrim_community_posts', JSON.stringify(communityPosts));
+            }
+
             localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
             localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
             localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
             localStorage.setItem('scrim_last_sync_time', (cloudData.updatedAt || Date.now()).toString());
 
             renderAllViews();
+            renderCalendar();
+            renderScheduleBoard();
+            renderCommunityBoard();
           }
         }
       } catch (e) {}
@@ -2103,21 +2434,24 @@ async function saveLocalData() {
 
 
     function switchTab(tabKey) {
-      ['balancer', 'summoners', 'history', 'replay', 'most'].forEach(t => {
+      ['schedule', 'balancer', 'summoners', 'history', 'replay', 'most', 'community'].forEach(t => {
         document.getElementById(`tab-content-${t}`)?.classList.toggle('hidden', t !== tabKey);
         const b = document.getElementById(`nav-${t}`);
         if (b) {
           if (t === tabKey) {
-            b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30";
+            b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between bg-amber-500/15 text-amber-600 dark:text-brand-gold border border-amber-500/30";
           } else {
             b.className = "w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]";
           }
         }
       });
+      if (tabKey === 'schedule') { renderCalendar(); renderScheduleBoard(); }
+      if (tabKey === 'balancer') renderSelectionGrid();
       if (tabKey === 'summoners') renderSummonersList();
       if (tabKey === 'history') renderMatchHistory();
       if (tabKey === 'replay') renderReplayArchiveList();
       if (tabKey === 'most') renderMostStatsTable();
+      if (tabKey === 'community') renderCommunityBoard();
     }
 
     function openAddSummonerModal() {
@@ -2425,6 +2759,584 @@ async function saveLocalData() {
         location.reload();
       }
     }
+
+    
+    // ==========================================
+    // 📅 내전 일정 (Calendar & RSVP) 엔진
+    // ==========================================
+    let currentCalDate = new Date(2026, 9, 29); // 2026년 10월 29일 (목)
+    let selectedSchedDateKey = '2026-10-29';
+    let scrimSchedules = {}; // { 'YYYY-MM-DD': { time: '22:00', participants: [{ id, name, role }] } }
+
+    function getFormattedDateKey(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function initScheduleData() {
+      const storedSched = localStorage.getItem('scrim_schedules_data');
+      if (storedSched) {
+        try { scrimSchedules = JSON.parse(storedSched); } catch(e) { scrimSchedules = {}; }
+      }
+      if (!scrimSchedules[selectedSchedDateKey]) {
+        // 오늘 기본 일정 세팅
+        scrimSchedules[selectedSchedDateKey] = {
+          time: '22:00',
+          participants: []
+        };
+      }
+    }
+
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+      
+      const monthTitle = document.getElementById('cal-month-year');
+      if (monthTitle) monthTitle.textContent = `${year}년 ${monthNames[month]}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      const prevLastDate = new Date(year, month, 0).getDate();
+
+      const grid = document.getElementById('cal-days-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      // 이전 달 빈칸
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const dNum = prevLastDate - i;
+        const cell = document.createElement('div');
+        cell.className = 'py-2 rounded-lg text-slate-300 dark:text-slate-700 text-center select-none';
+        cell.textContent = dNum;
+        grid.appendChild(cell);
+      }
+
+      // 현재 달 날짜들
+      for (let d = 1; d <= lastDate; d++) {
+        const cellDate = new Date(year, month, d);
+        const dateKey = getFormattedDateKey(cellDate);
+        const isSelected = (dateKey === selectedSchedDateKey);
+        const hasMatch = scrimSchedules[dateKey] && scrimSchedules[dateKey].participants && scrimSchedules[dateKey].participants.length > 0;
+        const pCount = hasMatch ? scrimSchedules[dateKey].participants.length : 0;
+
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.onclick = () => selectScheduleDate(dateKey);
+
+        let cellClasses = 'py-2 rounded-xl flex flex-col items-center justify-center relative transition select-none ';
+        if (isSelected) {
+          cellClasses += 'bg-blue-600 text-white font-black shadow-md ';
+        } else if (hasMatch) {
+          cellClasses += 'bg-amber-500/10 border border-amber-500/40 text-amber-500 font-bold hover:bg-amber-500/20 ';
+        } else {
+          cellClasses += 'hover:bg-slate-100 dark:hover:bg-[#161d2a] text-slate-700 dark:text-gray-200 ';
+        }
+
+        cell.className = cellClasses;
+        cell.innerHTML = `
+          <span>${d}</span>
+          ${hasMatch ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-amber-500'} absolute bottom-1"></span>` : ''}
+        `;
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeCalMonth(delta) {
+      currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function goToCalToday() {
+      currentCalDate = new Date(2026, 9, 29);
+      selectScheduleDate('2026-10-29');
+    }
+
+    function selectScheduleDate(dateKey) {
+      selectedSchedDateKey = dateKey;
+      if (!scrimSchedules[dateKey]) {
+        scrimSchedules[dateKey] = { time: '22:00', participants: [] };
+      }
+      renderCalendar();
+      renderScheduleBoard();
+    }
+
+    function updateScheduleTime(newTime) {
+      if (!scrimSchedules[selectedSchedDateKey]) {
+        scrimSchedules[selectedSchedDateKey] = { time: newTime, participants: [] };
+      } else {
+        scrimSchedules[selectedSchedDateKey].time = newTime;
+      }
+      saveLocalData();
+      showToast(`시작 시간이 [${newTime}]으로 변경되었습니다.`, 'info');
+    }
+
+    function renderScheduleBoard() {
+      const parts = selectedSchedDateKey.split('-');
+      const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      const dayName = days[dObj.getDay()];
+
+      const titleEl = document.getElementById('sched-selected-date-text');
+      if (titleEl) {
+        const isToday = (selectedSchedDateKey === '2026-10-29');
+        titleEl.textContent = `${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일 (${dayName}요일) ${isToday ? '★ 오늘' : ''}`;
+      }
+
+      const schedData = scrimSchedules[selectedSchedDateKey] || { time: '22:00', participants: [] };
+      const timeInput = document.getElementById('sched-match-time');
+      if (timeInput) timeInput.value = schedData.time || '22:00';
+
+      const roster = schedData.participants || [];
+      const count = roster.length;
+
+      document.getElementById('sched-roster-count').textContent = count;
+      const pct = Math.min(Math.round((count / 10) * 100), 100);
+      document.getElementById('sched-progress-bar').style.width = `${pct}%`;
+
+      const badge = document.getElementById('sched-status-badge');
+      const banner = document.getElementById('sched-ready-banner');
+      if (count >= 10) {
+        if (badge) {
+          badge.className = "px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-extrabold text-[11px]";
+          badge.textContent = "10인 모집 완료!";
+        }
+        if (banner) banner.classList.remove('hidden');
+      } else {
+        if (badge) {
+          badge.className = "px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold text-[11px]";
+          badge.textContent = `${10 - count}명 추가 모집 중`;
+        }
+        if (banner) banner.classList.add('hidden');
+      }
+
+      // 소환사 셀렉트 박스 갱신
+      const select = document.getElementById('sched-player-select');
+      if (select) {
+        select.innerHTML = '<option value="">소환사 선택 (본인 이름)...</option>' + 
+          summoners.map(s => `<option value="${s.id}">${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
+      }
+
+      // 참가자 목록 칩 렌더링
+      const rosterListEl = document.getElementById('sched-roster-list');
+      if (!rosterListEl) return;
+      rosterListEl.innerHTML = '';
+
+      if (roster.length === 0) {
+        rosterListEl.innerHTML = `<div class="col-span-2 py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-300 dark:border-slate-800">아직 참가 신청한 멤버가 없습니다. 아래에서 본인 닉네임을 골라 참가해 주세요!</div>`;
+        return;
+      }
+
+      roster.forEach((p, idx) => {
+        const fullSummoner = summoners.find(s => s.id === p.id || s.name === p.name);
+        const role = p.preferredRole || 'ALL';
+        const roleInfo = ROLE_METADATA[role] || ROLE_METADATA.FILL;
+
+        const chip = document.createElement('div');
+        chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+          idx < 10 
+            ? 'bg-amber-500/10 border-amber-500/40 text-slate-900 dark:text-gray-100' 
+            : 'bg-slate-100 dark:bg-[#161d2a] border-slate-300 dark:border-slate-700 text-slate-500'
+        }`;
+
+        chip.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-5 h-5 rounded-md ${idx < 10 ? 'bg-amber-500 text-gray-950' : 'bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-gray-300'} font-black text-[10px] flex items-center justify-center shrink-0">
+              ${idx + 1}
+            </span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-extrabold truncate">${p.name}</span>
+                ${fullSummoner?.description ? `<span class="text-[10px] text-amber-500 font-bold">(${fullSummoner.description})</span>` : ''}
+              </div>
+              <span class="text-[10px] text-slate-400">${fullSummoner?.tier || 'UNRANKED'}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="px-2 py-0.5 rounded-md bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 text-[10px] font-bold ${roleInfo.color}">
+              <i class="fa-solid ${roleInfo.icon} mr-1"></i>${role}
+            </span>
+            <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="참가 취소">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        `;
+        rosterListEl.appendChild(chip);
+      });
+    }
+
+    function submitRsvp(isJoining) {
+      const select = document.getElementById('sched-player-select');
+      const selectedId = select?.value;
+      if (!selectedId) {
+        showToast('먼저 본인 소환사를 목록에서 선택해 주세요.', 'error');
+        return;
+      }
+
+      const p = summoners.find(s => s.id === selectedId);
+      if (!p) return;
+
+      if (!scrimSchedules[selectedSchedDateKey]) {
+        scrimSchedules[selectedSchedDateKey] = { time: '22:00', participants: [] };
+      }
+      const sched = scrimSchedules[selectedSchedDateKey];
+      const rolePref = document.getElementById('sched-role-pref')?.value || 'ALL';
+
+      const existingIdx = sched.participants.findIndex(item => item.id === p.id || item.name === p.name);
+
+      if (isJoining) {
+        if (existingIdx >= 0) {
+          sched.participants[existingIdx].preferredRole = rolePref;
+          showToast(`[${p.name}] 희망 포지션이 [${rolePref}]로 갱신되었습니다.`, 'info');
+        } else {
+          sched.participants.push({
+            id: p.id,
+            name: p.name,
+            preferredRole: rolePref
+          });
+          showToast(`[${p.name}] 내전 참가 신청이 완료되었습니다! 🎮`, 'success');
+        }
+      } else {
+        if (existingIdx >= 0) {
+          sched.participants.splice(existingIdx, 1);
+          showToast(`[${p.name}] 불참 처리되었습니다.`, 'info');
+        } else {
+          showToast(`[${p.name}] 참가 명단에 없습니다.`, 'info');
+        }
+      }
+
+      saveLocalData();
+      renderCalendar();
+      renderScheduleBoard();
+    }
+
+    function removeRsvp(playerId) {
+      const sched = scrimSchedules[selectedSchedDateKey];
+      if (!sched) return;
+      sched.participants = sched.participants.filter(item => item.id !== playerId && item.name !== playerId);
+      saveLocalData();
+      renderCalendar();
+      renderScheduleBoard();
+      showToast('참가가 취소되었습니다.', 'info');
+    }
+
+    function clearCurrentScheduleRoster() {
+      if (confirm('선택된 날짜의 참가자 명단을 모두 비우시겠습니까?')) {
+        if (scrimSchedules[selectedSchedDateKey]) {
+          scrimSchedules[selectedSchedDateKey].participants = [];
+          saveLocalData();
+          renderCalendar();
+          renderScheduleBoard();
+          showToast('참가자 명단이 비워졌습니다.', 'info');
+        }
+      }
+    }
+
+    // 🌟 10명 완성 시 밸런서로 원클릭 즉시 연동
+    function launchBalancerWithSchedule() {
+      const sched = scrimSchedules[selectedSchedDateKey];
+      if (!sched || !sched.participants || sched.participants.length < 10) {
+        showToast('최소 10명이 신청해야 밸런싱을 진행할 수 있습니다.', 'error');
+        return;
+      }
+
+      // 상위 10인의 ID 선택
+      selectedPlayerIds = new Set(sched.participants.slice(0, 10).map(p => p.id || summoners.find(s => s.name === p.name)?.id).filter(Boolean));
+      saveLocalData();
+      switchTab('balancer');
+      showToast('참가 신청한 10명이 밸런서에 자동 세팅되었습니다! [스마트 밸런싱 실행]을 누르세요!', 'success');
+    }
+
+
+    // ==========================================
+    // 💬 자유게시판 (Community Free Board) 엔진
+    // ==========================================
+    let communityPosts = [];
+
+    function initCommunityData() {
+      const storedPosts = localStorage.getItem('scrim_community_posts');
+      if (storedPosts) {
+        try { communityPosts = JSON.parse(storedPosts); } catch(e) { communityPosts = []; }
+      }
+
+      // 초기 예시 글 (스크린샷 분위기 반영)
+      if (!communityPosts || communityPosts.length === 0) {
+        communityPosts = [
+          {
+            id: 'post-1',
+            no: 1,
+            category: '공지',
+            title: '내전 5v5 진행 규칙 및 시작 시간 안내',
+            author: '이준희',
+            date: '10.29',
+            views: 128,
+            likes: 12,
+            content: '매일 저녁 10시 시작입니다! 디스코드 1채널로 21:50까지 모여주세요. 1~4순위 라인 세팅 부탁드립니다.',
+            comments: [{ author: '정현', text: '오늘 10시 칼접속 합니다!', date: '10.29' }]
+          },
+          {
+            id: 'post-2',
+            no: 2,
+            category: '잡담',
+            title: '오늘 미드 구도 이즈 vs 아리 어떰?',
+            author: 'KiiiKiii',
+            date: '10.29',
+            views: 45,
+            likes: 4,
+            content: '요즘 스크림에서 미드 이즈리얼 픽률 높던데 상대하기 까다롭네요 ㅋㅋ 다들 의견좀',
+            comments: []
+          }
+        ];
+        saveLocalData();
+      }
+    }
+
+    function renderCommunityBoard() {
+      const tbody = document.getElementById('board-posts-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const catFilter = document.getElementById('board-category-filter')?.value || 'ALL';
+      const sortFilter = document.getElementById('board-sort-filter')?.value || 'latest';
+      const typeFilter = document.getElementById('board-type-filter')?.value || 'ALL';
+      const searchWord = (document.getElementById('board-search-input')?.value || '').toLowerCase().trim();
+
+      let list = [...communityPosts];
+
+      // 검색 필터
+      if (searchWord) {
+        list = list.filter(p => p.title.toLowerCase().includes(searchWord) || p.author.toLowerCase().includes(searchWord));
+      }
+
+      // 카테고리 필터
+      if (catFilter !== 'ALL') {
+        list = list.filter(p => p.category === catFilter);
+      }
+
+      // 인기글 필터
+      if (typeFilter === 'popular') {
+        list = list.filter(p => (p.likes || 0) >= 3);
+      }
+
+      // 정렬
+      if (sortFilter === 'views') {
+        list.sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sortFilter === 'likes') {
+        list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      } else {
+        list.sort((a, b) => (b.no || 0) - (a.no || 0));
+      }
+
+      document.getElementById('board-total-count').textContent = `총 ${list.length}개의 게시글`;
+      const navPostBadge = document.getElementById('nav-post-count');
+      if (navPostBadge) navPostBadge.textContent = communityPosts.length;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-xs text-slate-400">등록된 게시글이 없습니다. 우측 상단 [쓰기] 버튼을 눌러 첫 글을 남겨보세요!</td></tr>`;
+        return;
+      }
+
+      list.forEach(p => {
+        const isNotice = (p.category === '공지');
+        const isPopular = (p.likes || 0) >= 5;
+        const commentCount = (p.comments && p.comments.length) || 0;
+
+        let catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">• ${p.category}</span>`;
+        if (isNotice) {
+          catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-black dark:bg-slate-900 text-white border border-slate-700">공지</span>`;
+        } else if (isPopular) {
+          catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-500/15 text-rose-500 border border-rose-500/30">인기</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = `hover:bg-slate-50/80 dark:hover:bg-[#161d2a]/80 transition cursor-pointer ${
+          isNotice ? 'bg-amber-500/5 dark:bg-amber-500/5 font-bold' : ''
+        }`;
+        tr.onclick = () => openViewPostModal(p.id);
+
+        tr.innerHTML = `
+          <td class="py-3 px-3 text-center text-slate-400 font-mono">${isNotice ? '<i class="fa-solid fa-thumbtack text-amber-500 text-xs"></i>' : p.no}</td>
+          <td class="py-3 px-2 text-center">${catBadge}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-slate-800 dark:text-gray-100 hover:text-amber-500 transition line-clamp-1">${p.title}</span>
+              ${commentCount > 0 ? `<span class="text-[11px] font-black text-rose-500">${commentCount}</span>` : ''}
+              <span class="text-[9px] px-1 py-0.2 rounded bg-amber-500 text-gray-950 font-black">N</span>
+            </div>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="inline-flex items-center gap-1.5 text-slate-700 dark:text-gray-300 font-semibold">
+              <span class="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] text-slate-500">
+                <i class="fa-solid fa-user"></i>
+              </span>
+              <span>${p.author}</span>
+            </div>
+          </td>
+          <td class="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">${p.date}</td>
+          <td class="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">${p.views || 0}</td>
+          <td class="py-3 px-3 text-center font-bold text-amber-500 font-mono text-[11px]">${p.likes || 0}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function resetBoardFilters() {
+      document.getElementById('board-category-filter').value = 'ALL';
+      document.getElementById('board-sort-filter').value = 'latest';
+      document.getElementById('board-type-filter').value = 'ALL';
+      document.getElementById('board-search-input').value = '';
+      renderCommunityBoard();
+    }
+
+    function openWritePostModal() {
+      const savedAuthor = localStorage.getItem('scrim_my_author_name') || '';
+      document.getElementById('post-author').value = savedAuthor;
+      document.getElementById('post-title').value = '';
+      document.getElementById('post-content').value = '';
+      document.getElementById('modal-board-write').classList.remove('hidden');
+    }
+
+    function closeWritePostModal() {
+      document.getElementById('modal-board-write').classList.add('hidden');
+    }
+
+    function handlePostSubmit(e) {
+      e.preventDefault();
+      const author = document.getElementById('post-author').value.trim();
+      const category = document.getElementById('post-category').value;
+      const title = document.getElementById('post-title').value.trim();
+      const content = document.getElementById('post-content').value.trim();
+
+      if (!author || !title || !content) {
+        showToast('작성자, 제목, 내용을 모두 입력해 주세요.', 'error');
+        return;
+      }
+
+      localStorage.setItem('scrim_my_author_name', author);
+
+      const d = new Date();
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      const nextNo = communityPosts.length > 0 ? Math.max(...communityPosts.map(p => p.no || 0)) + 1 : 1;
+
+      const newPost = {
+        id: 'post-' + Date.now(),
+        no: nextNo,
+        category,
+        title,
+        author,
+        date: dateStr,
+        views: 0,
+        likes: 0,
+        content,
+        comments: []
+      };
+
+      communityPosts.unshift(newPost);
+      saveLocalData();
+      closeWritePostModal();
+      renderCommunityBoard();
+      showToast('게시글이 성공적으로 등록되었습니다!', 'success');
+    }
+
+    let activeViewingPostId = null;
+
+    function openViewPostModal(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+
+      activeViewingPostId = postId;
+      p.views = (p.views || 0) + 1;
+      saveLocalData();
+
+      const container = document.getElementById('modal-post-view-content');
+      container.innerHTML = `
+        <div class="pb-3 border-b border-slate-200 dark:border-slate-800 space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500">${p.category}</span>
+            <h2 class="text-base font-black text-slate-900 dark:text-gray-100">${p.title}</h2>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <strong class="text-slate-700 dark:text-gray-200">${p.author}</strong> · ${p.date}
+            </span>
+            <span>조회 ${p.views} · 추천 <strong class="text-amber-500">${p.likes || 0}</strong></span>
+          </div>
+        </div>
+
+        <div class="py-4 text-xs text-slate-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed min-h-[100px]">
+          ${p.content}
+        </div>
+
+        <div class="flex justify-center pb-4 border-b border-slate-200 dark:border-slate-800">
+          <button onclick="likeCurrentPost('${p.id}')" class="px-5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-500 font-extrabold text-xs flex items-center gap-2 transition">
+            <i class="fa-solid fa-thumbs-up"></i> 추천하기 (${p.likes || 0})
+          </button>
+        </div>
+
+        <!-- 댓글 목록 -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-xs text-slate-700 dark:text-gray-200">댓글 (${(p.comments && p.comments.length) || 0})</h4>
+          <div class="space-y-2 max-h-48 overflow-y-auto">
+            ${(!p.comments || p.comments.length === 0) 
+              ? '<p class="text-[11px] text-slate-400">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>'
+              : p.comments.map(c => `
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 text-xs">
+                  <div class="flex items-center justify-between font-bold text-slate-700 dark:text-gray-300 text-[11px] mb-1">
+                    <span>${c.author}</span>
+                    <span class="text-slate-400 text-[10px]">${c.date || ''}</span>
+                  </div>
+                  <p class="text-slate-600 dark:text-gray-300">${c.text}</p>
+                </div>
+              `).join('')
+            }
+          </div>
+
+          <!-- 댓글 작성 폼 -->
+          <div class="flex gap-2 pt-2">
+            <input id="comment-author-input" type="text" placeholder="닉네임" value="${localStorage.getItem('scrim_my_author_name') || ''}" class="w-24 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none">
+            <input id="comment-text-input" onkeyup="if(event.key==='Enter') submitComment('${p.id}')" type="text" placeholder="댓글을 입력하세요..." class="flex-1 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none">
+            <button onclick="submitComment('${p.id}')" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">등록</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modal-board-view').classList.remove('hidden');
+    }
+
+    function closeViewPostModal() {
+      document.getElementById('modal-board-view').classList.add('hidden');
+      renderCommunityBoard();
+    }
+
+    function likeCurrentPost(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+      p.likes = (p.likes || 0) + 1;
+      saveLocalData();
+      openViewPostModal(postId);
+      showToast('추천이 반영되었습니다! 👍', 'success');
+    }
+
+    function submitComment(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+      const author = document.getElementById('comment-author-input')?.value.trim() || '소환사';
+      const text = document.getElementById('comment-text-input')?.value.trim();
+      if (!text) return;
+
+      localStorage.setItem('scrim_my_author_name', author);
+
+      const d = new Date();
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+      if (!p.comments) p.comments = [];
+      p.comments.push({ author, text, date: dateStr });
+      saveLocalData();
+      openViewPostModal(postId);
+    }
+
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
