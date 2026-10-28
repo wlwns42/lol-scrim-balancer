@@ -137,9 +137,11 @@
         <span id="nav-schedule-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold">오늘</span>
       </button>
 
-      <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center gap-3 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
-        <i class="fa-solid fa-scale-balanced w-4 text-center"></i>
-        <span>10인 스마트 밸런서</span>
+      <button id="nav-balancer" onclick="switchTab('balancer')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-scale-balanced w-4 text-center"></i>
+          <span>스마트-밸런스</span>
+        </div>
       </button>
 
       <button id="nav-summoners" onclick="switchTab('summoners')" class="w-full px-3.5 py-2.5 rounded-xl transition flex items-center justify-between text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-[#161d2a]">
@@ -243,7 +245,10 @@
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <button onclick="refreshAllFromRiotAPI()" id="btn-refresh-all" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 font-bold text-xs transition flex items-center gap-1.5">
+        <!-- 👑 관리자 권한 버튼 (이준희) -->
+        <button id="btn-admin-auth" onclick="toggleAdminAuthModal()" class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 border shadow-sm">
+        </button>
+        <button onclick="refreshAllFromRiotAPI()"  id="btn-refresh-all" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 font-bold text-xs transition flex items-center gap-1.5">
           <i class="fa-solid fa-arrows-rotate"></i>
           <span>라이엇 서버 전원 최신 전적 갱신</span>
         </button>
@@ -326,7 +331,21 @@
               <div class="flex items-center gap-2 bg-slate-50 dark:bg-[#161d2a] p-2 rounded-xl border border-slate-200 dark:border-slate-700">
                 <i class="fa-regular fa-clock text-amber-500 text-sm"></i>
                 <label for="sched-match-time" class="text-xs font-bold text-slate-600 dark:text-gray-300">시작 시간:</label>
-                <input id="sched-match-time" type="time" value="22:00" onchange="updateScheduleTime(this.value)" class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-amber-500 focus:outline-none">
+                <select id="sched-match-time" onchange="updateScheduleTime(this.value)" class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-500 focus:outline-none cursor-pointer">
+                  <option value="19:00">오후 07:00</option>
+                  <option value="19:30">오후 07:30</option>
+                  <option value="20:00">오후 08:00</option>
+                  <option value="20:30">오후 08:30</option>
+                  <option value="21:00">오후 09:00</option>
+                  <option value="21:30">오후 09:30</option>
+                  <option value="22:00" selected>오후 10:00 (기본)</option>
+                  <option value="22:30">오후 10:30</option>
+                  <option value="23:00">오후 11:00</option>
+                  <option value="23:30">오후 11:30</option>
+                  <option value="00:00">자정 12:00 (00:00)</option>
+                  <option value="00:30">새벽 12:30 (00:30)</option>
+                  <option value="01:00">새벽 01:00</option>
+                </select>
               </div>
             </div>
 
@@ -360,10 +379,13 @@
               </button>
             </div>
 
-            <!-- 빠른 참가 / 불참 투표 폼 -->
+            <!-- 빠른 참가 / 보류 / 불참 투표 폼 -->
             <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 space-y-3">
-              <div class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
-                <i class="fa-solid fa-hand text-amber-500"></i> 내전 참가 투표하기
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-hand text-amber-500"></i> 내전 참가 투표하기
+                </span>
+                <span class="text-[10px] text-slate-400">※ 보류 시 참여 가능 시간을 지정하여 대기열로 등록됩니다.</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
                 <div class="sm:col-span-5">
@@ -372,20 +394,26 @@
                   </select>
                 </div>
                 <div class="sm:col-span-3">
-                  <select id="sched-role-pref" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
-                    <option value="ALL">포지션 상관없음</option>
-                    <option value="TOP">TOP (탑)</option>
-                    <option value="JUG">JUG (정글)</option>
-                    <option value="MID">MID (미드)</option>
-                    <option value="ADC">ADC (원딜)</option>
-                    <option value="SUP">SUP (서폿)</option>
+                  <select id="sched-avail-time" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
+                    <option value="정시 가능">정시 즉시 가능</option>
+                    <option value="21:00 이후">21:00 이후 가능</option>
+                    <option value="21:30 이후">21:30 이후 가능</option>
+                    <option value="22:00 이후">22:00 이후 가능</option>
+                    <option value="22:30 이후">22:30 이후 가능</option>
+                    <option value="23:00 이후">23:00 이후 가능</option>
+                    <option value="23:30 이후">23:30 이후 가능</option>
+                    <option value="24:00 이후">24:00 이후 가능</option>
+                    <option value="시간 조율 필요">시간 조율 필요</option>
                   </select>
                 </div>
-                <div class="sm:col-span-4 flex items-center gap-2">
-                  <button onclick="submitRsvp(true)" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1">
+                <div class="sm:col-span-4 flex items-center gap-1.5">
+                  <button onclick="submitRsvpVote('JOIN')" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-1" title="참가 확정">
                     <i class="fa-solid fa-circle-check"></i> 참가
                   </button>
-                  <button onclick="submitRsvp(false)" class="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-rose-500/20 hover:text-rose-500 text-slate-600 dark:text-gray-400 font-bold text-xs transition">
+                  <button onclick="submitRsvpVote('HOLD')" class="flex-1 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-500 font-black text-xs transition flex items-center justify-center gap-1" title="보류 (대기열)">
+                    <i class="fa-solid fa-clock"></i> 보류
+                  </button>
+                  <button onclick="submitRsvpVote('ABSENT')" class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-rose-500/20 hover:text-rose-500 text-slate-600 dark:text-gray-400 font-bold text-xs transition" title="불참">
                     불참
                   </button>
                 </div>
@@ -398,9 +426,7 @@
                 <h4 class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
                   <i class="fa-solid fa-clipboard-user text-amber-500"></i> 참가 확정 인원 명단
                 </h4>
-                <button onclick="clearCurrentScheduleRoster()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">
-                  <i class="fa-solid fa-rotate-left mr-0.5"></i> 명단 비우기
-                </button>
+<!-- 전체 영향 주는 명단 비우기 버튼 삭제됨 -->
               </div>
               <div id="sched-roster-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 min-h-[140px]">
                 <!-- 자바스크립트로 참가자 칩 렌더링 -->
@@ -757,10 +783,15 @@
       <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">각자 다른 본인 닉네임을 적고 자유롭게 글을 작성하세요.</p>
 
       <form onsubmit="handlePostSubmit(event)" class="space-y-3.5 text-xs">
-        <div class="grid grid-cols-2 gap-3">
+        <input type="hidden" id="post-edit-id">
+        <div class="grid grid-cols-3 gap-2.5">
           <div>
             <label for="post-author" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">글쓴이 닉네임 *</label>
-            <input id="post-author" required type="text" placeholder="예: 준희, 정현, KiiiKiii 등" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200 font-bold focus:outline-none focus:border-amber-500">
+            <input id="post-author" required type="text" placeholder="닉네임 입력" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200 font-bold focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label for="post-pw" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">비밀번호(수정/삭제용) *</label>
+            <input id="post-pw" required type="password" placeholder="비밀번호" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200 font-bold focus:outline-none focus:border-amber-500">
           </div>
           <div>
             <label for="post-category" class="block font-bold mb-1 text-slate-700 dark:text-gray-200">카테고리 *</label>
@@ -2040,9 +2071,10 @@ async function saveLocalData() {
     }
 
     function deleteSummoner(id) {
+      if (!checkAdminAuth('소환사 영구 삭제')) return;
       const p = summoners.find(s => s.id === id);
       const name = p ? p.name : '선택한 소환사';
-      if (confirm(`정말 [${name}] 소환사를 명단에서 완전히 삭제하시겠습니까?`)) {
+      if (confirm(`[관리자 승인] 정말 [${name}] 소환사를 명단에서 완전히 삭제하시겠습니까?`)) {
         summoners = summoners.filter(s => s.id !== id);
         selectedPlayerIds.delete(id);
         saveLocalData();
@@ -2194,7 +2226,8 @@ async function saveLocalData() {
     }
 
     function resetMatchHistory() {
-      if (confirm('매치 히스토리를 모두 삭제하시겠습니까?')) {
+      if (!checkAdminAuth('매치 히스토리 전체 삭제')) return;
+      if (confirm('[관리자 승인] 매치 히스토리를 모두 삭제하시겠습니까?')) {
         matchHistory = [];
         syncStatsFromHistory();
         saveLocalData();
@@ -2754,7 +2787,8 @@ async function saveLocalData() {
 
 
     function hardResetAllData() {
-      if (confirm('브라우저에 저장된 모든 내전 기록, 더미 전적, 캐시를 완전히 삭제하고 초기화하시겠습니까?')) {
+      if (!checkAdminAuth('로컬 전적 및 캐시 완전 초기화')) return;
+      if (confirm('[관리자 승인] 브라우저에 저장된 모든 내전 기록, 더미 전적, 캐시를 완전히 삭제하고 초기화하시겠습니까?')) {
         localStorage.clear();
         location.reload();
       }
@@ -2766,7 +2800,7 @@ async function saveLocalData() {
     // ==========================================
     let currentCalDate = new Date(2026, 9, 29); // 2026년 10월 29일 (목)
     let selectedSchedDateKey = '2026-10-29';
-    let scrimSchedules = {}; // { 'YYYY-MM-DD': { time: '22:00', participants: [{ id, name, role }] } }
+    let scrimSchedules = {}; // { 'YYYY-MM-DD': { time: '22:00', participants: [{ id, name, status, availTime }] } }
 
     function getFormattedDateKey(d) {
       const year = d.getFullYear();
@@ -2781,7 +2815,6 @@ async function saveLocalData() {
         try { scrimSchedules = JSON.parse(storedSched); } catch(e) { scrimSchedules = {}; }
       }
       if (!scrimSchedules[selectedSchedDateKey]) {
-        // 오늘 기본 일정 세팅
         scrimSchedules[selectedSchedDateKey] = {
           time: '22:00',
           participants: []
@@ -2805,7 +2838,6 @@ async function saveLocalData() {
       if (!grid) return;
       grid.innerHTML = '';
 
-      // 이전 달 빈칸
       for (let i = firstDay - 1; i >= 0; i--) {
         const dNum = prevLastDate - i;
         const cell = document.createElement('div');
@@ -2814,13 +2846,11 @@ async function saveLocalData() {
         grid.appendChild(cell);
       }
 
-      // 현재 달 날짜들
       for (let d = 1; d <= lastDate; d++) {
         const cellDate = new Date(year, month, d);
         const dateKey = getFormattedDateKey(cellDate);
         const isSelected = (dateKey === selectedSchedDateKey);
         const hasMatch = scrimSchedules[dateKey] && scrimSchedules[dateKey].participants && scrimSchedules[dateKey].participants.length > 0;
-        const pCount = hasMatch ? scrimSchedules[dateKey].participants.length : 0;
 
         const cell = document.createElement('button');
         cell.type = 'button';
@@ -2886,11 +2916,13 @@ async function saveLocalData() {
       }
 
       const schedData = scrimSchedules[selectedSchedDateKey] || { time: '22:00', participants: [] };
-      const timeInput = document.getElementById('sched-match-time');
-      if (timeInput) timeInput.value = schedData.time || '22:00';
+      const timeSelect = document.getElementById('sched-match-time');
+      if (timeSelect) timeSelect.value = schedData.time || '22:00';
 
       const roster = schedData.participants || [];
-      const count = roster.length;
+      const confirmed = roster.filter(p => p.status !== 'HOLD');
+      const onHold = roster.filter(p => p.status === 'HOLD');
+      const count = confirmed.length;
 
       document.getElementById('sched-roster-count').textContent = count;
       const pct = Math.min(Math.round((count / 10) * 100), 100);
@@ -2901,7 +2933,7 @@ async function saveLocalData() {
       if (count >= 10) {
         if (badge) {
           badge.className = "px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-extrabold text-[11px]";
-          badge.textContent = "10인 모집 완료!";
+          badge.textContent = "🎉 10인 모집 완료 (내전 준비 완료)";
         }
         if (banner) banner.classList.remove('hidden');
       } else {
@@ -2919,31 +2951,25 @@ async function saveLocalData() {
           summoners.map(s => `<option value="${s.id}">${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
       }
 
-      // 참가자 목록 칩 렌더링
+      // 참가자 목록 칩 렌더링 (참가 확정 10인 우선 + 보류 대기자 후순위)
       const rosterListEl = document.getElementById('sched-roster-list');
       if (!rosterListEl) return;
       rosterListEl.innerHTML = '';
 
       if (roster.length === 0) {
-        rosterListEl.innerHTML = `<div class="col-span-2 py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-300 dark:border-slate-800">아직 참가 신청한 멤버가 없습니다. 아래에서 본인 닉네임을 골라 참가해 주세요!</div>`;
+        rosterListEl.innerHTML = `<div class="col-span-2 py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-300 dark:border-slate-800">아직 투표한 멤버가 없습니다. 아래에서 본인 이름을 골라 참가 또는 보류를 선택해 주세요!</div>`;
         return;
       }
 
-      roster.forEach((p, idx) => {
+      // 1. 확정 참가자 목록 (1~10번 슬롯)
+      confirmed.forEach((p, idx) => {
         const fullSummoner = summoners.find(s => s.id === p.id || s.name === p.name);
-        const role = p.preferredRole || 'ALL';
-        const roleInfo = ROLE_METADATA[role] || ROLE_METADATA.FILL;
-
         const chip = document.createElement('div');
-        chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
-          idx < 10 
-            ? 'bg-amber-500/10 border-amber-500/40 text-slate-900 dark:text-gray-100' 
-            : 'bg-slate-100 dark:bg-[#161d2a] border-slate-300 dark:border-slate-700 text-slate-500'
-        }`;
+        chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition bg-amber-500/10 border-amber-500/40 text-slate-900 dark:text-gray-100`;
 
         chip.innerHTML = `
           <div class="flex items-center gap-2 min-w-0">
-            <span class="w-5 h-5 rounded-md ${idx < 10 ? 'bg-amber-500 text-gray-950' : 'bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-gray-300'} font-black text-[10px] flex items-center justify-center shrink-0">
+            <span class="w-5 h-5 rounded-md bg-amber-500 text-gray-950 font-black text-[10px] flex items-center justify-center shrink-0">
               ${idx + 1}
             </span>
             <div class="min-w-0">
@@ -2955,19 +2981,57 @@ async function saveLocalData() {
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span class="px-2 py-0.5 rounded-md bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 text-[10px] font-bold ${roleInfo.color}">
-              <i class="fa-solid ${roleInfo.icon} mr-1"></i>${role}
+            <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-500">
+              <i class="fa-solid fa-circle-check mr-1"></i>${p.availTime || '참가'}
             </span>
-            <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="참가 취소">
+            <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="취소">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
         `;
         rosterListEl.appendChild(chip);
       });
+
+      // 2. 보류 / 지각 가능 인원 (우선순위 후순위)
+      if (onHold.length > 0) {
+        const holdHeader = document.createElement('div');
+        holdHeader.className = "col-span-2 pt-2 pb-1 text-[11px] font-bold text-amber-500 flex items-center gap-1.5 border-t border-slate-200 dark:border-slate-800 mt-2";
+        holdHeader.innerHTML = `<i class="fa-solid fa-clock"></i> <span>보류 / 조건부 가능 대기열 (${onHold.length}명) - 우선순위 후순위</span>`;
+        rosterListEl.appendChild(holdHeader);
+
+        onHold.forEach(p => {
+          const fullSummoner = summoners.find(s => s.id === p.id || s.name === p.name);
+          const chip = document.createElement('div');
+          chip.className = `p-2 rounded-xl border flex items-center justify-between text-xs transition bg-slate-100/80 dark:bg-[#161d2a]/80 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-gray-300 opacity-80`;
+
+          chip.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-5 h-5 rounded-md bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-gray-300 font-bold text-[10px] flex items-center justify-center shrink-0">
+                대기
+              </span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold truncate">${p.name}</span>
+                  ${fullSummoner?.description ? `<span class="text-[10px] text-slate-400 font-bold">(${fullSummoner.description})</span>` : ''}
+                </div>
+                <span class="text-[10px] text-slate-400">${fullSummoner?.tier || 'UNRANKED'}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold text-amber-500">
+                <i class="fa-solid fa-clock mr-1"></i>${p.availTime || '보류'}
+              </span>
+              <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="취소">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          `;
+          rosterListEl.appendChild(chip);
+        });
+      }
     }
 
-    function submitRsvp(isJoining) {
+    function submitRsvpVote(voteType) {
       const select = document.getElementById('sched-player-select');
       const selectedId = select?.value;
       if (!selectedId) {
@@ -2982,26 +3046,24 @@ async function saveLocalData() {
         scrimSchedules[selectedSchedDateKey] = { time: '22:00', participants: [] };
       }
       const sched = scrimSchedules[selectedSchedDateKey];
-      const rolePref = document.getElementById('sched-role-pref')?.value || 'ALL';
+      const availTime = document.getElementById('sched-avail-time')?.value || '정시 가능';
 
       const existingIdx = sched.participants.findIndex(item => item.id === p.id || item.name === p.name);
 
-      if (isJoining) {
-        if (existingIdx >= 0) {
-          sched.participants[existingIdx].preferredRole = rolePref;
-          showToast(`[${p.name}] 희망 포지션이 [${rolePref}]로 갱신되었습니다.`, 'info');
-        } else {
-          sched.participants.push({
-            id: p.id,
-            name: p.name,
-            preferredRole: rolePref
-          });
-          showToast(`[${p.name}] 내전 참가 신청이 완료되었습니다! 🎮`, 'success');
-        }
-      } else {
+      if (voteType === 'JOIN') {
+        const itemData = { id: p.id, name: p.name, status: 'JOIN', availTime: availTime };
+        if (existingIdx >= 0) sched.participants[existingIdx] = itemData;
+        else sched.participants.push(itemData);
+        showToast(`[${p.name}] 참가 확정! (${availTime})`, 'success');
+      } else if (voteType === 'HOLD') {
+        const itemData = { id: p.id, name: p.name, status: 'HOLD', availTime: availTime };
+        if (existingIdx >= 0) sched.participants[existingIdx] = itemData;
+        else sched.participants.push(itemData);
+        showToast(`[${p.name}] 보류 등록! (${availTime}) - 우선순위 후순위`, 'info');
+      } else if (voteType === 'ABSENT') {
         if (existingIdx >= 0) {
           sched.participants.splice(existingIdx, 1);
-          showToast(`[${p.name}] 불참 처리되었습니다.`, 'info');
+          showToast(`[${p.name}] 오늘 불참 처리되었습니다.`, 'info');
         } else {
           showToast(`[${p.name}] 참가 명단에 없습니다.`, 'info');
         }
@@ -3022,36 +3084,85 @@ async function saveLocalData() {
       showToast('참가가 취소되었습니다.', 'info');
     }
 
-    function clearCurrentScheduleRoster() {
-      if (confirm('선택된 날짜의 참가자 명단을 모두 비우시겠습니까?')) {
-        if (scrimSchedules[selectedSchedDateKey]) {
-          scrimSchedules[selectedSchedDateKey].participants = [];
-          saveLocalData();
-          renderCalendar();
-          renderScheduleBoard();
-          showToast('참가자 명단이 비워졌습니다.', 'info');
-        }
-      }
-    }
-
-    // 🌟 10명 완성 시 밸런서로 원클릭 즉시 연동
     function launchBalancerWithSchedule() {
       const sched = scrimSchedules[selectedSchedDateKey];
-      if (!sched || !sched.participants || sched.participants.length < 10) {
-        showToast('최소 10명이 신청해야 밸런싱을 진행할 수 있습니다.', 'error');
+      if (!sched || !sched.participants) return;
+      const confirmed = sched.participants.filter(p => p.status !== 'HOLD');
+      if (confirmed.length < 10) {
+        showToast('최소 10명의 참가 확정 인원이 있어야 밸런서로 연동할 수 있습니다.', 'error');
         return;
       }
 
-      // 상위 10인의 ID 선택
-      selectedPlayerIds = new Set(sched.participants.slice(0, 10).map(p => p.id || summoners.find(s => s.name === p.name)?.id).filter(Boolean));
+      selectedPlayerIds = new Set(confirmed.slice(0, 10).map(p => p.id || summoners.find(s => s.name === p.name)?.id).filter(Boolean));
       saveLocalData();
       switchTab('balancer');
-      showToast('참가 신청한 10명이 밸런서에 자동 세팅되었습니다! [스마트 밸런싱 실행]을 누르세요!', 'success');
+      showToast('참가 신청한 10명이 스마트-밸런서에 세팅되었습니다! [스마트 밸런싱 실행]을 누르세요!', 'success');
     }
 
+    // ==========================================
+    // 👑 관리자 권한 (이준희) 보안 엔진
+    // ==========================================
+    let isAdminLoggedIn = localStorage.getItem('scrim_admin_auth') === 'true';
+
+    function checkAdminAuth(actionName = '이 작업') {
+      if (!isAdminLoggedIn) {
+        showToast(`[${actionName}]은(는) 관리자(이준희)만 실행할 수 있습니다.`, 'error');
+        toggleAdminAuthModal();
+        return false;
+      }
+      return true;
+    }
+
+    function toggleAdminAuthModal() {
+      if (isAdminLoggedIn) {
+        if (confirm('현재 관리자(이준희) 권한으로 로그인되어 있습니다. 로그아웃하시겠습니까?')) {
+          isAdminLoggedIn = false;
+          localStorage.removeItem('scrim_admin_auth');
+          updateAdminButtonUI();
+          renderAllViews();
+          showToast('관리자 계정에서 로그아웃되었습니다.', 'info');
+        }
+      } else {
+        document.getElementById('admin-pin-input').value = '';
+        document.getElementById('modal-admin-auth').classList.remove('hidden');
+      }
+    }
+
+    function closeAdminAuthModal() {
+      document.getElementById('modal-admin-auth').classList.add('hidden');
+    }
+
+    function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const pin = document.getElementById('admin-pin-input').value.trim();
+      if (pin === 'admin1234' || pin === '660330' || pin === 'admin') {
+        isAdminLoggedIn = true;
+        localStorage.setItem('scrim_admin_auth', 'true');
+        closeAdminAuthModal();
+        updateAdminButtonUI();
+        renderAllViews();
+        showToast('환영합니다 이준희 관리자님! 모든 관리 권한이 활성화되었습니다. 👑', 'success');
+      } else {
+        showToast('관리자 비밀번호가 일치하지 않습니다.', 'error');
+      }
+    }
+
+    function updateAdminButtonUI() {
+      const btn = document.getElementById('btn-admin-auth');
+      if (!btn) return;
+      if (isAdminLoggedIn) {
+        btn.className = "px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-gray-950 border border-amber-400 shadow-md";
+        btn.innerHTML = `<i class="fa-solid fa-crown text-gray-950"></i> <span>관리자(이준희)</span>`;
+        btn.title = "클릭하여 관리자 로그아웃";
+      } else {
+        btn.className = "px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-gray-300 hover:text-amber-500";
+        btn.innerHTML = `<i class="fa-solid fa-lock text-slate-400"></i> <span>관리자 로그인</span>`;
+        btn.title = "클릭하여 관리자 로그인";
+      }
+    }
 
     // ==========================================
-    // 💬 자유게시판 (Community Free Board) 엔진
+    // 💬 자유게시판 (Community Free Board) 엔진 (디시형 비밀번호 & 관리자 마스터 권한)
     // ==========================================
     let communityPosts = [];
 
@@ -3061,7 +3172,6 @@ async function saveLocalData() {
         try { communityPosts = JSON.parse(storedPosts); } catch(e) { communityPosts = []; }
       }
 
-      // 초기 예시 글 (스크린샷 분위기 반영)
       if (!communityPosts || communityPosts.length === 0) {
         communityPosts = [
           {
@@ -3070,11 +3180,16 @@ async function saveLocalData() {
             category: '공지',
             title: '내전 5v5 진행 규칙 및 시작 시간 안내',
             author: '이준희',
+            password: 'admin',
             date: '10.29',
-            views: 128,
+            views: 135,
             likes: 12,
             content: '매일 저녁 10시 시작입니다! 디스코드 1채널로 21:50까지 모여주세요. 1~4순위 라인 세팅 부탁드립니다.',
-            comments: [{ author: '정현', text: '오늘 10시 칼접속 합니다!', date: '10.29' }]
+            comments: [
+              { id: 'c-1', author: '정현', password: '1111', text: '오늘 10시 칼접속 합니다!', date: '10.29' },
+              { id: 'c-2', author: '소환사', password: '1111', text: 'ㅇㅇㅇ', date: '10.29 02:23' },
+              { id: 'c-3', author: '현아', password: '1111', text: 'ㅇㅇㅇ', date: '10.29 02:23' }
+            ]
           },
           {
             id: 'post-2',
@@ -3082,9 +3197,10 @@ async function saveLocalData() {
             category: '잡담',
             title: '오늘 미드 구도 이즈 vs 아리 어떰?',
             author: 'KiiiKiii',
+            password: '1111',
             date: '10.29',
-            views: 45,
-            likes: 4,
+            views: 48,
+            likes: 5,
             content: '요즘 스크림에서 미드 이즈리얼 픽률 높던데 상대하기 까다롭네요 ㅋㅋ 다들 의견좀',
             comments: []
           }
@@ -3105,22 +3221,18 @@ async function saveLocalData() {
 
       let list = [...communityPosts];
 
-      // 검색 필터
       if (searchWord) {
         list = list.filter(p => p.title.toLowerCase().includes(searchWord) || p.author.toLowerCase().includes(searchWord));
       }
 
-      // 카테고리 필터
       if (catFilter !== 'ALL') {
         list = list.filter(p => p.category === catFilter);
       }
 
-      // 인기글 필터
       if (typeFilter === 'popular') {
         list = list.filter(p => (p.likes || 0) >= 3);
       }
 
-      // 정렬
       if (sortFilter === 'views') {
         list.sort((a, b) => (b.views || 0) - (a.views || 0));
       } else if (sortFilter === 'likes') {
@@ -3190,11 +3302,25 @@ async function saveLocalData() {
       renderCommunityBoard();
     }
 
-    function openWritePostModal() {
-      const savedAuthor = localStorage.getItem('scrim_my_author_name') || '';
-      document.getElementById('post-author').value = savedAuthor;
-      document.getElementById('post-title').value = '';
-      document.getElementById('post-content').value = '';
+    function openWritePostModal(editPostId = null) {
+      document.getElementById('post-edit-id').value = editPostId || '';
+      if (editPostId) {
+        const p = communityPosts.find(item => item.id === editPostId);
+        if (p) {
+          document.getElementById('post-author').value = p.author;
+          document.getElementById('post-pw').value = p.password || '';
+          document.getElementById('post-category').value = p.category;
+          document.getElementById('post-title').value = p.title;
+          document.getElementById('post-content').value = p.content;
+        }
+      } else {
+        const savedAuthor = localStorage.getItem('scrim_my_author_name') || '';
+        document.getElementById('post-author').value = savedAuthor;
+        document.getElementById('post-pw').value = '';
+        document.getElementById('post-category').value = '잡담';
+        document.getElementById('post-title').value = '';
+        document.getElementById('post-content').value = '';
+      }
       document.getElementById('modal-board-write').classList.remove('hidden');
     }
 
@@ -3204,17 +3330,35 @@ async function saveLocalData() {
 
     function handlePostSubmit(e) {
       e.preventDefault();
+      const editId = document.getElementById('post-edit-id').value;
       const author = document.getElementById('post-author').value.trim();
+      const password = document.getElementById('post-pw').value.trim();
       const category = document.getElementById('post-category').value;
       const title = document.getElementById('post-title').value.trim();
       const content = document.getElementById('post-content').value.trim();
 
-      if (!author || !title || !content) {
-        showToast('작성자, 제목, 내용을 모두 입력해 주세요.', 'error');
+      if (!author || !password || !title || !content) {
+        showToast('작성자, 비밀번호, 제목, 내용을 모두 입력해 주세요.', 'error');
         return;
       }
 
       localStorage.setItem('scrim_my_author_name', author);
+
+      if (editId) {
+        const p = communityPosts.find(item => item.id === editId);
+        if (p) {
+          p.author = author;
+          p.password = password;
+          p.category = category;
+          p.title = title;
+          p.content = content;
+          saveLocalData();
+          closeWritePostModal();
+          openViewPostModal(editId);
+          showToast('게시글이 성공적으로 수정되었습니다!', 'success');
+          return;
+        }
+      }
 
       const d = new Date();
       const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
@@ -3226,6 +3370,7 @@ async function saveLocalData() {
         category,
         title,
         author,
+        password,
         date: dateStr,
         views: 0,
         likes: 0,
@@ -3252,11 +3397,23 @@ async function saveLocalData() {
 
       const container = document.getElementById('modal-post-view-content');
       container.innerHTML = `
-        <div class="pb-3 border-b border-slate-200 dark:border-slate-800 space-y-1.5">
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500">${p.category}</span>
-            <h2 class="text-base font-black text-slate-900 dark:text-gray-100">${p.title}</h2>
+        <div class="pb-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500">${p.category}</span>
+              <h2 class="text-base font-black text-slate-900 dark:text-gray-100">${p.title}</h2>
+            </div>
+            
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="requestEditPost('${p.id}')" class="px-2.5 py-1 rounded bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-700 dark:text-gray-200 text-xs font-bold transition">
+                수정
+              </button>
+              <button onclick="requestDeletePost('${p.id}')" class="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs font-bold transition">
+                삭제
+              </button>
+            </div>
           </div>
+
           <div class="flex items-center justify-between text-xs text-slate-400">
             <span class="flex items-center gap-1.5">
               <strong class="text-slate-700 dark:text-gray-200">${p.author}</strong> · ${p.date}
@@ -3278,26 +3435,34 @@ async function saveLocalData() {
         <!-- 댓글 목록 -->
         <div class="space-y-3">
           <h4 class="font-bold text-xs text-slate-700 dark:text-gray-200">댓글 (${(p.comments && p.comments.length) || 0})</h4>
-          <div class="space-y-2 max-h-48 overflow-y-auto">
+          <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
             ${(!p.comments || p.comments.length === 0) 
               ? '<p class="text-[11px] text-slate-400">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>'
-              : p.comments.map(c => `
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 text-xs">
-                  <div class="flex items-center justify-between font-bold text-slate-700 dark:text-gray-300 text-[11px] mb-1">
-                    <span>${c.author}</span>
-                    <span class="text-slate-400 text-[10px]">${c.date || ''}</span>
+              : p.comments.map((c, cIdx) => `
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-800 text-xs flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 font-bold text-slate-700 dark:text-gray-300 text-[11px] mb-1">
+                      <span>${c.author}</span>
+                      <span class="text-slate-400 text-[10px] font-normal">${c.date || ''}</span>
+                    </div>
+                    <p class="text-slate-600 dark:text-gray-300 whitespace-pre-wrap">${c.text}</p>
                   </div>
-                  <p class="text-slate-600 dark:text-gray-300">${c.text}</p>
+                  <button onclick="requestDeleteComment('${p.id}', ${cIdx})" class="text-slate-400 hover:text-rose-500 text-xs p-1" title="댓글 삭제">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
                 </div>
               `).join('')
             }
           </div>
 
-          <!-- 댓글 작성 폼 -->
-          <div class="flex gap-2 pt-2">
-            <input id="comment-author-input" type="text" placeholder="닉네임" value="${localStorage.getItem('scrim_my_author_name') || ''}" class="w-24 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none">
-            <input id="comment-text-input" onkeyup="if(event.key==='Enter') submitComment('${p.id}')" type="text" placeholder="댓글을 입력하세요..." class="flex-1 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none">
-            <button onclick="submitComment('${p.id}')" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">등록</button>
+          <!-- 댓글 작성 폼 (디시형: 닉네임 + 비밀번호 + 내용) -->
+          <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+            <div class="flex gap-2">
+              <input id="comment-author-input" type="text" placeholder="닉네임" value="${localStorage.getItem('scrim_my_author_name') || ''}" class="w-28 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-amber-500">
+              <input id="comment-pw-input" type="password" placeholder="비밀번호" class="w-24 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-amber-500">
+              <input id="comment-text-input" onkeyup="if(event.key==='Enter') submitComment('${p.id}')" type="text" placeholder="댓글을 입력하세요..." class="flex-1 bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+              <button onclick="submitComment('${p.id}')" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition shrink-0">등록</button>
+            </div>
           </div>
         </div>
       `;
@@ -3310,6 +3475,116 @@ async function saveLocalData() {
       renderCommunityBoard();
     }
 
+    function requestEditPost(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+
+      if (isAdminLoggedIn) {
+        closeViewPostModal();
+        openWritePostModal(postId);
+        showToast('[관리자 권한] 마스터 프리패스로 수정을 시작합니다. 👑', 'info');
+        return;
+      }
+
+      const inputPw = prompt('글 작성 시 설정한 비밀번호를 입력하세요:');
+      if (inputPw === null) return;
+      if (inputPw === (p.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+        closeViewPostModal();
+        openWritePostModal(postId);
+      } else {
+        showToast('비밀번호가 일치하지 않습니다.', 'error');
+      }
+    }
+
+    function requestDeletePost(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+
+      if (isAdminLoggedIn) {
+        if (confirm('[관리자 권한] 이 게시글을 정말 삭제하시겠습니까?')) {
+          communityPosts = communityPosts.filter(item => item.id !== postId);
+          saveLocalData();
+          closeViewPostModal();
+          renderCommunityBoard();
+          showToast('게시글이 관리자에 의해 삭제되었습니다. 👑', 'info');
+        }
+        return;
+      }
+
+      const inputPw = prompt('글 작성 시 설정한 비밀번호를 입력하세요:');
+      if (inputPw === null) return;
+      if (inputPw === (p.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+        if (confirm('정말 이 게시글을 삭제하시겠습니까?')) {
+          communityPosts = communityPosts.filter(item => item.id !== postId);
+          saveLocalData();
+          closeViewPostModal();
+          renderCommunityBoard();
+          showToast('게시글이 삭제되었습니다.', 'info');
+        }
+      } else {
+        showToast('비밀번호가 일치하지 않습니다.', 'error');
+      }
+    }
+
+    function submitComment(postId) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p) return;
+      const author = document.getElementById('comment-author-input')?.value.trim();
+      const password = document.getElementById('comment-pw-input')?.value.trim();
+      const text = document.getElementById('comment-text-input')?.value.trim();
+
+      if (!author) {
+        showToast('닉네임을 입력해 주세요.', 'error');
+        return;
+      }
+      if (!password) {
+        showToast('댓글 삭제용 비밀번호를 입력해 주세요.', 'error');
+        return;
+      }
+      if (!text) {
+        showToast('댓글 내용을 입력해 주세요.', 'error');
+        return;
+      }
+
+      localStorage.setItem('scrim_my_author_name', author);
+
+      const d = new Date();
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+      if (!p.comments) p.comments = [];
+      p.comments.push({ id: 'c-' + Date.now(), author, password, text, date: dateStr });
+      saveLocalData();
+      openViewPostModal(postId);
+      showToast('댓글이 등록되었습니다.', 'success');
+    }
+
+    function requestDeleteComment(postId, commentIdx) {
+      const p = communityPosts.find(item => item.id === postId);
+      if (!p || !p.comments || !p.comments[commentIdx]) return;
+      const targetComment = p.comments[commentIdx];
+
+      if (isAdminLoggedIn) {
+        if (confirm('[관리자 권한] 이 댓글을 삭제하시겠습니까?')) {
+          p.comments.splice(commentIdx, 1);
+          saveLocalData();
+          openViewPostModal(postId);
+          showToast('댓글이 관리자에 의해 삭제되었습니다. 👑', 'info');
+        }
+        return;
+      }
+
+      const inputPw = prompt('댓글 작성 시 설정한 비밀번호를 입력하세요:');
+      if (inputPw === null) return;
+      if (inputPw === (targetComment.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+        p.comments.splice(commentIdx, 1);
+        saveLocalData();
+        openViewPostModal(postId);
+        showToast('댓글이 삭제되었습니다.', 'info');
+      } else {
+        showToast('비밀번호가 일치하지 않습니다.', 'error');
+      }
+    }
+
     function likeCurrentPost(postId) {
       const p = communityPosts.find(item => item.id === postId);
       if (!p) return;
@@ -3319,29 +3594,35 @@ async function saveLocalData() {
       showToast('추천이 반영되었습니다! 👍', 'success');
     }
 
-    function submitComment(postId) {
-      const p = communityPosts.find(item => item.id === postId);
-      if (!p) return;
-      const author = document.getElementById('comment-author-input')?.value.trim() || '소환사';
-      const text = document.getElementById('comment-text-input')?.value.trim();
-      if (!text) return;
-
-      localStorage.setItem('scrim_my_author_name', author);
-
-      const d = new Date();
-      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-      if (!p.comments) p.comments = [];
-      p.comments.push({ author, text, date: dateStr });
-      saveLocalData();
-      openViewPostModal(postId);
-    }
-
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+      updateAdminButtonUI();
       initData();
     });
   </script>
+
+  <!-- 👑 관리자(이준희) 전용 인증 모달 -->
+  <div id="modal-admin-auth" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="closeAdminAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 text-xl mb-3 mx-auto">
+        <i class="fa-solid fa-crown"></i>
+      </div>
+      <h3 class="text-base font-black text-center text-slate-900 dark:text-gray-100 mb-1">관리자(이준희) 전용 인증</h3>
+      <p class="text-xs text-center text-slate-500 dark:text-gray-400 mb-4">초기화, 히스토리 삭제 및 게시글 관리는 관리자 권한이 필요합니다.</p>
+
+      <form onsubmit="handleAdminLoginSubmit(event)" class="space-y-3">
+        <div>
+          <label for="admin-pin-input" class="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">관리자 비밀번호</label>
+          <input id="admin-pin-input" required type="password" placeholder="비밀번호 입력 (기본: admin1234)" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-gray-950 font-black text-xs shadow-md hover:brightness-110 transition">
+          관리자 권한 로그인
+        </button>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>
