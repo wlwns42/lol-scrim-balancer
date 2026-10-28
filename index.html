@@ -1165,21 +1165,113 @@
       if (e.target.files && e.target.files[0]) processRoflFile(e.target.files[0]);
     }
 
-    function processRoflFile(file) {
+// 🌟 ROFL 파일 바이너리 헤더 파싱 및 완전 자동 딥롤 분석 파이프라인
+    async function processRoflFile(file) {
       if (!file.name.endsWith('.rofl')) {
         showToast('.rofl 확장자의 리플레이 파일만 등록할 수 있습니다.', 'error');
         return;
       }
-      const newArchive = {
-        id: 'rofl-' + Date.now(),
-        fileName: file.name,
-        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-        date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+      showToast(`[${file.name}] 리플레이 파일 헤더 분석 중...`, 'info');
+
+      // 1. ROFL 파일 헤더에서 매치 ID 자동 추출 (예: KR-1234567890)
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const text = e.target.result;
+        // 헤더 텍스트에서 KR-숫자 또는 gameId 패턴 검색
+        const matchIdRegex = /KR[-_](\d{10})/i;
+        const matchResult = text.match(matchIdRegex);
+
+        let detectedMatchId = null;
+        if (matchResult && matchResult[0]) {
+          detectedMatchId = matchResult[0].replace('-', '_');
+        } else if (file.name.match(/KR[-_]\d+/i)) {
+          detectedMatchId = file.name.match(/KR[-_]\d+/i)[0].replace('-', '_');
+        }
+
+        // 2. 보관함에 파일 메타데이터 저장
+        const newArchive = {
+          id: 'rofl-' + Date.now(),
+          fileName: file.name,
+          matchId: detectedMatchId || '자동 추출 실패',
+          size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+          date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        };
+        replayArchives.unshift(newArchive);
+        saveLocalData();
+        renderReplayArchiveList();
+
+        if (!detectedMatchId) {
+          showToast(`매치 ID 추출 실패. 파일명이 KR-숫자 형식인지 확인하세요.`, 'error');
+          return;
+        }
+
+        // 3. 백엔드(/api/match)를 호출하여 라이엇 Match-v5 인게임 통계 완전 자동 조회
+        showToast(`라이엇 공식 서버에서 매치(${detectedMatchId}) 10인 통계를 가져오는 중...`, 'info');
+
+        try {
+          const res = await fetch(`/api/match?matchId=${detectedMatchId}`);
+          const matchData = await res.json();
+
+          if (res.ok && matchData.winner) {
+            // 4. 수동 입력 없이 자동으로 매치 히스토리에 딥롤 스타일로 삽입
+            matchHistory.unshift({
+              id: 'm-' + Date.now(),
+              date: newArchive.date,
+              matchId: matchData.matchId,
+              winner: matchData.winner,
+              mvp: matchData.mvp,
+              duration: matchData.gameDurationMinutes + '분',
+              blue: matchData.blueTeam.map(p => ({
+                name: p.name,
+                tier: summoners.find(s => s.name === p.name)?.tier || 'UNRANKED',
+                role: p.role,
+                champion: p.champion,
+                aiScore: p.aiScore,
+                kda: `${p.kills}/${p.deaths}/${p.assists} (${p.kda})`,
+                damage: p.damage.toLocaleString(),
+                cs: p.cs
+              })),
+              red: matchData.redTeam.map(p => ({
+                name: p.name,
+                tier: summoners.find(s => s.name === p.name)?.tier || 'UNRANKED',
+                role: p.role,
+                champion: p.champion,
+                aiScore: p.aiScore,
+                kda: `${p.kills}/${p.deaths}/${p.assists} (${p.kda})`,
+                damage: p.damage.toLocaleString(),
+                cs: p.cs
+              }))
+            });
+
+            // 5. 참여한 소환사들의 승패 및 폼 점수(AI-Score) 자동 누적
+            summoners = summoners.map(s => {
+              const participant = [...matchData.blueTeam, ...matchData.redTeam].find(p => p.name.toLowerCase() === s.name.toLowerCase());
+              if (participant) {
+                return {
+                  ...s,
+                  wins: participant.win ? (s.wins || 0) + 1 : (s.wins || 0),
+                  losses: !participant.win ? (s.losses || 0) + 1 : (s.losses || 0),
+                  formScore: participant.aiScore
+                };
+              }
+              return s;
+            });
+
+            saveLocalData();
+            renderAllViews();
+            showToast(`[${detectedMatchId}] 매치 분석 완료! ${matchData.winner}팀 승리 및 딥롤 지표가 자동 반영되었습니다.`, 'success');
+            switchTab('history');
+          } else {
+            showToast(matchData.error || '매치 통계를 불러오지 못했습니다.', 'error');
+          }
+        } catch (err) {
+          showToast(`매치 분석 중 오류가 발생했습니다: ${err.message}`, 'error');
+        }
       };
-      replayArchives.unshift(newArchive);
-      saveLocalData();
-      renderReplayArchiveList();
-      showToast(`리플레이(${file.name})가 보관함에 영구 저장되었습니다!`, 'success');
+
+      // 파일 앞쪽 100KB만 읽어서 매치 메타데이터 검출
+      reader.readAsText(file.slice(0, 102400));
     }
 
     function switchTab(tabKey) {
