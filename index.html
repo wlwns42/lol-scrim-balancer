@@ -632,28 +632,22 @@ async function initData() {
         try { replayArchives = JSON.parse(storedR); } catch(e) { replayArchives = []; }
       }
 
-      if (!summoners || summoners.length === 0) {
-        const defaultNames = [
-          '선릉 오디세우스#KR2', '대한민국이대경#7847', '똥싸고나눠주는노인#영차영차',
-          '김창숙 부띠끄 부산 영도점#0615', '조용하고성실하게#KR99', '입다물면 승리#KR1',
-          '후니곰캐리#3075', 'UDT 62기#UDT', '따듯한 봄 햇살#KR1', '한끼두끼X끼#밥먹자', '핵탄 영수장#1114'
-        ];
-        summoners = defaultNames.map((name, idx) => ({
-          id: 'p-' + idx,
-          name: name,
-          tier: 'UNRANKED',
-          soloTier: '조회 대기',
-          flexTier: '조회 대기',
-          soloGames: 0,
-          flexGames: 0,
-          mainRole: ORDERED_ROLES[idx % 5],
-          subRole: ORDERED_ROLES[(idx + 1) % 5],
-          rolePrefs: [ORDERED_ROLES[idx % 5], ORDERED_ROLES[(idx + 1) % 5], ORDERED_ROLES[(idx + 2) % 5], ORDERED_ROLES[(idx + 3) % 5]],
-          most: [],
-          formScore: 75,
-          wins: 0,
-          losses: 0
-        }));
+      // 🌟 19인 전체 명단 보존: 멤버 수가 줄어들었을 경우 19명 풀버전으로 자동 복구
+      if (!summoners || summoners.length < 19) {
+        const full19Roster = [{"id": "p-0", "name": "희상이#KR10", "tier": "EMERALD", "soloTier": "EM IV (46LP)", "flexTier": "EM III (52LP)", "soloGames": 302, "flexGames": 147, "mainRole": "MID", "subRole": "TOP", "rolePrefs": ["MID", "TOP", "ADC", "JUG"], "most": ["아리", "빅토르", "제이스"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-1", "name": "조휴일해라#KR1", "tier": "GOLD", "soloTier": "GO I (9LP)", "flexTier": "GO III (44LP)", "soloGames": 200, "flexGames": 270, "mainRole": "MID", "subRole": "SUP", "rolePrefs": ["MID", "SUP", "TOP", "JUG"], "most": ["아리", "니코", "레넥톤"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-2", "name": "설효림사랑해#KR2", "tier": "EMERALD", "soloTier": "EM I (81LP)", "flexTier": "언랭", "soloGames": 17, "flexGames": 0, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["아칼리", "사일러스", "요네"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-3", "name": "돌나무삽그리고농부#KR2", "tier": "PLATINUM", "soloTier": "PL III (95LP)", "flexTier": "EM III (19LP)", "soloGames": 40, "flexGames": 168, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["마오카이", "요릭", "말파이트"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-4", "name": "一念通天#1230", "tier": "EMERALD", "soloTier": "EM I (83LP)", "flexTier": "언랭", "soloGames": 50, "flexGames": 0, "mainRole": "SUP", "subRole": "ADC", "rolePrefs": ["SUP", "ADC", "TOP", "JUG"], "most": ["노틸러스", "카르마", "렐"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-5", "name": "KiiiKiiiLS#404", "tier": "MASTER", "soloTier": "MA I (5LP)", "flexTier": "언랭", "soloGames": 211, "flexGames": 0, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["아펠리오스", "진", "그라가스"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-6", "name": "차냉이#KR1", "tier": "PLATINUM", "soloTier": "PL III (37LP)", "flexTier": "EM IV (37LP)", "soloGames": 9, "flexGames": 43, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["바이", "카직스", "리 신"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-7", "name": "다이애나 애호가#8888", "tier": "GOLD", "soloTier": "GO IV (0LP)", "flexTier": "SI III (21LP)", "soloGames": 157, "flexGames": 13, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["모데카이저", "쉬바나", "다이애나"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-8", "name": "선릉 오디세우스#KR2", "tier": "MASTER", "soloTier": "MA I (301LP)", "flexTier": "EM I (49LP)", "soloGames": 351, "flexGames": 23, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["이즈리얼", "진", "루시안"], "formScore": 85, "wins": 1, "losses": 0}, {"id": "p-9", "name": "대한민국이대경#7847", "tier": "PLATINUM", "soloTier": "언랭", "flexTier": "PL III (2LP)", "soloGames": 0, "flexGames": 89, "mainRole": "JUG", "subRole": "SUP", "rolePrefs": ["JUG", "SUP", "TOP", "MID"], "most": ["바이", "럭스", "알리스타"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-10", "name": "똥싸고나눠주는노인#영차영차", "tier": "EMERALD", "soloTier": "EM IV (1LP)", "flexTier": "PL IV (82LP)", "soloGames": 284, "flexGames": 25, "mainRole": "TOP", "subRole": "MID", "rolePrefs": ["TOP", "MID", "JUG", "ADC"], "most": ["요릭", "야스오", "세트"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-11", "name": "김창숙 부띠끄 부산 영도점#0615", "tier": "DIAMOND", "soloTier": "DI IV (4LP)", "flexTier": "EM II (85LP)", "soloGames": 82, "flexGames": 210, "mainRole": "TOP", "subRole": "SUP", "rolePrefs": ["TOP", "SUP", "ADC", "JUG"], "most": ["리 신", "이즈리얼", "징크스"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-12", "name": "조용하고성실하게#KR99", "tier": "EMERALD", "soloTier": "EM I (3LP)", "flexTier": "언랭", "soloGames": 669, "flexGames": 0, "mainRole": "JUG", "subRole": "SUP", "rolePrefs": ["JUG", "SUP", "TOP", "ADC"], "most": ["리 신", "그레이브즈", "신지드"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-13", "name": "입다물면 승리#KR1", "tier": "DIAMOND", "soloTier": "DI IV (23LP)", "flexTier": "EM III (8LP)", "soloGames": 593, "flexGames": 33, "mainRole": "MID", "subRole": "TOP", "rolePrefs": ["MID", "TOP", "JUG", "ADC"], "most": ["케이틀린", "카이사", "진"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-14", "name": "후니곰캐리#3075", "tier": "EMERALD", "soloTier": "EM I (75LP)", "flexTier": "DI IV (17LP)", "soloGames": 86, "flexGames": 104, "mainRole": "ADC", "subRole": "JUG", "rolePrefs": ["ADC", "JUG", "TOP", "MID"], "most": ["이즈리얼", "애쉬", "시비르"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-15", "name": "UDT 62기#UDT", "tier": "PLATINUM", "soloTier": "PL IV (71LP)", "flexTier": "GO II (5LP)", "soloGames": 569, "flexGames": 195, "mainRole": "SUP", "subRole": "TOP", "rolePrefs": ["SUP", "TOP", "ADC", "JUG"], "most": ["블리츠크랭크", "모르가나", "레오나"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-16", "name": "따듯한 봄 햇살#KR1", "tier": "EMERALD", "soloTier": "EM III (21LP)", "flexTier": "DI I (52LP)", "soloGames": 15, "flexGames": 57, "mainRole": "JUG", "subRole": "MID", "rolePrefs": ["JUG", "MID", "TOP", "ADC"], "most": ["리 신", "이즈리얼", "야스오"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-17", "name": "한끼두끼X끼#밥먹자", "tier": "PLATINUM", "soloTier": "PL IV (86LP)", "flexTier": "PL I (6LP)", "soloGames": 190, "flexGames": 221, "mainRole": "MID", "subRole": "ADC", "rolePrefs": ["MID", "ADC", "TOP", "JUG"], "most": ["크산테", "아리", "애쉬"], "formScore": 85, "wins": 0, "losses": 0}, {"id": "p-18", "name": "핵탄 영수장#1114", "tier": "PLATINUM", "soloTier": "PL IV (32LP)", "flexTier": "EM I (75LP)", "soloGames": 9, "flexGames": 14, "mainRole": "ADC", "subRole": "MID", "rolePrefs": ["ADC", "MID", "TOP", "JUG"], "most": ["이즈리얼", "카이사", "진"], "formScore": 85, "wins": 0, "losses": 0}];
+        
+        if (!summoners || summoners.length === 0) {
+          summoners = full19Roster;
+        } else {
+          // 기존에 있던 멤버는 보존하고 빠진 멤버들만 합침
+          const existingNames = new Set(summoners.map(s => s.name.toLowerCase()));
+          full19Roster.forEach(m => {
+            if (!existingNames.has(m.name.toLowerCase())) {
+              summoners.push(m);
+            }
+          });
+        }
+        saveLocalData();
       }
 
       summoners = summoners.map((s, idx) => {
@@ -1711,36 +1705,61 @@ const card = document.createElement('div');
 
       const reader = new FileReader();
       reader.onload = async function(e) {
-        const text = e.target.result;
+        const buffer = e.target.result;
         
-        // 1. 경기 매치 식별자 추출
-        const matchResult = text.match(/KR[-_](\d{10})/i) || file.name.match(/KR[-_](\d{10})/i);
-        const detectedMatchId = matchResult ? matchResult[0].replace('-', '_') : ('KR_' + Date.now().toString().slice(-10));
+        // 1. 경기 매치 식별자 추출 (파일명 또는 바이너리 내부)
+        const matchResult = file.name.match(/KR[-_](\d{10})/i);
+        let detectedMatchId = matchResult ? matchResult[0].replace('-', '_') : ('KR_' + Date.now().toString().slice(-10));
 
-        // 2. 🌟 ROFL 파일 헤더에 내장된 10인 경기 통계(statsJson) 직접 파싱
         let statsList = null;
         let gameMinutes = 30;
 
         try {
-          // 게임 시간 추출
-          const lenMatch = text.match(/"gameLength"\s*:\s*(\d+)/);
-          if (lenMatch) {
-            gameMinutes = Math.round(parseInt(lenMatch[1], 10) / 1000 / 60);
-          }
+          // 2. 🌟 공식 LoL ROFL 바이너리 메타데이터 오프셋 직접 추출
+          // ROFL 구조: 오프셋 266(메타데이터 위치 4바이트 LE), 오프셋 270(메타데이터 길이 4바이트 LE)
+          if (buffer.byteLength >= 274) {
+            const view = new DataView(buffer);
+            const metaOffset = view.getUint32(266, true);
+            const metaLength = view.getUint32(270, true);
 
-          // 10인 인게임 데이터 JSON 추출
-          const statsMatch = text.match(/"statsJson"\s*:\s*"(\[[\s\S]*?\])"/);
-          if (statsMatch && statsMatch[1]) {
-            const unescaped = statsMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-            statsList = JSON.parse(unescaped);
+            if (metaOffset > 0 && metaLength > 0 && (metaOffset + metaLength) <= buffer.byteLength) {
+              const metaBytes = new Uint8Array(buffer, metaOffset, metaLength);
+              const metaStr = new TextDecoder('utf-8').decode(metaBytes);
+              const metaJson = JSON.parse(metaStr);
+
+              if (metaJson.gameLength) {
+                gameMinutes = Math.round(metaJson.gameLength / 1000 / 60);
+              }
+              if (metaJson.statsJson) {
+                statsList = typeof metaJson.statsJson === 'string' ? JSON.parse(metaJson.statsJson) : metaJson.statsJson;
+              }
+            }
           }
         } catch (err) {
-          console.warn("헤더 statsJson 파싱 실패:", err);
+          console.warn("바이너리 오프셋 파싱 실패, 텍스트 디코딩 재시도...", err);
+        }
+
+        // 오프셋 실패 시 유연한 텍스트 검색 Fallback
+        if (!statsList) {
+          try {
+            const text = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(buffer));
+            const idMatch = text.match(/KR[-_](\d{10})/i);
+            if (idMatch) detectedMatchId = idMatch[0].replace('-', '_');
+
+            const lenMatch = text.match(/"gameLength"\s*:\s*(\d+)/);
+            if (lenMatch) gameMinutes = Math.round(parseInt(lenMatch[1], 10) / 1000 / 60);
+
+            const statsMatch = text.match(/"statsJson"\s*:\s*"(\[[\s\S]*?\])"/);
+            if (statsMatch && statsMatch[1]) {
+              const unescaped = statsMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+              statsList = JSON.parse(unescaped);
+            }
+          } catch(e) {}
         }
 
         const dateStr = new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-        // 3. ROFL 내부 데이터가 정상 파싱된 경우 (사설 내전 즉시 완료)
+        // 3. 🌟 사설 내전 10인 통계 파싱 성공 시 (라이엇 서버 조회 없이 즉시 히스토리 생성)
         if (Array.isArray(statsList) && statsList.length >= 10) {
           const blue = [];
           const red = [];
@@ -1766,11 +1785,15 @@ const card = document.createElement('div');
             else if (rawPos.includes('BOTTOM') || rawPos.includes('ADC')) pos = 'ADC';
             else if (rawPos.includes('UTILITY') || rawPos.includes('SUP')) pos = 'SUP';
 
-            // 딥롤 AI Score 산출 (킬관여, 딜량, 데스 기반 정밀 점수)
+            // 딥롤 AI Score 산출
             let aiScore = Math.min(Math.max(Math.round(60 + (k * 2.5) - (d * 3) + (a * 1.5) + (dmg / 1500)), 45), 99);
 
+            const pName = p.NAME || p.SKIN || '소환사';
+            const matchedSummoner = summoners.find(s => s.name.toLowerCase() === pName.toLowerCase() || s.name.toLowerCase().startsWith(pName.toLowerCase()));
+
             const playerData = {
-              name: p.NAME || '소환사',
+              name: matchedSummoner ? matchedSummoner.name : pName,
+              tier: matchedSummoner ? matchedSummoner.tier : 'UNRANKED',
               role: pos,
               champion: p.SKIN || p.CHAMPION || '챔피언',
               aiScore: aiScore,
@@ -1784,12 +1807,11 @@ const card = document.createElement('div');
             else red.push(playerData);
           });
 
-          // MVP 선정 (전체 최고 AI 점수)
+          // MVP 선정
           const allPlayers = [...blue, ...red];
           const bestScore = Math.max(...allPlayers.map(p => p.aiScore));
           const mvpPlayer = allPlayers.find(p => p.aiScore === bestScore)?.name || '선정 중';
 
-          // 보관함에 아카이빙
           replayArchives.unshift({
             id: 'rofl-' + Date.now(),
             fileName: file.name,
@@ -1798,7 +1820,6 @@ const card = document.createElement('div');
             date: dateStr
           });
 
-          // 매치 히스토리 추가
           matchHistory.unshift({
             id: 'm-' + Date.now(),
             date: dateStr,
@@ -1831,7 +1852,7 @@ const card = document.createElement('div');
           return;
         }
 
-        // 4. 파일 파싱이 실패했을 때만 기존 라이엇 서버 API 백업 호출
+        // 백업 라이엇 API 호출 (토너먼트/일반 매치인 경우)
         try {
           const res = await fetch(`/api/match?matchId=${detectedMatchId}`);
           const matchData = await res.json();
@@ -1848,7 +1869,7 @@ const card = document.createElement('div');
             });
             saveLocalData();
             renderAllViews();
-            showToast(`[${detectedMatchId}] 라이엇 공식 서버를 통해 등록되었습니다.`, 'success');
+            showToast(`[${detectedMatchId}] 등록 완료!`, 'success');
             switchTab('history');
           } else {
             showToast('사설 내전 리플레이 데이터 파싱에 실패했습니다.', 'error');
@@ -1858,9 +1879,11 @@ const card = document.createElement('div');
         }
       };
 
-      // ROFL 파일 헤더의 200KB를 읽어 10인 통계 추출
-      reader.readAsText(file.slice(0, 204800));
+      // 🌟 ROFL 파일 바이너리 버퍼로 읽기 (300KB)
+      reader.readAsArrayBuffer(file.slice(0, 307200));
     }
+
+
 
     function switchTab(tabKey) {
       ['balancer', 'summoners', 'history', 'replay', 'most'].forEach(t => {
