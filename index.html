@@ -712,7 +712,12 @@ async function initData() {
         };
       });
 
-      selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
+      const savedSelected = localStorage.getItem('scrim_selected_ids');
+      if (savedSelected !== null) {
+        try { selectedPlayerIds = new Set(JSON.parse(savedSelected)); } catch(e) { selectedPlayerIds = new Set(); }
+      } else {
+        selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
+      }
       renderAllViews();
 
       // 🌟 서버에서 실시간 공유 데이터 로드 및 4초 주기 자동 동기화
@@ -724,6 +729,7 @@ async function saveLocalData() {
       localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
       localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
       localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
+      localStorage.setItem('scrim_selected_ids', JSON.stringify(Array.from(selectedPlayerIds)));
 
       // 🌟 데이터 변경 즉시 클라우드 서버로 자동 업로드 (모바일 동기화)
       try {
@@ -759,7 +765,8 @@ async function saveLocalData() {
             localStorage.setItem('scrim_balancer_replays', JSON.stringify(replayArchives));
             localStorage.setItem('scrim_last_sync_time', (cloudData.updatedAt || Date.now()).toString());
 
-            selectedPlayerIds = new Set(summoners.slice(0, 10).map(s => s.id));
+            const validIds = new Set(summoners.map(s => s.id));
+            selectedPlayerIds = new Set([...selectedPlayerIds].filter(id => validIds.has(id)));
             renderAllViews();
           }
         }
