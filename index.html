@@ -1725,6 +1725,7 @@ const card = document.createElement('div');
             if (metaOffset > 0 && metaLength > 0 && (metaOffset + metaLength) <= buffer.byteLength) {
               const metaBytes = new Uint8Array(buffer, metaOffset, metaLength);
               const metaStr = new TextDecoder('utf-8').decode(metaBytes);
+              console.log("ROFL 메타데이터 원본:", metaStr);
               const metaJson = JSON.parse(metaStr);
 
               if (metaJson.gameLength) {
