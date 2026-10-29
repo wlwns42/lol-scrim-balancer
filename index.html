@@ -31,7 +31,7 @@
     }
   </script>
   <style>
-    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', system-ui, Roboto, sans-serif; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
@@ -3485,14 +3485,15 @@ function syncStatsFromHistory() {
     function formatPostContent(text) {
       if (!text) return '';
       return text
-        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛]/g, '')
-        .replace(/📅/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-        .replace(/⚖️/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
-        .replace(/⚡/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
-        .replace(/💬/g, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
-        .replace(/🏆/g, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
-        .replace(/🎉/g, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
-        .replace(/💡/g, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>');
+        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFFFD]/g, '')
+        .replace(/(?:🗓️|🗓|📅|📆)/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+        .replace(/(?:⚖️|⚖)/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
+        .replace(/(?:⚡)/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
+        .replace(/(?:💬)/g, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
+        .replace(/(?:🏆)/g, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
+        .replace(/(?:🎉)/g, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
+        .replace(/(?:💡)/g, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
+        .replace(/[\uFE0E\uFE0F]/g, '');
     }
 
     function openViewPostModal(postId) {
