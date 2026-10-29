@@ -197,9 +197,7 @@
         </label>
       </div>
 
-      <button onclick="clearSelection()" class="w-full py-1.5 text-center text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition border border-amber-500/20">
-        <i class="fa-solid fa-rotate-left mr-1"></i> 오늘 10인 선택 비우기
-      </button>
+
 
 
     </div>
@@ -472,7 +470,11 @@
               </div>
 
               <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
+                <button onclick="clearMatchTeams()" class="px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer" title="대진표 전체 초기화">
+                  <i class="fa-solid fa-trash-can"></i>
+                  <span>대진 초기화</span>
+                </button>
+                <button onclick="rerollBalancing()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-slate-700 dark:text-gray-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
                   <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
                   <span>재셔플</span>
                 </button>
@@ -1833,6 +1835,24 @@ function syncStatsFromHistory() {
       showToast('1~4순위 희망 포지션 최적 밸런싱이 완료되었습니다! (드래그 스왑 가능)', 'success');
     }
 
+    function clearMatchTeams() {
+      currentMatch = null;
+      document.getElementById('balancer-placeholder')?.classList.remove('hidden');
+      document.getElementById('balancer-board')?.classList.add('hidden');
+      saveLocalData();
+      showToast('대진표가 초기화되었습니다.', 'info');
+    }
+
+    function removePlayerFromTeam(teamColor, idx) {
+      if (!currentMatch) return;
+      const removedPlayer = currentMatch[teamColor][idx];
+      selectedPlayerIds.delete(removedPlayer.id);
+      clearMatchTeams();
+      renderSelectionGrid();
+      renderSidebarDrawerList();
+      showToast(`[${removedPlayer.name}] 선수를 대진에서 제외했습니다.`, 'info');
+    }
+
     function rerollBalancing() { runSmartBalancing(); }
 
         function swapEntireTeams() {
@@ -1929,11 +1949,16 @@ function syncStatsFromHistory() {
               </div>
             </div>
           </div>
-          <div class="text-right shrink-0">
-            <span class="font-bold text-[11px] ${delta >= 0 ? 'text-emerald-500' : 'text-rose-500'}">
-              ${delta >= 0 ? `+${delta}` : delta} pt
-            </span>
-            <div class="text-[9px] text-slate-400">${player.wins||0}승 ${player.losses||0}패</div>
+          <div class="flex items-center gap-2.5 shrink-0">
+            <div class="text-right">
+              <span class="font-bold text-[11px] ${delta >= 0 ? 'text-emerald-500' : 'text-rose-500'}">
+                ${delta >= 0 ? `+${delta}` : delta} pt
+              </span>
+              <div class="text-[9px] text-slate-400">${player.wins||0}승 ${player.losses||0}패</div>
+            </div>
+            <button onclick="event.stopPropagation(); removePlayerFromTeam('${teamColor}', ${idx})" class="w-6 h-6 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 flex items-center justify-center transition cursor-pointer" title="이 선수 대진에서 제외">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
           </div>
         `;
         container.appendChild(card);
@@ -2501,7 +2526,7 @@ function syncStatsFromHistory() {
       if (tabKey === 'history') renderMatchHistory();
       if (tabKey === 'replay') renderReplayArchiveList();
       if (tabKey === 'most') renderMostStatsTable();
-      if (tabKey === 'community') renderCommunityBoard();
+      if (tabKey === 'community') { closePostDetailView(); renderCommunityBoard(); }
     }
 
     function openAddSummonerModal() {
@@ -3227,7 +3252,7 @@ function syncStatsFromHistory() {
     function handleAdminLoginSubmit(e) {
       e.preventDefault();
       const pin = document.getElementById('admin-pin-input').value.trim();
-      if (pin === 'admin1234' || pin === '660330' || pin === 'admin') {
+      if (pin === 'wnsgml42') {
         isAdminLoggedIn = true;
         localStorage.setItem('scrim_admin_auth', 'true');
         closeAdminAuthModal();
@@ -3460,6 +3485,7 @@ function syncStatsFromHistory() {
     function formatPostContent(text) {
       if (!text) return '';
       return text
+        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛]/g, '')
         .replace(/📅/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
         .replace(/⚖️/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
         .replace(/⚡/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
@@ -3618,7 +3644,7 @@ function syncStatsFromHistory() {
 
       const inputPw = prompt('글 작성 시 설정한 비밀번호를 입력하세요:');
       if (inputPw === null) return;
-      if (inputPw === (p.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+      if (inputPw === (p.password || '1111') || inputPw === 'wnsgml42' || inputPw === '660330') {
         closeViewPostModal();
         openWritePostModal(postId);
       } else {
@@ -3643,7 +3669,7 @@ function syncStatsFromHistory() {
 
       const inputPw = prompt('글 작성 시 설정한 비밀번호를 입력하세요:');
       if (inputPw === null) return;
-      if (inputPw === (p.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+      if (inputPw === (p.password || '1111') || inputPw === 'wnsgml42' || inputPw === '660330') {
         if (confirm('정말 이 게시글을 삭제하시겠습니까?')) {
           communityPosts = communityPosts.filter(item => item.id !== postId);
           saveLocalData();
@@ -3705,7 +3731,7 @@ function syncStatsFromHistory() {
 
       const inputPw = prompt('댓글 작성 시 설정한 비밀번호를 입력하세요:');
       if (inputPw === null) return;
-      if (inputPw === (targetComment.password || '1111') || inputPw === 'admin1234' || inputPw === '660330') {
+      if (inputPw === (targetComment.password || '1111') || inputPw === 'wnsgml42' || inputPw === '660330') {
         p.comments.splice(commentIdx, 1);
         saveLocalData();
         openViewPostModal(postId);
@@ -3755,7 +3781,7 @@ function syncStatsFromHistory() {
       <form onsubmit="handleAdminLoginSubmit(event)" class="space-y-3">
         <div>
           <label for="admin-pin-input" class="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">관리자 비밀번호</label>
-          <input id="admin-pin-input" required type="password" placeholder="비밀번호 입력 (기본: admin1234)" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
+          <input id="admin-pin-input" required type="password" placeholder="비밀번호 입력" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-gray-950 font-black text-xs shadow-md hover:brightness-110 transition">
           관리자 권한 로그인
