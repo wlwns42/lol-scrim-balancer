@@ -3595,20 +3595,12 @@ function syncStatsFromHistory() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
     function closePostDetailView() {
       document.getElementById('board-list-container')?.classList.remove('hidden');
       document.getElementById('board-detail-container')?.classList.add('hidden');
       renderCommunityBoard();
     }
 
-    function closeViewPostModal() {
-      closePostDetailView();
-    }
-
-    // 기존 팝업 닫기 호출 호환 유지
     function closeViewPostModal() {
       closePostDetailView();
     }
