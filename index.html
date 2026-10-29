@@ -1825,13 +1825,13 @@ function syncStatsFromHistory() {
         const blueOpt = assignOptimalRoles(teamA);
         const redOpt = assignOptimalRoles(teamB);
 
-        const blueSum = blueOpt.assigned.reduce((a, b) => a + getPlayerMMR(b).mmr, 0);
-        const redSum = redOpt.assigned.reduce((a, b) => a + getPlayerMMR(b).mmr, 0);
+        const blueSum = blueOpt.assigned.reduce((acc, p, i) => acc + getRoleSpecificMMR(p, ORDERED_ROLES[i]), 0);
+        const redSum = redOpt.assigned.reduce((acc, p, i) => acc + getRoleSpecificMMR(p, ORDERED_ROLES[i]), 0);
         const diff = Math.abs(blueSum - redSum);
 
         let laneGapSum = 0;
         for (let i = 0; i < 5; i++) {
-          laneGapSum += Math.abs(getPlayerMMR(blueOpt.assigned[i]).mmr - getPlayerMMR(redOpt.assigned[i]).mmr);
+          laneGapSum += Math.abs(getRoleSpecificMMR(blueOpt.assigned[i], ORDERED_ROLES[i]) - getRoleSpecificMMR(redOpt.assigned[i], ORDERED_ROLES[i]));
         }
 
         const totalRoleScore = blueOpt.score + redOpt.score;
@@ -1892,8 +1892,8 @@ function syncStatsFromHistory() {
     }
 
     function recalculateMatchMMR() {
-      const blueSum = currentMatch.blue.reduce((a, b) => a + getPlayerMMR(b).mmr, 0);
-      const redSum = currentMatch.red.reduce((a, b) => a + getPlayerMMR(b).mmr, 0);
+      const blueSum = currentMatch.blue.reduce((acc, p, i) => acc + getRoleSpecificMMR(p, ORDERED_ROLES[i]), 0);
+      const redSum = currentMatch.red.reduce((acc, p, i) => acc + getRoleSpecificMMR(p, ORDERED_ROLES[i]), 0);
       currentMatch.blueAvg = Math.round(blueSum / 5);
       currentMatch.redAvg = Math.round(redSum / 5);
       currentMatch.diff = Math.abs(currentMatch.blueAvg - currentMatch.redAvg);
@@ -1921,8 +1921,9 @@ function syncStatsFromHistory() {
         const roleInfo = ROLE_METADATA[role];
         const enemy = enemyRoster[idx];
 
-        const pMMR = getPlayerMMR(player).mmr;
-        const eMMR = getPlayerMMR(enemy).mmr;
+        const baseMMR = getPlayerMMR(player).mmr;
+        const pMMR = getRoleSpecificMMR(player, role);
+        const eMMR = getRoleSpecificMMR(enemy, role);
         const delta = pMMR - eMMR;
 
         const prefs = player.rolePrefs || [player.mainRole, player.subRole];
@@ -1955,7 +1956,7 @@ function syncStatsFromHistory() {
                 ${roleFitBadge}
               </div>
               <div class="text-[10px] text-slate-400">
-                내전 종합 <strong class="text-amber-500 font-bold">${pMMR}pt</strong> · (내전반영 ${getPlayerMMR(player).scrimWeightPct}%)
+                라인 체급 <strong class="text-amber-500 font-bold">${pMMR}pt</strong>${pMMR !== baseMMR ? ` <span class="text-[9px] text-slate-500">(기본 ${baseMMR}p)</span>` : ''} · (내전반영 ${getPlayerMMR(player).scrimWeightPct}%)
               </div>
             </div>
           </div>
