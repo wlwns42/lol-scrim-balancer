@@ -3482,18 +3482,24 @@ function syncStatsFromHistory() {
     let activeViewingPostId = null;
 
 // 🌟 윈도우 환경 이모지 두부 깨짐 현상 방지 및 FontAwesome 아이콘 자동 치환 헬퍼
-    function formatPostContent(text) {
+     function formatPostContent(text) {
       if (!text) return '';
       return text
-        .replace(/(\uFFFD|🗓️|🗓|📅|📆)\s*(?=1\.\s*내전)/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-        .replace(/(?:🗓️|🗓|📅|📆)/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-        .replace(/(?:⚖️|⚖)/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
-        .replace(/(?:⚡)/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
-        .replace(/(?:💬)/g, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
-        .replace(/(?:🏆)/g, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
-        .replace(/(?:🎉)/g, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
-        .replace(/(?:💡)/g, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
-        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFE0E\uFE0F\uFFFD]/g, '');
+        // 1. 유니코드 깨짐 문자(? 다이아몬드), 보이지 않는 제어 바이트, 폭 없는 공백 전부 삭제
+        .replace(/[\uFFFD\uFEFF\u200B-\u200D\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛]/g, '')
+        // 2. 윈도우 달력 이모지(🗓️, 🗓, 📅, 📆) 및 그 앞에 남은 찌꺼기 공백을 폰트어썸 달력 아이콘으로 완벽 치환
+        .replace(/(?:🗓️|🗓|📅|📆)/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+        // 3. 저울, 번개, 말풍선 등 기타 이모지 치환
+        .replace(/(?:⚖️|⚖)/gu, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
+        .replace(/⚡/gu, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
+        .replace(/💬/gu, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
+        .replace(/🏆/gu, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
+        .replace(/🎉/gu, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
+        .replace(/💡/gu, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
+        // 4. 이모지 뒤에 남은 잔여 변형 셀렉터 제거
+        .replace(/[\uFE0E\uFE0F]/g, '')
+        // 5. 각 줄 시작 부분에 남아있는 불필요한 제어 공백 정리
+        .replace(/^\s+([0-9]+\.)/gm, '$1');
     }
 
     function openViewPostModal(postId) {
