@@ -1642,7 +1642,10 @@ function syncStatsFromHistory() {
         mainRole: idx >= 0 ? summoners[idx].mainRole : 'ADC',
         subRole: idx >= 0 ? summoners[idx].subRole : 'MID',
         rolePrefs: idx >= 0 ? (summoners[idx].rolePrefs || ['ADC', 'MID', 'TOP', 'JUG']) : ['ADC', 'MID', 'TOP', 'JUG'],
+        // 🌟 카드 UI용 이번 시즌 모스트 3개
         most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (idx >= 0 ? summoners[idx].most : []),
+        // 🌟 밸런서 판정용 전체 숙련도 챔피언 풀 영구 보존
+        playedChamps: data.playedChamps && data.playedChamps.length ? data.playedChamps : (idx >= 0 && summoners[idx].playedChamps ? summoners[idx].playedChamps : (data.mostChamps || [])),
         formScore: idx >= 0 ? summoners[idx].formScore : 85,
         wins: idx >= 0 ? summoners[idx].wins : 0,
         losses: idx >= 0 ? summoners[idx].losses : 0
