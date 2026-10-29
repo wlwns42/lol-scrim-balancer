@@ -14,6 +14,7 @@ async function getChampionMap() {
     const map = {};
     for (const key in champData.data) {
       const champ = champData.data[key];
+      // 라이엇 Mastery API의 championId(숫자)와 매핑하기 위해 champ.key(문자열 숫자)를 한글 이름과 연결
       map[champ.key] = champ.name;
       map[champ.id.toLowerCase()] = champ.name;
     }
@@ -24,7 +25,7 @@ async function getChampionMap() {
   }
 }
 
-// FOW 3년치/전체 시즌 최다 판수 챔피언 추출 함수
+// FOW 3년치/전체 시즌 최다 판수 챔피언 추출 함수 (기존 방식 유지)
 async function fetchFowMostFromBackend(name, tag) {
   try {
     const url = `https://fow.kr/find/${encodeURIComponent(name.trim())}-${encodeURIComponent(tag.trim())}`;
@@ -69,7 +70,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -126,31 +130,5 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. 🌟 FOW 3년치 누적 모스트 백엔드 직접 수집
-    let mostChamps = await fetchFowMostFromBackend(name, tag);
-
-    // 4. FOW 수집 실패 시 라이엇 공식 숙련도로 자동 대체(Fallback)
-    if (!mostChamps || mostChamps.length === 0) {
-      try {
-        const champMap = await getChampionMap();
-        const masteryRes = await fetch(
-          `https://kr.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=3&api_key=${RIOT_API_KEY}`
-        );
-        const masteryData = await masteryRes.json();
-        if (Array.isArray(masteryData)) {
-          mostChamps = masteryData.map(m => champMap[m.championId.toString()] || `챔프(${m.championId})`);
-        }
-      } catch (e) {}
-    }
-
-    return res.status(200).json({
-      name: `${accountData.gameName}#${accountData.tagLine}`,
-      soloRank,
-      flexRank,
-      mostChamps: mostChamps || []
-    });
-
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-}
+    // 3. 🌟 이번 시즌/3년치 모스트 챔피언 3개 (기존 FOW 유지)
+    let mostChamps = await
