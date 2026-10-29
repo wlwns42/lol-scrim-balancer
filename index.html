@@ -3485,7 +3485,7 @@ function syncStatsFromHistory() {
     function formatPostContent(text) {
       if (!text) return '';
       return text
-        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFFFD]/g, '')
+        .replace(/(\uFFFD|🗓️|🗓|📅|📆)\s*(?=1\.\s*내전)/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
         .replace(/(?:🗓️|🗓|📅|📆)/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
         .replace(/(?:⚖️|⚖)/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
         .replace(/(?:⚡)/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
@@ -3493,7 +3493,7 @@ function syncStatsFromHistory() {
         .replace(/(?:🏆)/g, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
         .replace(/(?:🎉)/g, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
         .replace(/(?:💡)/g, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
-        .replace(/[\uFE0E\uFE0F]/g, '');
+        .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFE0E\uFE0F\uFFFD]/g, '');
     }
 
     function openViewPostModal(postId) {
