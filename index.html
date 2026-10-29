@@ -3456,7 +3456,19 @@ function syncStatsFromHistory() {
 
     let activeViewingPostId = null;
 
-// 🌟 게시판 글 인페이지 상세 뷰어 (어색한 팝업 모달 제거 및 시원한 좌측 정렬 레이아웃)
+// 🌟 윈도우 환경 이모지 두부 깨짐 현상 방지 및 FontAwesome 아이콘 자동 치환 헬퍼
+    function formatPostContent(text) {
+      if (!text) return '';
+      return text
+        .replace(/📅/g, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+        .replace(/⚖️/g, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
+        .replace(/⚡/g, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
+        .replace(/💬/g, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
+        .replace(/🏆/g, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
+        .replace(/🎉/g, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
+        .replace(/💡/g, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>');
+    }
+
     function openViewPostModal(postId) {
       const p = communityPosts.find(item => item.id === postId);
       if (!p) return;
@@ -3465,7 +3477,6 @@ function syncStatsFromHistory() {
       p.views = (p.views || 0) + 1;
       saveLocalData();
 
-      // 목록 컨테이너는 숨기고, 상세 뷰 컨테이너를 전체 너비로 노출
       document.getElementById('board-list-container')?.classList.add('hidden');
       document.getElementById('board-detail-container')?.classList.remove('hidden');
 
@@ -3489,7 +3500,7 @@ function syncStatsFromHistory() {
           </div>
         </div>
 
-        <!-- 글 제목 및 메타 영역 (정갈한 좌측 정렬) -->
+        <!-- 글 제목 및 메타 영역 -->
         <div class="py-5 space-y-3 border-b border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2.5 flex-wrap">
             <span class="px-2.5 py-1 rounded-md text-xs font-extrabold bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
@@ -3517,9 +3528,9 @@ function syncStatsFromHistory() {
           </div>
         </div>
 
-        <!-- 본문 내용 (좌측 정렬 및 충분한 가독성 확보) -->
+        <!-- 본문 내용 (이모지를 FontAwesome 아이콘으로 안전 치환하여 렌더링) -->
         <div class="py-8 text-sm sm:text-base text-slate-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed min-h-[180px]">
-          ${p.content}
+          ${formatPostContent(p.content)}
         </div>
 
         <!-- 중앙 추천 버튼 -->
@@ -3580,6 +3591,9 @@ function syncStatsFromHistory() {
           </button>
         </div>
       `;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
