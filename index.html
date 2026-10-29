@@ -3048,7 +3048,7 @@ function syncStatsFromHistory() {
       rosterListEl.innerHTML = '';
 
       if (roster.length === 0) {
-        rosterListEl.innerHTML = `<div class="col-span-2 py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-300 dark:border-slate-800">아직 투표한 멤버가 없습니다. 아래에서 본인 이름을 골라 참가 또는 보류를 선택해 주세요!</div>`;
+        rosterListEl.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-[#161d2a] rounded-xl border border-dashed border-slate-300 dark:border-slate-800">아직 투표한 멤버가 없습니다. 아래에서 본인 이름을 골라 참가 또는 보류를 선택해 주세요!</div>`;
         return;
       }
 
@@ -3056,26 +3056,26 @@ function syncStatsFromHistory() {
       confirmed.forEach((p, idx) => {
         const fullSummoner = summoners.find(s => s.id === p.id || s.name === p.name);
         const chip = document.createElement('div');
-        chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition bg-amber-500/10 border-amber-500/40 text-slate-900 dark:text-gray-100`;
+        chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs gap-2 min-w-0 transition bg-amber-500/10 border-amber-500/40 text-slate-900 dark:text-gray-100`;
 
         chip.innerHTML = `
-          <div class="flex items-center gap-2 min-w-0">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
             <span class="w-5 h-5 rounded-md bg-amber-500 text-gray-950 font-black text-[10px] flex items-center justify-center shrink-0">
               ${idx + 1}
             </span>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
                 <span class="font-extrabold truncate">${p.name}</span>
-                ${fullSummoner?.description ? `<span class="text-[10px] text-amber-500 font-bold">(${fullSummoner.description})</span>` : ''}
+                ${fullSummoner?.description ? `<span class="text-[10px] text-amber-500 font-bold shrink-0">(${fullSummoner.description})</span>` : ''}
               </div>
-              <span class="text-[10px] text-slate-400">${fullSummoner?.tier || 'UNRANKED'}</span>
+              <span class="text-[10px] text-slate-400 block">${fullSummoner?.tier || 'UNRANKED'}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-500">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-500 whitespace-nowrap">
               <i class="fa-solid fa-circle-check mr-1"></i>${p.availTime || '참가'}
             </span>
-            <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="취소">
+            <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1 shrink-0" title="취소">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
@@ -3086,33 +3086,33 @@ function syncStatsFromHistory() {
       // 2. 보류 / 지각 가능 인원 (우선순위 후순위)
       if (onHold.length > 0) {
         const holdHeader = document.createElement('div');
-        holdHeader.className = "col-span-2 pt-2 pb-1 text-[11px] font-bold text-amber-500 flex items-center gap-1.5 border-t border-slate-200 dark:border-slate-800 mt-2";
+        holdHeader.className = "col-span-full pt-3 pb-1 text-[11px] font-bold text-amber-500 flex items-center gap-1.5 border-t border-slate-200 dark:border-slate-800 mt-2";
         holdHeader.innerHTML = `<i class="fa-solid fa-clock"></i> <span>보류 / 조건부 가능 대기열 (${onHold.length}명) - 우선순위 후순위</span>`;
         rosterListEl.appendChild(holdHeader);
 
         onHold.forEach(p => {
           const fullSummoner = summoners.find(s => s.id === p.id || s.name === p.name);
           const chip = document.createElement('div');
-          chip.className = `p-2 rounded-xl border flex items-center justify-between text-xs transition bg-slate-100/80 dark:bg-[#161d2a]/80 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-gray-300 opacity-80`;
+          chip.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs gap-2 min-w-0 transition bg-slate-100/80 dark:bg-[#161d2a]/80 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-gray-300 opacity-80`;
 
           chip.innerHTML = `
-            <div class="flex items-center gap-2 min-w-0">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
               <span class="w-5 h-5 rounded-md bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-gray-300 font-bold text-[10px] flex items-center justify-center shrink-0">
                 대기
               </span>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
                   <span class="font-bold truncate">${p.name}</span>
-                  ${fullSummoner?.description ? `<span class="text-[10px] text-slate-400 font-bold">(${fullSummoner.description})</span>` : ''}
+                  ${fullSummoner?.description ? `<span class="text-[10px] text-slate-400 font-bold shrink-0">(${fullSummoner.description})</span>` : ''}
                 </div>
-                <span class="text-[10px] text-slate-400">${fullSummoner?.tier || 'UNRANKED'}</span>
+                <span class="text-[10px] text-slate-400 block">${fullSummoner?.tier || 'UNRANKED'}</span>
               </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold text-amber-500">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold text-amber-500 whitespace-nowrap">
                 <i class="fa-solid fa-clock mr-1"></i>${p.availTime || '보류'}
               </span>
-              <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1" title="취소">
+              <button onclick="removeRsvp('${p.id || p.name}')" class="text-slate-400 hover:text-rose-500 p-1 shrink-0" title="취소">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
