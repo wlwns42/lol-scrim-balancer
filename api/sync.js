@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   const rowId = 'main_scrim_data_row';
 
-  // 1. GET: 최신 전체 데이터 조회
+  // 1. GET: Supabase DB의 최신 전체 원본 데이터 반환
   if (req.method === 'GET') {
     try {
       const { data, error } = await supabase
@@ -30,7 +30,16 @@ export default async function handler(req, res) {
         .single();
 
       if (error || !data) {
-        return res.status(200).json({ summoners: [], scrimSchedules: {}, communityPosts: [], updatedAt: 0 });
+        return res.status(200).json({
+          summoners: [],
+          matchHistory: [],
+          replayArchives: [],
+          scrimSchedules: {},
+          communityPosts: [],
+          selectedPlayerIds: [],
+          currentMatch: null,
+          updatedAt: 0
+        });
       }
 
       return res.status(200).json({
@@ -43,12 +52,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. POST: 데이터 저장 (삭제 반영 및 일정 보존)
+  // 2. POST: 클라이언트에서 수정된 전체 상태를 안전하게 Supabase에 저장
   if (req.method === 'POST') {
     try {
       const incoming = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const now = Date.now();
 
+      // 기존 DB 읽기
       const { data: current } = await supabase
         .from('scrim_data')
         .select('payload')
@@ -57,20 +67,14 @@ export default async function handler(req, res) {
 
       const existing = current?.payload || {};
 
-      // 게시판 글: 클라이언트에서 삭제된 경우를 존중하여 그대로 반영 (부활 방지)
-      const finalPosts = Array.isArray(incoming.communityPosts) 
-        ? incoming.communityPosts 
-        : (existing.communityPosts || []);
-
-      const mergedPayload = {
-        summoners: incoming.summoners && incoming.summoners.length >= (existing.summoners?.length || 0)
-          ? incoming.summoners
-          : (existing.summoners || incoming.summoners || []),
-        matchHistory: incoming.matchHistory || existing.matchHistory || [],
-        replayArchives: incoming.replayArchives || existing.replayArchives || [],
-        scrimSchedules: incoming.scrimSchedules || existing.scrimSchedules || {},
-        communityPosts: finalPosts,
-        selectedPlayerIds: incoming.selectedPlayerIds || existing.selectedPlayerIds || [],
+      // 🌟 핵심: 하드코딩이나 임의의 합집합 부활 없이, 클라이언트의 의도(추가/수정/삭제)를 정확히 반영
+      const payload = {
+        summoners: Array.isArray(incoming.summoners) ? incoming.summoners : (existing.summoners || []),
+        matchHistory: Array.isArray(incoming.matchHistory) ? incoming.matchHistory : (existing.matchHistory || []),
+        replayArchives: Array.isArray(incoming.replayArchives) ? incoming.replayArchives : (existing.replayArchives || []),
+        scrimSchedules: (incoming.scrimSchedules && typeof incoming.scrimSchedules === 'object') ? incoming.scrimSchedules : (existing.scrimSchedules || {}),
+        communityPosts: Array.isArray(incoming.communityPosts) ? incoming.communityPosts : (existing.communityPosts || []),
+        selectedPlayerIds: Array.isArray(incoming.selectedPlayerIds) ? incoming.selectedPlayerIds : (existing.selectedPlayerIds || []),
         currentMatch: incoming.currentMatch !== undefined ? incoming.currentMatch : existing.currentMatch,
         updatedAt: now
       };
@@ -79,12 +83,12 @@ export default async function handler(req, res) {
         .from('scrim_data')
         .upsert({
           id: rowId,
-          payload: mergedPayload,
+          payload: payload,
           updated_at: now
         });
 
       if (error) throw error;
-      return res.status(200).json({ success: true, timestamp: now, data: mergedPayload });
+      return res.status(200).json({ success: true, timestamp: now, data: payload });
 
     } catch (err) {
       console.error('Sync POST error:', err);
