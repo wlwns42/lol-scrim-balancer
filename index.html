@@ -10,46 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 
-  <!-- 4. 내전 경기 결과 즉시 등록 모달 (사설 내전 수동 기록 백업) -->
-  <div id="modal-record-match" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
-      <button onclick="closeRecordMatchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
-      <h3 class="text-base font-bold text-amber-500 mb-2 flex items-center gap-2">
-        <i class="fa-solid fa-trophy"></i> <span>내전 경기 결과 즉시 반영</span>
-      </h3>
-      <p class="text-xs text-slate-500 dark:text-gray-400 mb-4">현재 대진표의 10인 라인업에 승패와 내전 점수(80%)를 즉시 가산합니다.</p>
-      
-      <div class="space-y-4 text-xs">
-        <div>
-          <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">승리팀 선택 *</label>
-          <div class="grid grid-cols-2 gap-3">
-            <button type="button" id="btn-pick-blue" onclick="selectMatchWinner('BLUE')" class="py-3 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-extrabold text-sm transition">
-              블루팀 승리 👑
-            </button>
-            <button type="button" id="btn-pick-red" onclick="selectMatchWinner('RED')" class="py-3 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-extrabold text-sm transition">
-              레드팀 승리 👑
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">경기 시간</label>
-            <input id="record-duration" type="text" value="31분" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-gray-200">
-          </div>
-          <div>
-            <label class="block font-bold mb-1 text-slate-700 dark:text-gray-200">MVP (최우수 선수)</label>
-            <select id="record-mvp-select" class="w-full bg-slate-50 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-amber-500">
-            </select>
-          </div>
-        </div>
-
-        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
-          <button type="button" onclick="closeRecordMatchModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] text-slate-700 dark:text-gray-300">취소</button>
-          <button type="button" onclick="submitQuickMatchRecord()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black">내전 점수 즉시 반영</button>
-        </div>
-      </div>
-    </div>
+  
   </div>
 
   <script>
@@ -240,9 +201,7 @@
         <i class="fa-solid fa-rotate-left mr-1"></i> 오늘 10인 선택 비우기
       </button>
 
-      <button onclick="hardResetAllData()" class="w-full py-1.5 text-center text-[11px] font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition border border-rose-500/20" title="더미 데이터 및 캐시 완전 삭제">
-        <i class="fa-solid fa-trash-can mr-1"></i> 로컬 전적 & 캐시 완전 초기화
-      </button>
+
     </div>
   </aside>
 
@@ -275,10 +234,7 @@
           <i class="fa-solid fa-paste"></i>
           <span>로비 10명 일괄 등록</span>
         </button>
-        <button onclick="openAddSummonerModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-[#161d2a] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-gray-200 font-bold text-xs hover:bg-slate-200 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-user-plus text-amber-500"></i>
-          <span>직접 추가</span>
-        </button>
+
       </div>
     </header>
 
@@ -473,10 +429,7 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="autoSelectTop10()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-xs font-semibold transition flex items-center gap-1.5">
-                <i class="fa-solid fa-bolt text-amber-500"></i>
-                <span>상위 10명 픽</span>
-              </button>
+
               <button onclick="clearSelection()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161d2a] hover:bg-slate-200 text-xs text-slate-500 transition">
                 선택 초기화
               </button>
@@ -523,13 +476,13 @@
                   <i class="fa-solid fa-arrows-rotate text-sky-500"></i>
                   <span>재셔플</span>
                 </button>
+                <button onclick="swapEntireTeams()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-red-600 hover:brightness-110 text-white font-black text-xs shadow-md transition flex items-center gap-1.5" title="블루팀과 레드팀 진영 전체 맞교체">
+                  <i class="fa-solid fa-right-left"></i>
+                  <span>블루 ↔ 레드 진영 전체 교체</span>
+                </button>
                 <button id="btn-gen-tourney" onclick="generateTournamentCode()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:brightness-110 text-gray-950 font-black text-xs shadow-md transition flex items-center gap-1.5">
                   <i class="fa-solid fa-trophy"></i>
                   <span>인게임 토너먼트 코드 생성</span>
-                </button>
-                <button onclick="openRecordMatchModal()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                  <span>결과 즉시 기록</span>
                 </button>
               </div>
             </div>
@@ -1553,12 +1506,12 @@ function syncStatsFromHistory() {
       const baseMMR = getPlayerMMR(player).mmr;
       const prefs = player.rolePrefs || [player.mainRole, player.subRole];
 
-      // 1. 순위별 기본 페널티율
-      let penaltyRate = 0.35; // 5순위
+      // 1. 순위별 기본 페널티율 (자연스럽고 완만한 실질 체급 감점: 1순위 0%, 2순위 4%, 3순위 8%, 4순위 13%, 5순위 18%)
+      let penaltyRate = 0.18; // 5순위 (-18%)
       if (prefs[0] === assignedRole) penaltyRate = 0.00;      // 1순위 (100% 발휘)
-      else if (prefs[1] === assignedRole) penaltyRate = 0.09; // 2순위 (-9%)
-      else if (prefs[2] === assignedRole) penaltyRate = 0.18; // 3순위 (-18%)
-      else if (prefs[3] === assignedRole) penaltyRate = 0.27; // 4순위 (-27%)
+      else if (prefs[1] === assignedRole) penaltyRate = 0.04; // 2순위 (-4%)
+      else if (prefs[2] === assignedRole) penaltyRate = 0.08; // 3순위 (-8%)
+      else if (prefs[3] === assignedRole) penaltyRate = 0.13; // 4순위 (-13%)
 
       // 2. 전체 플레이/숙련도 챔피언 풀 검사
       const pool = player.playedChamps || player.most || [];
@@ -1567,7 +1520,7 @@ function syncStatsFromHistory() {
 
       // 주라인이 아니더라도 해당 라인 챔피언 숙련도가 입증된 경우 페널티 50% 감면
       if (hasProficiency && penaltyRate > 0) {
-        penaltyRate *= 0.5; // 예: 2순위 튕김 시 -9% -> -4.5%만 차감
+        penaltyRate *= 0.5; // 예: 2순위 4% -> 2%, 3순위 8% -> 4%, 4순위 13% -> 6.5%
       }
 
       return Math.round(baseMMR * (1 - penaltyRate));
@@ -1876,6 +1829,16 @@ function syncStatsFromHistory() {
 
     function rerollBalancing() { runSmartBalancing(); }
 
+        function swapEntireTeams() {
+      if (!currentMatch) return;
+      const temp = currentMatch.blue;
+      currentMatch.blue = currentMatch.red;
+      currentMatch.red = temp;
+      recalculateMatchMMR();
+      saveLocalData();
+      showToast('블루팀과 레드팀 진영이 전체 맞교체되었습니다!', 'success');
+    }
+
     function swapLaneLineup() {
       if (!currentMatch) return;
       const targetPos = document.getElementById('swap-pos').value;
@@ -1956,7 +1919,7 @@ function syncStatsFromHistory() {
                 ${roleFitBadge}
               </div>
               <div class="text-[10px] text-slate-400">
-                라인 체급 <strong class="text-amber-500 font-bold">${pMMR}pt</strong>${pMMR !== baseMMR ? ` <span class="text-[9px] text-slate-500">(기본 ${baseMMR}p)</span>` : ''} · (내전반영 ${getPlayerMMR(player).scrimWeightPct}%)
+                라인 체급 <strong class="text-amber-500 font-bold">${pMMR}pt</strong>${pMMR !== baseMMR ? ` <span class="text-[9px] text-slate-500">(기본 ${baseMMR}p)</span>` : ''}
               </div>
             </div>
           </div>
@@ -2057,7 +2020,6 @@ function syncStatsFromHistory() {
               </div>
               <div class="text-right">
                 <span class="text-xl font-black text-amber-500 tracking-tight">${mmrData.mmr} <span class="text-xs font-semibold">pt</span></span>
-                <span class="text-[9px] text-slate-400 block">${mmrData.scrimWeightPct > 0 ? '(내전 실적 80% 반영)' : '(기초 체급 100%)'}</span>
               </div>
             </div>
 
@@ -2167,7 +2129,7 @@ function syncStatsFromHistory() {
           </div>
           <div class="text-right">
             <span class="text-sm font-bold text-amber-500">${mmr.mmr} pt</span>
-            <span class="text-[9px] text-slate-400 block">(내전 80% 가중치 반영)</span>
+            
           </div>
         </div>
         <div class="text-xs space-y-2">
