@@ -1073,19 +1073,14 @@ async function initData() {
       initScheduleData();
       initCommunityData();
 
-      // 포지션 선호도 정규화
+// 포지션 선호도 보존: 사용자가 설정한 rolePrefs를 절대 건드리지 않고 그대로 유지
       if (Array.isArray(summoners)) {
-        summoners = summoners.map((s, idx) => {
-          const p1 = s.rolePrefs ? s.rolePrefs[0] : (s.mainRole || ORDERED_ROLES[idx % 5]);
-          const p2 = s.rolePrefs ? s.rolePrefs[1] : (s.subRole || ORDERED_ROLES[(idx + 1) % 5]);
-          const remaining = ORDERED_ROLES.filter(r => r !== p1 && r !== p2);
-          return {
-            ...s,
-            mainRole: p1,
-            subRole: p2,
-            rolePrefs: s.rolePrefs || [p1, p2, remaining[0] || 'TOP', remaining[1] || 'JUG']
-          };
-        });
+        summoners = summoners.map(s => ({
+          ...s,
+          rolePrefs: (Array.isArray(s.rolePrefs) && s.rolePrefs.length >= 4) 
+            ? s.rolePrefs 
+            : [s.mainRole || 'MID', s.subRole || 'TOP', 'ADC', 'SUP']
+        }));
       }
 
       renderAllViews();
