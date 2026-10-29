@@ -3422,85 +3422,84 @@ function syncStatsFromHistory() {
       document.getElementById('modal-board-write').classList.add('hidden');
     }
 
-    function handlePostSubmit(e) {
-      e.preventDefault();
-      const editId = document.getElementById('post-edit-id').value;
-      const author = document.getElementById('post-author').value.trim();
-      const password = document.getElementById('post-pw').value.trim();
-      const category = document.getElementById('post-category').value;
-      const title = document.getElementById('post-title').value.trim();
-      const content = document.getElementById('post-content').value.trim();
+function handlePostSubmit(e) {
+  e.preventDefault();
+  const editId = document.getElementById('post-edit-id').value;
+  const author = document.getElementById('post-author').value.trim();
+  const password = document.getElementById('post-pw').value.trim();
+  const category = document.getElementById('post-category').value;
+  const title = document.getElementById('post-title').value.trim();
+  
+  // 🌟 DB 저장 전 깨지는 4바이트 달력 이모지를 안전 코드로 사전 변환
+  let content = document.getElementById('post-content').value.trim()
+    .replace(/(?:🗓️|🗓|📅|📆)/gu, '[CALENDAR]');
 
-      if (!author || !password || !title || !content) {
-        showToast('작성자, 비밀번호, 제목, 내용을 모두 입력해 주세요.', 'error');
-        return;
-      }
+  if (!author || !password || !title || !content) {
+    showToast('작성자, 비밀번호, 제목, 내용을 모두 입력해 주세요.', 'error');
+    return;
+  }
 
-      localStorage.setItem('scrim_my_author_name', author);
+  localStorage.setItem('scrim_my_author_name', author);
 
-      if (editId) {
-        const p = communityPosts.find(item => item.id === editId);
-        if (p) {
-          p.author = author;
-          p.password = password;
-          p.category = category;
-          p.title = title;
-          p.content = content;
-          saveLocalData();
-          closeWritePostModal();
-          openViewPostModal(editId);
-          showToast('게시글이 성공적으로 수정되었습니다!', 'success');
-          return;
-        }
-      }
-
-      const d = new Date();
-      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-      const nextNo = communityPosts.length > 0 ? Math.max(...communityPosts.map(p => p.no || 0)) + 1 : 1;
-
-      const newPost = {
-        id: 'post-' + Date.now(),
-        no: nextNo,
-        category,
-        title,
-        author,
-        password,
-        date: dateStr,
-        views: 0,
-        likes: 0,
-        content,
-        comments: []
-      };
-
-      communityPosts.unshift(newPost);
+  if (editId) {
+    const p = communityPosts.find(item => item.id === editId);
+    if (p) {
+      p.author = author;
+      p.password = password;
+      p.category = category;
+      p.title = title;
+      p.content = content;
       saveLocalData();
       closeWritePostModal();
-      renderCommunityBoard();
-      showToast('게시글이 성공적으로 등록되었습니다!', 'success');
+      openViewPostModal(editId);
+      showToast('게시글이 성공적으로 수정되었습니다!', 'success');
+      return;
     }
+  }
+
+  const d = new Date();
+  const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const nextNo = communityPosts.length > 0 ? Math.max(...communityPosts.map(p => p.no || 0)) + 1 : 1;
+
+  const newPost = {
+    id: 'post-' + Date.now(),
+    no: nextNo,
+    category,
+    title,
+    author,
+    password,
+    date: dateStr,
+    views: 0,
+    likes: 0,
+    content,
+    comments: []
+  };
+
+  communityPosts.unshift(newPost);
+  saveLocalData();
+  closeWritePostModal();
+  renderCommunityBoard();
+  showToast('게시글이 성공적으로 등록되었습니다!', 'success');
+}
 
     let activeViewingPostId = null;
 
-// 🌟 윈도우 환경 이모지 두부 깨짐 현상 방지 및 FontAwesome 아이콘 자동 치환 헬퍼
-     function formatPostContent(text) {
-      if (!text) return '';
-      return text
-        // 1. 유니코드 깨짐 문자(? 다이아몬드), 보이지 않는 제어 바이트, 폭 없는 공백 전부 삭제
-        .replace(/[\uFFFD\uFEFF\u200B-\u200D\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛]/g, '')
-        // 2. 윈도우 달력 이모지(🗓️, 🗓, 📅, 📆) 및 그 앞에 남은 찌꺼기 공백을 폰트어썸 달력 아이콘으로 완벽 치환
-        .replace(/(?:🗓️|🗓|📅|📆)/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-        // 3. 저울, 번개, 말풍선 등 기타 이모지 치환
-        .replace(/(?:⚖️|⚖)/gu, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
-        .replace(/⚡/gu, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
-        .replace(/💬/gu, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
-        .replace(/🏆/gu, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
-        .replace(/🎉/gu, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
-        .replace(/💡/gu, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
-        // 4. 이모지 뒤에 남은 잔여 변형 셀렉터 제거
-        .replace(/[\uFE0E\uFE0F]/g, '')
-        // 5. 각 줄 시작 부분에 남아있는 불필요한 제어 공백 정리
-        .replace(/^\s+([0-9]+\.)/gm, '$1');
-    }
+function formatPostContent(text) {
+  if (!text) return '';
+  return text
+    // 1. 이미 DB에서 깨져서 넘어온 \uFFFD(?) 및 4바이트 달력 이모지 전부 골드 아이콘으로 치환
+    .replace(/(?:\uFFFD|🗓️|🗓|📅|📆|\[CALENDAR\])\s*(?=1\.\s*내전)/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+    .replace(/(?:\uFFFD|🗓️|🗓|📅|📆|\[CALENDAR\])/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+    .replace(/(?:⚖️|⚖)/gu, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
+    .replace(/(?:⚡)/gu, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
+    .replace(/(?:💬)/gu, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
+    .replace(/(?:🏆)/gu, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
+    .replace(/(?:🎉)/gu, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
+    .replace(/(?:💡)/gu, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
+    // 2. 투명 제어 바이트 및 찌꺼기 공백 완전 삭제
+    .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFE0E\uFE0F\uFFFD]/gu, '')
+    .replace(/^\s+([0-9]+\.)/gm, '$1');
+}
 
     function openViewPostModal(postId) {
       const p = communityPosts.find(item => item.id === postId);
