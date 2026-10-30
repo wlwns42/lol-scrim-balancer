@@ -1168,8 +1168,11 @@ async function initData() {
           if (cloudData.scrimSchedules && typeof cloudData.scrimSchedules === 'object') {
             scrimSchedules = cloudData.scrimSchedules;
           }
-          if (Array.isArray(cloudData.communityPosts)) {
+          if (Array.isArray(cloudData.communityPosts) && cloudData.communityPosts.length > 0) {
             communityPosts = cloudData.communityPosts;
+          } else if (!communityPosts || communityPosts.length === 0) {
+            communityPosts = [DEFAULT_GUIDE_POST];
+            saveLocalData();
           }
           if (Array.isArray(cloudData.selectedPlayerIds)) {
             // 🌟 클라우드 DB에서 19명이 넘어오더라도 최대 10명까지만 수용
@@ -3388,13 +3391,52 @@ function resetMatchHistory() {
     // ==========================================
     let communityPosts = [];
 
+    const DEFAULT_GUIDE_POST = {
+      id: "post-default-guide",
+      no: 1,
+      category: "공지",
+      title: "SCRIM-BALANCER 이용 가이드",
+      author: "이준희",
+      password: "admin",
+      date: "10.30",
+      views: 12,
+      likes: 5,
+      content: `1. 내전 일정 참여 방법 (RSVP 캘린더)
+일정 확인: 사이트 접속 시 가장 먼저 반겨주는 [내전 일정 (RSVP)] 탭에서 오늘 날짜의 경기 예정 시각을 확인합니다.
+참가 투표: 하단 투표 폼에서 본인 닉네임을 선택하고 참여 가능 시간(정시 또는 21:00 이후 등)을 지정한 뒤 [참가] 또는 [보류] 버튼을 누릅니다.
+풀파티 완성: 확정 인원이 10명에 도달하면 골드빛 팝업 배너가 활성화되며, 즉시 [스마트 밸런서로 즉시 대진 생성]을 눌러 팀을 나눌 수 있습니다.
+
+2. 스마트 밸런스 팀 편성 기능
+10인 명단 세팅: 캘린더에서 연동하거나, 전체 멤버 목록에서 오늘 참여할 10명의 소환사를 체크합니다.
+동적 MMR & 포지션 반영:
+솔랭(50%) + 과거 최고 티어(30%) + 자랭(20%)의 기초 체급에 내전 실적(80%)이 정밀 가중치로 합산됩니다.
+선수가 설정한 1~4순위 희망 포지션과 전체 숙련도 챔피언 풀을 교차 검사하여, 주라인이 아닌 부포지션으로 배정되더라도 실제 챔피언 숙련도에 맞춰 실질 체급이 유연하게 보정됩니다.
+진영 맞교체 및 스왑: 밸런싱이 완료된 후 대진표 상단의 [블루 ↔ 레드 진영 전체 교체] 버튼을 눌러 양팀 진영을 통째로 맞바꾸거나, 마우스 드래그로 라인을 자유롭게 스왑할 수 있습니다.
+
+3. 라이엇 API 및 리플레이 연동 (자동화 시스템) // 현재 개발 중
+실시간 전적 조회 및 데이터 동기화가 어떻게 이루어지는지 사용자 입장에서의 동작 방식입니다:
+실시간 라이엇 전적 갱신:
+상단 검색창에 소환사명#태그를 입력하고 [라이엇 실시간 전적 조회]를 누르거나, 전체 멤버 목록에서 [라이엇 서버 전원 최신 전적 갱신]을 누르면 라이엇 공식 서버에서 최신 티어, LP, 판수를 가져옵니다.
+리플레이(.rofl) 파일 자동 분석:
+내전 종료 후 리그 오브 레전드 리플레이 파일(.rofl)을 드래그 앤 드롭 보관함에 넣기만 하세요!
+수동으로 승패나 딜량을 기록할 필요 없이, 파일 내부의 바이너리 데이터를 직접 파싱하여 10인의 실제 KDA, 딜량, CS, AI-Score, 승패를 1초 만에 추출하고 내전 히스토리와 챔피언 모스트 통계에 자동 누적합니다.
+
+4. 자유게시판 이용 안내
+상단 메뉴의 [자유게시판]을 통해 내전 후기, 훈수, 전략 공유, 공지사항을 자유롭게 올리고 소통할 수 있습니다.
+게시글과 댓글은 작성자 닉네임 + 비밀번호 방식으로 안전하게 관리되며, 본인이 작성한 글은 비밀번호를 통해 언제든 수정 및 삭제가 가능합니다.`,
+      comments: []
+    };
     function initCommunityData() {
-      // 🌟 하드코딩 기본 글 완전 삭제: DB 및 로컬 캐시에서 불러오며, 비어있으면 깨끗한 빈 배열로 유지
       const storedPosts = localStorage.getItem('scrim_community_posts');
       if (storedPosts) {
-        try { communityPosts = JSON.parse(storedPosts); } catch(e) { communityPosts = []; }
+        try {
+          const parsed = JSON.parse(storedPosts);
+          communityPosts = (Array.isArray(parsed) && parsed.length > 0) ? parsed : [DEFAULT_GUIDE_POST];
+        } catch(e) {
+          communityPosts = [DEFAULT_GUIDE_POST];
+        }
       } else {
-        communityPosts = [];
+        communityPosts = [DEFAULT_GUIDE_POST];
       }
     }
 
