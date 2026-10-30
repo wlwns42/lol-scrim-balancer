@@ -6,9 +6,22 @@ import json
 import base64
 import urllib.request
 import ssl
+import datetime
 
-# 🌟 사용자 본인의 Vercel 앱 주소로 설정완료
 SERVER_URL = "https://lol-scrim-balancer.vercel.app/api/sync"
+
+def test_lcu_connection(port, password):
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    url = f"https://127.0.0.1:{port}/help"
+    auth_header = "Basic " + base64.b64encode(f"riot:{password}".encode()).decode()
+    req = urllib.request.Request(url, headers={"Authorization": auth_header})
+    try:
+        with urllib.request.urlopen(req, context=ctx, timeout=1.5) as res:
+            return res.status == 200
+    except:
+        return False
 
 def get_lcu_credentials():
     possible_paths = [
@@ -23,7 +36,10 @@ def get_lcu_credentials():
                 with open(p, "r", encoding="utf-8") as f:
                     parts = f.read().split(":")
                     if len(parts) >= 4:
-                        return parts[2], parts[3]
+                        port = parts[2]
+                        password = parts[3]
+                        if test_lcu_connection(port, password):
+                            return port, password
             except:
                 pass
     return None, None
@@ -42,32 +58,25 @@ def query_lcu(port, password, endpoint):
         return None
 
 def push_match_to_cloud(match_data):
-    """웹사이트(Supabase)에 자동으로 새 내전 결과와 전적을 푸시합니다."""
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-
     try:
-        # 1. 기존 데이터 불러오기
         req_get = urllib.request.Request(SERVER_URL, headers={"Accept": "application/json"})
         existing_data = {}
         with urllib.request.urlopen(req_get, context=ctx, timeout=5) as res:
             existing_data = json.loads(res.read().decode())
 
         match_history = existing_data.get("matchHistory", [])
-        
-        # 중복 등록 방지 (이미 등록된 gameId인지 확인)
         match_id = match_data["matchId"]
         if any(m.get("matchId") == match_id for m in match_history):
-            print(f"[-] 이미 등록된 경기(ID: {match_id})입니다. 건너뜁니다.")
+            print(f"[-] 이미 등록된 경기(ID: {match_id})입니다.")
             return True
 
-        # 새 경기 추가
         match_history.insert(0, match_data)
         existing_data["matchHistory"] = match_history
         existing_data["updatedAt"] = int(time.time() * 1000)
 
-        # 2. 클라우드 DB에 POST 저장
         json_payload = json.dumps(existing_data).encode("utf-8")
         req_post = urllib.request.Request(
             SERVER_URL,
@@ -95,15 +104,14 @@ def main():
     while True:
         port, password = get_lcu_credentials()
         if not port:
-            print("[-] 롤 클라이언트가 켜져 있지 않거나 lockfile을 찾을 수 없습니다. (5초 후 재시도)", end="\r")
-            time.sleep(5)
+            print("[-] 롤 클라이언트가 실행되어 있지 않습니다. 롤을 실행해주세요... (3초 후 재시도)", end="\r")
+            time.sleep(3)
             continue
             
-        print(f"\n[+] 롤 클라이언트 연결 성공! (Port: {port}) - 내전 경기 결과 대기 중...")
+        print(f"\n[+] 롤 클라이언트 실제 연결 성공! (Port: {port}) - 내전 경기 결과 대기 중...")
         
         while True:
-            port_check, _ = get_lcu_credentials()
-            if not port_check:
+            if not test_lcu_connection(port, password):
                 print("\n[!] 롤 클라이언트가 종료되었습니다. 다시 켜질 때까지 대기합니다...")
                 break
                 
@@ -129,7 +137,6 @@ def main():
                     a = p.get("stats", {}).get("ASSISTS", 0)
                     dmg = p.get("stats", {}).get("TOTAL_DAMAGE_DEALT_TO_CHAMPIONS", 0)
                     cs = p.get("stats", {}).get("MINIONS_KILLED", 0) + p.get("stats", {}).get("NEUTRAL_MINIONS_KILLED", 0)
-                    
                     ai_score = min(99, max(45, round(60 + (k * 2.5) - (d * 3) + (a * 1.5) + (dmg / 1500))))
                     
                     role_raw = (p.get("teamPosition") or "MID").upper()
@@ -160,7 +167,6 @@ def main():
                 best_score = max([p["aiScore"] for p in all_players]) if all_players else 80
                 mvp = next((p["name"] for p in all_players if p["aiScore"] == best_score), "MVP")
 
-                import datetime
                 date_str = datetime.datetime.now().strftime("%b %d일, %H:%M")
 
                 match_record = {
