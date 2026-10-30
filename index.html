@@ -684,20 +684,21 @@
         <div class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs whitespace-nowrap">
-              <thead class="bg-slate-50 dark:bg-[#161d2a] text-slate-500 dark:text-slate-400 text-[11px] border-b border-slate-200 dark:border-slate-800 font-semibold select-none">
+              <thead class="bg-slate-50 dark:bg-[#161d2a] text-slate-500 dark:text-slate-400 text-[11px] border-b border-slate-200 dark:border-slate-800 font-bold select-none">
                 <tr>
                   <th class="py-3 px-3 text-center w-10">#</th>
-                  <th class="py-3 px-4">Champion</th>
-                  <th class="py-3 px-4 text-center">Played</th>
+                  <th class="py-3 px-4">챔피언</th>
+                  <th class="py-3 px-4 text-center">게임 수</th>
+                  <th class="py-3 px-4 text-center">승/패(승률)</th>
                   <th class="py-3 px-4 text-center">KDA</th>
-                  <th class="py-3 px-4 text-center">AI Score</th>
-                  <th class="py-3 px-4 text-right">DMG</th>
-                  <th class="py-3 px-4 text-right">CS</th>
-                  <th class="py-3 px-4 text-center">Multi Kill</th>
+                  <th class="py-3 px-4 text-center">피해량/분</th>
+                  <th class="py-3 px-4 text-center">CS/분</th>
+                  <th class="py-3 px-4 text-center">킬관여</th>
+                  <th class="py-3 px-4 text-center">AI-Score</th>
                 </tr>
               </thead>
               <tbody id="most-stats-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                <!-- 자바스크립트로 자동 렌더링 -->
+                <!-- 자바스크립트로 딥롤 스타일 렌더링 -->
               </tbody>
             </table>
           </div>
@@ -1272,7 +1273,6 @@ function syncStatsFromHistory() {
       const selectFilter = document.getElementById('most-summoner-filter');
       if (!tbody) return;
 
-      // 1. 소환사 필터 드롭다운 옵션 유지 및 생성
       if (selectFilter) {
         const currentVal = selectFilter.value || 'ALL';
         selectFilter.innerHTML = `<option value="ALL">전체 내전 참가자 합산</option>` + 
@@ -1280,19 +1280,21 @@ function syncStatsFromHistory() {
       }
 
       const selectedName = selectFilter?.value || 'ALL';
-
-      // 2. 히스토리에서 매치 레코드 추출
       const allEntries = [];
       matchHistory.forEach(m => {
         const blueWin = (m.winner === 'BLUE');
+        const durMin = Math.max(10, parseInt(m.duration) || 25);
+        const blueKills = (m.blue || []).reduce((acc, p) => acc + (parseInt(p.kda?.split('/')[0]) || 0), 0);
+        const redKills = (m.red || []).reduce((acc, p) => acc + (parseInt(p.kda?.split('/')[0]) || 0), 0);
+
         (m.blue || []).forEach(p => {
           if (selectedName === 'ALL' || p.name.toLowerCase() === selectedName.toLowerCase()) {
-            allEntries.push({ ...p, win: blueWin, matchDuration: parseInt(m.duration) || 30 });
+            allEntries.push({ ...p, win: blueWin, duration: durMin, teamKills: blueKills });
           }
         });
         (m.red || []).forEach(p => {
           if (selectedName === 'ALL' || p.name.toLowerCase() === selectedName.toLowerCase()) {
-            allEntries.push({ ...p, win: !blueWin, matchDuration: parseInt(m.duration) || 30 });
+            allEntries.push({ ...p, win: !blueWin, duration: durMin, teamKills: redKills });
           }
         });
       });
@@ -1301,18 +1303,18 @@ function syncStatsFromHistory() {
       if (navMostCount) navMostCount.textContent = new Set(allEntries.map(e => e.champion || e.most || '기타')).size;
 
       if (allEntries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-xs text-slate-400">내전 기록이 없습니다. 리플레이를 등록하거나 매치가 쌓이면 챔피언별 승률과 KDA가 집계됩니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-xs text-slate-400">내전 기록이 없습니다.</td></tr>`;
         return;
       }
 
-      // 3. 챔피언별 스탯 그루핑
       const champGroups = {};
-      let totalW = 0, totalL = 0, totalK = 0, totalD = 0, totalA = 0, totalScore = 0, totalDmg = 0, totalCs = 0;
+      let totalW = 0, totalL = 0, totalK = 0, totalD = 0, totalA = 0, totalScore = 0, totalDmg = 0, totalCs = 0, totalDur = 0;
+      let totalKpSum = 0;
 
       allEntries.forEach(e => {
         const cName = e.champion || e.most || '챔피언';
         if (!champGroups[cName]) {
-          champGroups[cName] = { name: cName, wins: 0, losses: 0, kills: 0, deaths: 0, assists: 0, scoreSum: 0, dmgSum: 0, csSum: 0, count: 0 };
+          champGroups[cName] = { name: cName, wins: 0, losses: 0, kills: 0, deaths: 0, assists: 0, scoreSum: 0, dmgSum: 0, csSum: 0, durSum: 0, kpSum: 0, count: 0 };
         }
         const g = champGroups[cName];
         g.count++;
@@ -1326,14 +1328,18 @@ function syncStatsFromHistory() {
         g.deaths += d; totalD += d;
         g.assists += a; totalA += a;
 
-        const score = parseInt(e.aiScore) || 75;
+        const kp = e.teamKills > 0 ? ((k + a) / e.teamKills) * 100 : 50;
+        g.kpSum += kp; totalKpSum += kp;
+
+        const score = parseInt(e.aiScore) || 50;
         g.scoreSum += score; totalScore += score;
 
         const rawDmg = parseInt((e.damage || '0').toString().replace(/,/g, '')) || 0;
         g.dmgSum += rawDmg; totalDmg += rawDmg;
 
-        const csVal = parseInt(e.cs) || 150;
+        const csVal = parseInt(e.cs) || 120;
         g.csSum += csVal; totalCs += csVal;
+        g.durSum += e.duration; totalDur += e.duration;
       });
 
       const totalCount = allEntries.length;
@@ -1342,47 +1348,53 @@ function syncStatsFromHistory() {
       const avgK = (totalK / totalCount).toFixed(1);
       const avgD = (totalD / totalCount).toFixed(1);
       const avgA = (totalA / totalCount).toFixed(1);
-      const avgScore = (totalScore / totalCount / 10).toFixed(1);
+      const avgScore = Math.round(totalScore / totalCount);
+      const avgDpm = Math.round(totalDmg / Math.max(1, totalDur));
+      const avgCspm = (totalCs / Math.max(1, totalDur)).toFixed(1);
+      const avgKp = Math.round(totalKpSum / totalCount);
 
-      // 4. 최상단 All champions 종합 요약 행
+      // 🌟 DeepLoL 실측 컬러 뱃지 (50+ 청록, 40-49 주황, 39- 빨강)
+      function getBadgeHtml(score) {
+        let colorClass = "bg-rose-600/90 text-white border border-rose-500/50";
+        if (score >= 50) colorClass = "bg-[#059669] text-white border border-emerald-400/40";
+        else if (score >= 40) colorClass = "bg-[#d97706] text-white border border-amber-400/40";
+        return `<span class="inline-flex items-center justify-center min-w-[38px] px-2 py-0.5 rounded-md font-black text-xs shadow-sm ${colorClass}">${score}</span>`;
+      }
+
+      // 최상단 모든챔피언 종합 행
       let rowsHtml = `
         <tr class="bg-slate-50/80 dark:bg-[#161a23] font-bold border-b-2 border-slate-200 dark:border-slate-700">
           <td class="py-3 px-3 text-center text-slate-400">-</td>
           <td class="py-3 px-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-sky-500">
-                <i class="fa-solid fa-helmet-un text-sm"></i>
-              </div>
-              <span class="text-sm font-extrabold text-slate-900 dark:text-gray-100">All champions</span>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-500 font-bold">*</span>
+              <span class="text-sm font-extrabold text-slate-900 dark:text-gray-100">모든챔피언</span>
+            </div>
+          </td>
+          <td class="py-3 px-4 text-center font-bold text-slate-300">${totalCount}</td>
+          <td class="py-3 px-4 text-center">
+            <div class="inline-flex items-center gap-1">
+              <span class="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold">${totalW}</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold">${totalL}</span>
+              <span class="font-extrabold text-xs ml-1 ${totalWinRate >= 50 ? 'text-emerald-400' : 'text-slate-400'}">${totalWinRate}%</span>
             </div>
           </td>
           <td class="py-3 px-4 text-center">
-            <div class="inline-flex items-center gap-1.5">
-              <span class="px-2 py-0.5 rounded bg-blue-500 text-white text-[10px] font-bold">${totalW}W</span>
-              <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold">${totalL}L</span>
-              <span class="font-extrabold text-xs ml-1 ${totalWinRate >= 60 ? 'text-rose-500' : 'text-slate-400'}">${totalWinRate}%</span>
+            <div class="font-black text-xs text-slate-100">${totalKdaRatio}</div>
+            <div class="text-[10px] text-slate-400">(${avgK} / ${avgD} / ${avgA})</div>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="font-bold text-xs">${avgDpm.toLocaleString()}</div>
+            <div class="w-16 mx-auto bg-slate-700 h-1 rounded-full mt-1 overflow-hidden">
+              <div class="bg-rose-500 h-full" style="width: ${Math.min(100, Math.round(avgDpm / 10))}%"></div>
             </div>
           </td>
-          <td class="py-3 px-4 text-center">
-            <div class="font-bold text-xs ${parseFloat(totalKdaRatio) >= 3 ? 'text-emerald-500' : 'text-slate-200'}">${totalKdaRatio}:1</div>
-            <div class="text-[10px] text-slate-400">${avgK} / ${avgD} / ${avgA}</div>
-          </td>
-          <td class="py-3 px-4 text-center">
-            <span class="font-extrabold text-amber-500 text-sm">${avgScore}</span>
-          </td>
-          <td class="py-3 px-4 text-right">
-            <div class="font-bold">${Math.round(totalDmg / totalCount).toLocaleString()}</div>
-            <div class="text-[10px] text-slate-400">경기 평균</div>
-          </td>
-          <td class="py-3 px-4 text-right">
-            <div class="font-bold">${Math.round(totalCs / totalCount)}</div>
-            <div class="text-[10px] text-slate-400">평균 CS</div>
-          </td>
-          <td class="py-3 px-4 text-center text-slate-400 font-mono">-</td>
+          <td class="py-3 px-4 text-center font-bold text-slate-300">${avgCspm}</td>
+          <td class="py-3 px-4 text-center font-bold text-slate-300">${avgKp}%</td>
+          <td class="py-3 px-4 text-center">${getBadgeHtml(avgScore)}</td>
         </tr>
       `;
 
-      // 5. 챔피언별 개별 행
       const sortedChamps = Object.values(champGroups).sort((a, b) => b.count - a.count);
 
       sortedChamps.forEach((g, idx) => {
@@ -1391,42 +1403,43 @@ function syncStatsFromHistory() {
         const k = (g.kills / g.count).toFixed(1);
         const d = (g.deaths / g.count).toFixed(1);
         const a = (g.assists / g.count).toFixed(1);
-        const score = (g.scoreSum / g.count / 10).toFixed(1);
-        const avgDmg = Math.round(g.dmgSum / g.count);
-        const avgCs = Math.round(g.csSum / g.count);
+        const score = Math.round(g.scoreSum / g.count);
+        const dpm = Math.round(g.dmgSum / Math.max(1, g.durSum));
+        const cspm = (g.csSum / Math.max(1, g.durSum)).toFixed(1);
+        const kp = Math.round(g.kpSum / g.count);
 
         rowsHtml += `
-          <tr class="hover:bg-slate-50/50 dark:hover:bg-[#161d2a]/50 transition">
+          <tr class="hover:bg-slate-50/50 dark:hover:bg-[#161d2a]/50 transition border-b border-slate-800/40">
             <td class="py-3 px-3 text-center text-slate-400 font-bold">${idx + 1}</td>
             <td class="py-3 px-4">
               <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#121721] border border-slate-200 dark:border-slate-800 flex items-center justify-center font-black text-amber-500 text-xs">
+                <div class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-amber-400 text-xs shrink-0">
                   ${g.name.slice(0, 2)}
                 </div>
-                <span class="font-extrabold text-slate-800 dark:text-gray-200">${g.name}</span>
+                <span class="font-extrabold text-slate-200">${g.name}</span>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-center font-bold text-slate-300">${g.count}</td>
+            <td class="py-3 px-4 text-center">
+              <div class="inline-flex items-center gap-1">
+                <span class="px-1.5 py-0.5 rounded bg-blue-600/90 text-white text-[10px] font-bold">${g.wins}</span>
+                <span class="px-1.5 py-0.5 rounded bg-rose-600/90 text-white text-[10px] font-bold">${g.losses}</span>
+                <span class="font-extrabold text-xs ml-1 ${winRate >= 50 ? 'text-emerald-400' : 'text-slate-400'}">${winRate}%</span>
               </div>
             </td>
             <td class="py-3 px-4 text-center">
-              <div class="inline-flex items-center gap-1.5">
-                <span class="px-2 py-0.5 rounded bg-blue-500/90 text-white text-[10px] font-bold">${g.wins}W</span>
-                <span class="px-2 py-0.5 rounded bg-rose-500/90 text-white text-[10px] font-bold">${g.losses}L</span>
-                <span class="font-extrabold text-xs ml-1 ${winRate >= 60 ? 'text-rose-500' : 'text-slate-400'}">${winRate}%</span>
+              <div class="font-black text-xs text-slate-200">${kdaRatio}</div>
+              <div class="text-[10px] text-slate-400">(${k} / ${d} / ${a})</div>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <div class="font-bold text-xs text-slate-200">${dpm.toLocaleString()}</div>
+              <div class="w-16 mx-auto bg-slate-700 h-1 rounded-full mt-1 overflow-hidden">
+                <div class="bg-rose-500 h-full" style="width: ${Math.min(100, Math.round(dpm / 10))}%"></div>
               </div>
             </td>
-            <td class="py-3 px-4 text-center">
-              <div class="font-bold text-xs ${parseFloat(kdaRatio) >= 3 ? 'text-emerald-500' : 'text-slate-300'}">${kdaRatio}:1</div>
-              <div class="text-[10px] text-slate-400">${k} / ${d} / ${a}</div>
-            </td>
-            <td class="py-3 px-4 text-center">
-              <span class="font-extrabold text-amber-400 text-sm">${score}</span>
-            </td>
-            <td class="py-3 px-4 text-right">
-              <div class="font-bold text-rose-500">${avgDmg.toLocaleString()}</div>
-            </td>
-            <td class="py-3 px-4 text-right">
-              <div class="font-bold text-slate-700 dark:text-gray-200">${avgCs}</div>
-            </td>
-            <td class="py-3 px-4 text-center text-slate-400 font-mono">-</td>
+            <td class="py-3 px-4 text-center font-bold text-slate-300">${cspm}</td>
+            <td class="py-3 px-4 text-center font-bold text-slate-300">${kp}%</td>
+            <td class="py-3 px-4 text-center">${getBadgeHtml(score)}</td>
           </tr>
         `;
       });
@@ -1434,7 +1447,6 @@ function syncStatsFromHistory() {
       tbody.innerHTML = rowsHtml;
     }
 
-    // 🌟 renderAllViews 교체: 화면 갱신 시 내전 모스트 표도 함께 렌더링
     function renderAllViews() {
       if (typeof syncStatsFromHistory === 'function') syncStatsFromHistory();
       renderSelectionGrid();
