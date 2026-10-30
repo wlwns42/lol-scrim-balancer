@@ -304,7 +304,49 @@
               <div class="flex items-center gap-2 bg-slate-50 dark:bg-[#161d2a] p-2 rounded-xl border border-slate-200 dark:border-slate-700">
                 <i class="fa-regular fa-clock text-amber-500 text-sm"></i>
                 <label for="sched-match-time" class="text-xs font-bold text-slate-600 dark:text-gray-300">시작 시간:</label>
-                <select id="sched-match-time" onchange="updateScheduleTime(this.value)" class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-500 focus:outline-none cursor-pointer">
+<div class="flex flex-col items-end gap-1.5">
+                <div class="flex items-center gap-2 bg-slate-50 dark:bg-[#161d2a] p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <i class="fa-regular fa-clock text-amber-500 text-sm"></i>
+                  <label for="sched-match-time" class="text-xs font-bold text-slate-600 dark:text-gray-300">시작 시간:</label>
+                  <select id="sched-match-time" onchange="updateScheduleTime(this.value)" class="bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-500 focus:outline-none cursor-pointer">
+                  <option value="00:00">자정 12:00 (00:00)</option>
+                  <option value="00:30">오전 00:30</option>
+                  <option value="01:00">오전 01:00</option>
+                  <option value="01:30">오전 01:30</option>
+                  <option value="02:00">오전 02:00</option>
+                  <option value="02:30">오전 02:30</option>
+                  <option value="03:00">오전 03:00</option>
+                  <option value="03:30">오전 03:30</option>
+                  <option value="04:00">오전 04:00</option>
+                  <option value="04:30">오전 04:30</option>
+                  <option value="05:00">오전 05:00</option>
+                  <option value="05:30">오전 05:30</option>
+                  <option value="06:00">오전 06:00</option>
+                  <option value="06:30">오전 06:30</option>
+                  <option value="07:00">오전 07:00</option>
+                  <option value="07:30">오전 07:30</option>
+                  <option value="08:00">오전 08:00</option>
+                  <option value="08:30">오전 08:30</option>
+                  <option value="09:00">오전 09:00</option>
+                  <option value="09:30">오전 09:30</option>
+                  <option value="10:00">오전 10:00</option>
+                  <option value="10:30">오전 10:30</option>
+                  <option value="11:00">오전 11:00</option>
+                  <option value="11:30">오전 11:30</option>
+                  <option value="12:00">낮 12:00 (12:00)</option>
+                  <option value="12:30">오후 12:30</option>
+                  <option value="13:00">오후 01:00</option>
+                  <option value="13:30">오후 01:30</option>
+                  <option value="14:00">오후 02:00</option>
+                  <option value="14:30">오후 02:30</option>
+                  <option value="15:00">오후 03:00</option>
+                  <option value="15:30">오후 03:30</option>
+                  <option value="16:00">오후 04:00</option>
+                  <option value="16:30">오후 04:30</option>
+                  <option value="17:00">오후 05:00</option>
+                  <option value="17:30">오후 05:30</option>
+                  <option value="18:00">오후 06:00</option>
+                  <option value="18:30">오후 06:30</option>
                   <option value="19:00">오후 07:00</option>
                   <option value="19:30">오후 07:30</option>
                   <option value="20:00">오후 08:00</option>
@@ -315,10 +357,15 @@
                   <option value="22:30">오후 10:30</option>
                   <option value="23:00">오후 11:00</option>
                   <option value="23:30">오후 11:30</option>
-                  <option value="00:00">자정 12:00 (00:00)</option>
-                  <option value="00:30">새벽 12:30 (00:30)</option>
-                  <option value="01:00">새벽 01:00</option>
-                </select>
+                  </select>
+                </div>
+                <!-- 🌟 시작 시간 바로 밑에 투표자 가능 시간대 실시간 요약 바 -->
+                <div id="sched-avail-summary" class="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap px-1">
+                  <i class="fa-solid fa-user-clock text-amber-500"></i>
+                  <span>가능 현황:</span>
+                  <span id="sched-avail-summary-text" class="text-amber-500 font-extrabold">투표 대기 중</span>
+                </div>
+              </div>
               </div>
             </div>
 
@@ -369,6 +416,8 @@
                 <div class="sm:col-span-3">
                   <select id="sched-avail-time" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
                     <option value="정시 가능">정시 즉시 가능</option>
+                    <option value="19:00 이후">19:00 이후 가능</option>
+                    <option value="20:00 이후">20:00 이후 가능</option>
                     <option value="21:00 이후">21:00 이후 가능</option>
                     <option value="21:30 이후">21:30 이후 가능</option>
                     <option value="22:00 이후">22:00 이후 가능</option>
@@ -376,6 +425,7 @@
                     <option value="23:00 이후">23:00 이후 가능</option>
                     <option value="23:30 이후">23:30 이후 가능</option>
                     <option value="24:00 이후">24:00 이후 가능</option>
+                    <option value="새벽 01:00 이후">새벽 01:00 이후 가능</option>
                     <option value="시간 조율 필요">시간 조율 필요</option>
                   </select>
                 </div>
@@ -3042,6 +3092,18 @@ function syncStatsFromHistory() {
       const count = confirmed.length;
 
       document.getElementById('sched-roster-count').textContent = count;
+
+      // 🌟 투표자 가능 시간대 실시간 집계 요약
+      const timeCounts = {};
+      confirmed.forEach(p => {
+        const t = p.availTime || '정시 가능';
+        timeCounts[t] = (timeCounts[t] || 0) + 1;
+      });
+      const summaryEl = document.getElementById('sched-avail-summary-text');
+      if (summaryEl) {
+        const summaryArr = Object.entries(timeCounts).map(([t, cnt]) => `${t} (${cnt}명)`);
+        summaryEl.textContent = summaryArr.length > 0 ? summaryArr.join(' · ') : '투표 대기 중';
+      }
       const pct = Math.min(Math.round((count / 10) * 100), 100);
       document.getElementById('sched-progress-bar').style.width = `${pct}%`;
 
@@ -3422,84 +3484,85 @@ function syncStatsFromHistory() {
       document.getElementById('modal-board-write').classList.add('hidden');
     }
 
-function handlePostSubmit(e) {
-  e.preventDefault();
-  const editId = document.getElementById('post-edit-id').value;
-  const author = document.getElementById('post-author').value.trim();
-  const password = document.getElementById('post-pw').value.trim();
-  const category = document.getElementById('post-category').value;
-  const title = document.getElementById('post-title').value.trim();
-  
-  // 🌟 DB 저장 전 깨지는 4바이트 달력 이모지를 안전 코드로 사전 변환
-  let content = document.getElementById('post-content').value.trim()
-    .replace(/(?:🗓️|🗓|📅|📆)/gu, '[CALENDAR]');
+    function handlePostSubmit(e) {
+      e.preventDefault();
+      const editId = document.getElementById('post-edit-id').value;
+      const author = document.getElementById('post-author').value.trim();
+      const password = document.getElementById('post-pw').value.trim();
+      const category = document.getElementById('post-category').value;
+      const title = document.getElementById('post-title').value.trim();
+      const content = document.getElementById('post-content').value.trim();
 
-  if (!author || !password || !title || !content) {
-    showToast('작성자, 비밀번호, 제목, 내용을 모두 입력해 주세요.', 'error');
-    return;
-  }
+      if (!author || !password || !title || !content) {
+        showToast('작성자, 비밀번호, 제목, 내용을 모두 입력해 주세요.', 'error');
+        return;
+      }
 
-  localStorage.setItem('scrim_my_author_name', author);
+      localStorage.setItem('scrim_my_author_name', author);
 
-  if (editId) {
-    const p = communityPosts.find(item => item.id === editId);
-    if (p) {
-      p.author = author;
-      p.password = password;
-      p.category = category;
-      p.title = title;
-      p.content = content;
+      if (editId) {
+        const p = communityPosts.find(item => item.id === editId);
+        if (p) {
+          p.author = author;
+          p.password = password;
+          p.category = category;
+          p.title = title;
+          p.content = content;
+          saveLocalData();
+          closeWritePostModal();
+          openViewPostModal(editId);
+          showToast('게시글이 성공적으로 수정되었습니다!', 'success');
+          return;
+        }
+      }
+
+      const d = new Date();
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      const nextNo = communityPosts.length > 0 ? Math.max(...communityPosts.map(p => p.no || 0)) + 1 : 1;
+
+      const newPost = {
+        id: 'post-' + Date.now(),
+        no: nextNo,
+        category,
+        title,
+        author,
+        password,
+        date: dateStr,
+        views: 0,
+        likes: 0,
+        content,
+        comments: []
+      };
+
+      communityPosts.unshift(newPost);
       saveLocalData();
       closeWritePostModal();
-      openViewPostModal(editId);
-      showToast('게시글이 성공적으로 수정되었습니다!', 'success');
-      return;
+      renderCommunityBoard();
+      showToast('게시글이 성공적으로 등록되었습니다!', 'success');
     }
-  }
-
-  const d = new Date();
-  const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-  const nextNo = communityPosts.length > 0 ? Math.max(...communityPosts.map(p => p.no || 0)) + 1 : 1;
-
-  const newPost = {
-    id: 'post-' + Date.now(),
-    no: nextNo,
-    category,
-    title,
-    author,
-    password,
-    date: dateStr,
-    views: 0,
-    likes: 0,
-    content,
-    comments: []
-  };
-
-  communityPosts.unshift(newPost);
-  saveLocalData();
-  closeWritePostModal();
-  renderCommunityBoard();
-  showToast('게시글이 성공적으로 등록되었습니다!', 'success');
-}
 
     let activeViewingPostId = null;
 
-function formatPostContent(text) {
-  if (!text) return '';
-  return text
-    // 1. 이미 DB에서 깨져서 넘어온 \uFFFD(?) 및 4바이트 달력 이모지 전부 골드 아이콘으로 치환
-    .replace(/(?:\uFFFD|🗓️|🗓|📅|📆|\[CALENDAR\])\s*(?=1\.\s*내전)/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-    .replace(/(?:\uFFFD|🗓️|🗓|📅|📆|\[CALENDAR\])/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
-    .replace(/(?:⚖️|⚖)/gu, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
-    .replace(/(?:⚡)/gu, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
-    .replace(/(?:💬)/gu, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
-    .replace(/(?:🏆)/gu, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
-    .replace(/(?:🎉)/gu, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
-    .replace(/(?:💡)/gu, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
-    // 2. 투명 제어 바이트 및 찌꺼기 공백 완전 삭제
-    .replace(/[\u200B-\u200D\uFEFF\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛\uFE0E\uFE0F\uFFFD]/gu, '')
-    .replace(/^\s+([0-9]+\.)/gm, '$1');
-}
+// 🌟 윈도우 환경 이모지 두부 깨짐 현상 방지 및 FontAwesome 아이콘 자동 치환 헬퍼
+     function formatPostContent(text) {
+      if (!text) return '';
+      return text
+        // 1. 유니코드 깨짐 문자(? 다이아몬드), 보이지 않는 제어 바이트, 폭 없는 공백 전부 삭제
+        .replace(/[\uFFFD\uFEFF\u200B-\u200D\u2066-\u2069\u200E\u200F🟦🔷🔹🔵⬛]/g, '')
+        // 2. 윈도우 달력 이모지(🗓️, 🗓, 📅, 📆) 및 그 앞에 남은 찌꺼기 공백을 폰트어썸 달력 아이콘으로 완벽 치환
+        .replace(/(?:🗓️|🗓|📅|📆)/gu, '<i class="fa-solid fa-calendar-days text-amber-500 mr-1.5"></i>')
+        // 3. 저울, 번개, 말풍선 등 기타 이모지 치환
+        .replace(/(?:⚖️|⚖)/gu, '<i class="fa-solid fa-scale-balanced text-amber-500 mr-1.5"></i>')
+        .replace(/⚡/gu, '<i class="fa-solid fa-bolt text-amber-500 mr-1.5"></i>')
+        .replace(/💬/gu, '<i class="fa-solid fa-comments text-amber-500 mr-1.5"></i>')
+        .replace(/🏆/gu, '<i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>')
+        .replace(/🎉/gu, '<i class="fa-solid fa-champagne-glasses text-amber-500 mr-1.5"></i>')
+        .replace(/💡/gu, '<i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>')
+        // 4. 이모지 뒤에 남은 잔여 변형 셀렉터 제거
+        .replace(/[\uFE0E\uFE0F]/g, '')
+        // 5. 각 줄 시작 부분에 남아있는 불필요한 제어 공백 정리
+        .replace(/^\s+([0-9]+\.)/gm, '$1');
+    }
 
     function openViewPostModal(postId) {
       const p = communityPosts.find(item => item.id === postId);
