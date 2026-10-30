@@ -2250,7 +2250,7 @@ function syncStatsFromHistory() {
       document.getElementById('nav-history-count').textContent = matchHistory.length;
 
       if (matchHistory.length === 0) {
-        container.innerHTML = `<div class="p-12 text-center text-xs text-slate-400 bg-white dark:bg-[#121721] rounded-2xl border border-slate-200 dark:border-slate-800">기록된 내전 매치가 없습니다. [리플레이 보관함]에 .rofl 파일을 드래그하여 놓으면 완전 자동으로 분석됩니다.</div>`;
+        container.innerHTML = `<div class="p-12 text-center text-xs text-slate-400 bg-white dark:bg-[#121721] rounded-2xl border border-slate-200 dark:border-slate-800">기록된 내전 매치가 없습니다. 리플레이를 등록하거나 LCU 수집기로 경기가 완료되면 자동으로 집계됩니다.</div>`;
         return;
       }
 
@@ -2271,6 +2271,10 @@ function syncStatsFromHistory() {
               <span class="px-2 py-0.5 rounded text-[10px] ${isBlueWin ? 'bg-blue-600/30 text-blue-400 border border-blue-500/40' : 'bg-red-600/30 text-red-400 border border-red-500/40'}">
                 ${m.winner}팀 승리
               </span>
+              <!-- 🌟 개별 경기 삭제 버튼 -->
+              <button onclick="deleteSingleMatch('${m.id || m.matchId}')" class="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer" title="이 경기 기록만 삭제">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
             </div>
           </div>
 
@@ -2282,14 +2286,15 @@ function syncStatsFromHistory() {
               ${(m.blue || []).map(p => `
                 <div class="px-3 py-1.5 flex items-center justify-between text-[11px]">
                   <div class="flex items-center gap-2 w-56 truncate">
-                    <span class="w-6 font-bold text-[9px] text-slate-400">${p.role}</span>
+                    ${(p.role && p.role !== 'UNKNOWN') ? `<span class="w-7 font-bold text-[9px] text-slate-400 text-center shrink-0">${p.role}</span>` : ''}
                     <span class="font-bold text-slate-200 truncate">${p.name}</span>
                     <span class="tier-badge tier-${(p.tier || 'unranked').toLowerCase()}">${p.tier}</span>
                   </div>
                   <div class="flex items-center gap-4 text-[10px] text-slate-400">
-                    <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 80}점</strong></span>
+                    <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 75}점</strong></span>
                     <span>KDA: <strong class="text-slate-200">${p.kda || '기록'}</strong></span>
                     <span>딜량: <strong class="text-rose-400">${p.damage || '-'}</strong></span>
+                    <span>CS: <strong class="text-slate-300">${p.cs || '-'}</strong></span>
                     <span>챔프: <strong class="text-slate-300">${p.champion || p.most || '챔피언'}</strong></span>
                   </div>
                 </div>
@@ -2305,14 +2310,15 @@ function syncStatsFromHistory() {
               ${(m.red || []).map(p => `
                 <div class="px-3 py-1.5 flex items-center justify-between text-[11px]">
                   <div class="flex items-center gap-2 w-56 truncate">
-                    <span class="w-6 font-bold text-[9px] text-slate-400">${p.role}</span>
+                    ${(p.role && p.role !== 'UNKNOWN') ? `<span class="w-7 font-bold text-[9px] text-slate-400 text-center shrink-0">${p.role}</span>` : ''}
                     <span class="font-bold text-slate-200 truncate">${p.name}</span>
                     <span class="tier-badge tier-${(p.tier || 'unranked').toLowerCase()}">${p.tier}</span>
                   </div>
                   <div class="flex items-center gap-4 text-[10px] text-slate-400">
-                    <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 80}점</strong></span>
+                    <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 75}점</strong></span>
                     <span>KDA: <strong class="text-slate-200">${p.kda || '기록'}</strong></span>
                     <span>딜량: <strong class="text-rose-400">${p.damage || '-'}</strong></span>
+                    <span>CS: <strong class="text-slate-300">${p.cs || '-'}</strong></span>
                     <span>챔프: <strong class="text-slate-300">${p.champion || p.most || '챔피언'}</strong></span>
                   </div>
                 </div>
@@ -2324,7 +2330,18 @@ function syncStatsFromHistory() {
       });
     }
 
-    function resetMatchHistory() {
+    // 🌟 개별 경기 히스토리 삭제 함수
+    function deleteSingleMatch(matchId) {
+      if (!checkAdminAuth('경기 기록 개별 삭제')) return;
+      if (confirm('해당 경기 기록을 삭제하시겠습니까?\n(삭제 시 전적 및 실시간 점수가 자동 재계산됩니다)')) {
+        matchHistory = matchHistory.filter(m => (m.id !== matchId && m.matchId !== matchId));
+        syncStatsFromHistory();
+        saveLocalData();
+        renderAllViews();
+        showToast('해당 경기 기록이 삭제되었습니다.', 'info');
+      }
+    }
+function resetMatchHistory() {
       if (!checkAdminAuth('매치 히스토리 전체 삭제')) return;
       if (confirm('[관리자 승인] 매치 히스토리를 모두 삭제하시겠습니까?')) {
         matchHistory = [];
