@@ -1,4 +1,4 @@
-# lcu_collector.py - 롤 클라이언트 로컬 LCU API 사설 내전 10인 스탯 자동 수집기
+# lcu_collector.py - 롤 클라이언트 로컬 LCU API 사설 내전 10인 스탯 자동 수집기 (완성본)
 import os
 import sys
 import time
@@ -7,7 +7,8 @@ import base64
 import urllib.request
 import ssl
 
-SERVER_URL = "https://your-scrim-balancer.vercel.app/api/sync"
+# 🌟 사용자 본인의 Vercel 앱 주소로 설정완료
+SERVER_URL = "https://lol-scrim-balancer.vercel.app/api/sync"
 
 def get_lcu_credentials():
     possible_paths = [
@@ -40,9 +41,52 @@ def query_lcu(port, password, endpoint):
     except:
         return None
 
+def push_match_to_cloud(match_data):
+    """웹사이트(Supabase)에 자동으로 새 내전 결과와 전적을 푸시합니다."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    try:
+        # 1. 기존 데이터 불러오기
+        req_get = urllib.request.Request(SERVER_URL, headers={"Accept": "application/json"})
+        existing_data = {}
+        with urllib.request.urlopen(req_get, context=ctx, timeout=5) as res:
+            existing_data = json.loads(res.read().decode())
+
+        match_history = existing_data.get("matchHistory", [])
+        
+        # 중복 등록 방지 (이미 등록된 gameId인지 확인)
+        match_id = match_data["matchId"]
+        if any(m.get("matchId") == match_id for m in match_history):
+            print(f"[-] 이미 등록된 경기(ID: {match_id})입니다. 건너뜁니다.")
+            return True
+
+        # 새 경기 추가
+        match_history.insert(0, match_data)
+        existing_data["matchHistory"] = match_history
+        existing_data["updatedAt"] = int(time.time() * 1000)
+
+        # 2. 클라우드 DB에 POST 저장
+        json_payload = json.dumps(existing_data).encode("utf-8")
+        req_post = urllib.request.Request(
+            SERVER_URL,
+            data=json_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req_post, context=ctx, timeout=5) as res:
+            resp_json = json.loads(res.read().decode())
+            if resp_json.get("success"):
+                print(f"[👑 성공] 내전 결과가 웹앱({SERVER_URL})에 완벽히 동기화되었습니다!")
+                return True
+    except Exception as e:
+        print(f"[!] 웹앱 동기화 전송 실패: {e}")
+    return False
+
 def main():
     print("=" * 60)
-    print(" 🏆 SCRIM-BALANCER LCU 로컬 내전 수집기 (방법 A)")
+    print(" 🏆 SCRIM-BALANCER LCU 로컬 내전 수집기 (자동 동기화)")
     print("=" * 60)
     print("[*] 리그 오브 레전드 클라이언트 실행을 감지하는 중...")
     
@@ -51,7 +95,7 @@ def main():
     while True:
         port, password = get_lcu_credentials()
         if not port:
-            print("[-] 롤 클라이언트가 켜져 있지 않거나 lockfile을 찾을 수 없습니다. 롤을 실행해주세요... (5초 후 재시도)", end="\r")
+            print("[-] 롤 클라이언트가 켜져 있지 않거나 lockfile을 찾을 수 없습니다. (5초 후 재시도)", end="\r")
             time.sleep(5)
             continue
             
@@ -75,26 +119,63 @@ def main():
                     if t.get("teamId") == 100 and t.get("isPlayerTeam") and t.get("won"):
                         blue_win = True
                         
-                players = []
+                blue_team = []
+                red_team = []
+                all_players = []
+
                 for p in stats.get("participants", []):
                     k = p.get("stats", {}).get("CHAMPIONS_KILLED", 0)
                     d = p.get("stats", {}).get("NUM_DEATHS", 0)
                     a = p.get("stats", {}).get("ASSISTS", 0)
                     dmg = p.get("stats", {}).get("TOTAL_DAMAGE_DEALT_TO_CHAMPIONS", 0)
                     cs = p.get("stats", {}).get("MINIONS_KILLED", 0) + p.get("stats", {}).get("NEUTRAL_MINIONS_KILLED", 0)
+                    
                     ai_score = min(99, max(45, round(60 + (k * 2.5) - (d * 3) + (a * 1.5) + (dmg / 1500))))
                     
-                    players.append({
+                    role_raw = (p.get("teamPosition") or "MID").upper()
+                    role = "MID"
+                    if "TOP" in role_raw: role = "TOP"
+                    elif "JUG" in role_raw or "JUNGLE" in role_raw: role = "JUG"
+                    elif "BOT" in role_raw or "ADC" in role_raw: role = "ADC"
+                    elif "SUP" in role_raw: role = "SUP"
+
+                    p_data = {
                         "name": f"{p.get('summonerName')}#{p.get('tagLine', 'KR1')}",
-                        "teamId": p.get("teamId"),
-                        "champion": p.get("championName"),
+                        "tier": "UNRANKED",
+                        "role": role,
+                        "champion": p.get("championName", "챔피언"),
                         "aiScore": ai_score,
                         "kda": f"{k}/{d}/{a} ({'Perfect' if d == 0 else round((k+a)/d, 2)})",
                         "damage": f"{dmg:,}",
                         "cs": cs,
                         "win": (p.get("teamId") == 100 and blue_win) or (p.get("teamId") == 200 and not blue_win)
-                    })
-                print(f"[+] 총 {len(players)}명의 스탯 추출 완료! 웹사이트 히스토리에 반영할 준비가 되었습니다.")
+                    }
+
+                    all_players.append(p_data)
+                    if p.get("teamId") == 100:
+                        blue_team.append(p_data)
+                    else:
+                        red_team.append(p_data)
+                
+                best_score = max([p["aiScore"] for p in all_players]) if all_players else 80
+                mvp = next((p["name"] for p in all_players if p["aiScore"] == best_score), "MVP")
+
+                import datetime
+                date_str = datetime.datetime.now().strftime("%b %d일, %H:%M")
+
+                match_record = {
+                    "id": f"m-{int(time.time()*1000)}",
+                    "date": date_str,
+                    "matchId": f"LCU_{game_id}",
+                    "winner": "BLUE" if blue_win else "RED",
+                    "mvp": mvp,
+                    "duration": "30분",
+                    "blue": blue_team,
+                    "red": red_team
+                }
+
+                print(f"[+] 블루팀 {len(blue_team)}명 / 레드팀 {len(red_team)}명 파싱 완료. 승리: {'BLUE' if blue_win else 'RED'}팀")
+                push_match_to_cloud(match_record)
                 
             time.sleep(3)
 
