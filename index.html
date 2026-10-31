@@ -408,18 +408,57 @@
                 </div>
                 <div class="sm:col-span-3">
                   <select id="sched-avail-time" class="w-full bg-white dark:bg-[#121721] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
-                    <option value="정시 가능">정시 즉시 가능</option>
+                    <option value="정시 가능" selected>정시 즉시 가능 (기본)</option>
+                    <option value="언제든 상시 가능">언제든 상시 가능 (ALL TIME)</option>
+                    <option value="00:00 이후">00:00 (자정) 이후 가능</option>
+                    <option value="00:30 이후">00:30 이후 가능</option>
+                    <option value="01:00 이후">01:00 이후 가능</option>
+                    <option value="01:30 이후">01:30 이후 가능</option>
+                    <option value="02:00 이후">02:00 이후 가능</option>
+                    <option value="02:30 이후">02:30 이후 가능</option>
+                    <option value="03:00 이후">03:00 이후 가능</option>
+                    <option value="03:30 이후">03:30 이후 가능</option>
+                    <option value="04:00 이후">04:00 이후 가능</option>
+                    <option value="04:30 이후">04:30 이후 가능</option>
+                    <option value="05:00 이후">05:00 이후 가능</option>
+                    <option value="05:30 이후">05:30 이후 가능</option>
+                    <option value="06:00 이후">06:00 이후 가능</option>
+                    <option value="06:30 이후">06:30 이후 가능</option>
+                    <option value="07:00 이후">07:00 이후 가능</option>
+                    <option value="07:30 이후">07:30 이후 가능</option>
+                    <option value="08:00 이후">08:00 이후 가능</option>
+                    <option value="08:30 이후">08:30 이후 가능</option>
+                    <option value="09:00 이후">09:00 이후 가능</option>
+                    <option value="09:30 이후">09:30 이후 가능</option>
+                    <option value="10:00 이후">10:00 이후 가능</option>
+                    <option value="10:30 이후">10:30 이후 가능</option>
+                    <option value="11:00 이후">11:00 이후 가능</option>
+                    <option value="11:30 이후">11:30 이후 가능</option>
+                    <option value="12:00 이후">12:00 (낮) 이후 가능</option>
+                    <option value="12:30 이후">12:30 이후 가능</option>
+                    <option value="13:00 이후">13:00 이후 가능</option>
+                    <option value="13:30 이후">13:30 이후 가능</option>
+                    <option value="14:00 이후">14:00 이후 가능</option>
+                    <option value="14:30 이후">14:30 이후 가능</option>
+                    <option value="15:00 이후">15:00 이후 가능</option>
+                    <option value="15:30 이후">15:30 이후 가능</option>
+                    <option value="16:00 이후">16:00 이후 가능</option>
+                    <option value="16:30 이후">16:30 이후 가능</option>
+                    <option value="17:00 이후">17:00 이후 가능</option>
+                    <option value="17:30 이후">17:30 이후 가능</option>
+                    <option value="18:00 이후">18:00 이후 가능</option>
+                    <option value="18:30 이후">18:30 이후 가능</option>
                     <option value="19:00 이후">19:00 이후 가능</option>
+                    <option value="19:30 이후">19:30 이후 가능</option>
                     <option value="20:00 이후">20:00 이후 가능</option>
+                    <option value="20:30 이후">20:30 이후 가능</option>
                     <option value="21:00 이후">21:00 이후 가능</option>
                     <option value="21:30 이후">21:30 이후 가능</option>
                     <option value="22:00 이후">22:00 이후 가능</option>
                     <option value="22:30 이후">22:30 이후 가능</option>
                     <option value="23:00 이후">23:00 이후 가능</option>
                     <option value="23:30 이후">23:30 이후 가능</option>
-                    <option value="24:00 이후">24:00 이후 가능</option>
-                    <option value="새벽 01:00 이후">새벽 01:00 이후 가능</option>
-                    <option value="시간 조율 필요">시간 조율 필요</option>
+                    <option value="시간 조율 필요">시간 조율 필요 (댓글 협의)</option>
                   </select>
                 </div>
                 <div class="sm:col-span-4 flex items-center gap-1.5">
@@ -1037,6 +1076,23 @@
 
     const ORDERED_ROLES = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
+    
+    // 🌟 소환사 이름 유연 매칭 함수 (태그 유무 및 화상이/회상이 오탈자 호환)
+    function isSameSummonerName(nameA, nameB) {
+      if (!nameA || !nameB) return false;
+      const cleanA = nameA.toLowerCase().replace('화상이', '회상이').trim();
+      const cleanB = nameB.toLowerCase().replace('화상이', '회상이').trim();
+      if (cleanA === cleanB) return true;
+      return cleanA.split('#')[0] === cleanB.split('#')[0];
+    }
+
+    // 🌟 소환사 실제 티어 조회 헬퍼 (UNRANKED 방지)
+    function getSummonerRealTier(p) {
+      if (!p || !p.name) return 'UNRANKED';
+      const found = summoners.find(s => isSameSummonerName(s.name, p.name));
+      return found?.tier || (p.tier && p.tier !== 'UNRANKED' ? p.tier : 'UNRANKED');
+    }
+
     let isCloudLoaded = false;
     let summoners = [];
     let selectedPlayerIds = new Set();
@@ -1294,12 +1350,12 @@ function syncStatsFromHistory() {
         const redKills = (m.red || []).reduce((acc, p) => acc + (parseInt(p.kda?.split('/')[0]) || 0), 0);
 
         (m.blue || []).forEach(p => {
-          if (selectedName === 'ALL' || p.name.toLowerCase() === selectedName.toLowerCase()) {
+          if (selectedName === 'ALL' || isSameSummonerName(p.name, selectedName)) {
             allEntries.push({ ...p, win: blueWin, duration: durMin, teamKills: blueKills });
           }
         });
         (m.red || []).forEach(p => {
-          if (selectedName === 'ALL' || p.name.toLowerCase() === selectedName.toLowerCase()) {
+          if (selectedName === 'ALL' || isSameSummonerName(p.name, selectedName)) {
             allEntries.push({ ...p, win: !blueWin, duration: durMin, teamKills: redKills });
           }
         });
@@ -2309,7 +2365,7 @@ function syncStatsFromHistory() {
                   <div class="flex items-center gap-2 w-56 truncate">
                     ${(p.role && p.role !== 'UNKNOWN') ? `<span class="w-7 font-bold text-[9px] text-slate-400 text-center shrink-0">${p.role}</span>` : ''}
                     <span class="font-bold text-slate-200 truncate">${p.name}</span>
-                    <span class="tier-badge tier-${(p.tier || 'unranked').toLowerCase()}">${p.tier}</span>
+                    <span class="tier-badge tier-${getSummonerRealTier(p).toLowerCase()}">${getSummonerRealTier(p)}</span>
                   </div>
                   <div class="flex items-center gap-4 text-[10px] text-slate-400">
                     <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 75}점</strong></span>
@@ -2333,7 +2389,7 @@ function syncStatsFromHistory() {
                   <div class="flex items-center gap-2 w-56 truncate">
                     ${(p.role && p.role !== 'UNKNOWN') ? `<span class="w-7 font-bold text-[9px] text-slate-400 text-center shrink-0">${p.role}</span>` : ''}
                     <span class="font-bold text-slate-200 truncate">${p.name}</span>
-                    <span class="tier-badge tier-${(p.tier || 'unranked').toLowerCase()}">${p.tier}</span>
+                    <span class="tier-badge tier-${getSummonerRealTier(p).toLowerCase()}">${getSummonerRealTier(p)}</span>
                   </div>
                   <div class="flex items-center gap-4 text-[10px] text-slate-400">
                     <span>AI-Score: <strong class="text-amber-400">${p.aiScore || 75}점</strong></span>
@@ -3177,11 +3233,14 @@ function resetMatchHistory() {
         if (banner) banner.classList.add('hidden');
       }
 
-      // 소환사 셀렉트 박스 갱신
+      // 소환사 셀렉트 박스 갱신 (이미 참가/보류 등록한 멤버는 선택지에서 제외)
       const select = document.getElementById('sched-player-select');
       if (select) {
+        const joinedPlayerIds = new Set(roster.map(p => p.id || summoners.find(s => isSameSummonerName(s.name, p.name))?.id).filter(Boolean));
+        const availableSummoners = summoners.filter(s => !joinedPlayerIds.has(s.id));
+
         select.innerHTML = '<option value="">소환사 선택 (본인 이름)...</option>' + 
-          summoners.map(s => `<option value="${s.id}">${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
+          availableSummoners.map(s => `<option value="${s.id}">${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
       }
 
       // 참가자 목록 칩 렌더링 (참가 확정 10인 우선 + 보류 대기자 후순위)
