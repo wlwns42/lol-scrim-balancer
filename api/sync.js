@@ -14,9 +14,7 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const rowId = 'main_scrim_data_row';
 
@@ -58,7 +56,6 @@ export default async function handler(req, res) {
       const incoming = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const now = Date.now();
 
-      // 기존 DB 읽기
       const { data: current } = await supabase
         .from('scrim_data')
         .select('payload')
@@ -67,9 +64,7 @@ export default async function handler(req, res) {
 
       const existing = current?.payload || {};
 
-      // 🌟 [핵심 DB 방어막]
-      // 사용자가 관리자 로그인 후 [히스토리 전체 삭제]를 명시적으로 누른 경우(incoming.allowEmptyHistory === true)를 제외하고는,
-      // 실수나 로딩 미완료로 matchHistory가 []로 전송되더라도 기존 DB의 경기 기록을 절대 날리지 않습니다!
+      // 🌟 [핵심 DB 방어막]: 관리자 삭제가 아닌 한 빈 배열 덮어쓰기 영구 차단
       let resolvedHistory = existing.matchHistory || [];
       if (incoming.allowEmptyHistory === true) {
         resolvedHistory = [];
@@ -77,7 +72,6 @@ export default async function handler(req, res) {
         resolvedHistory = incoming.matchHistory;
       }
 
-      // 게시글도 동일하게 보호
       let resolvedPosts = existing.communityPosts || [];
       if (incoming.allowEmptyPosts === true) {
         resolvedPosts = [];
