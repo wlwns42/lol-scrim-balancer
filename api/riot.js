@@ -30,12 +30,12 @@ async function scrapeFowProfile(name, tag) {
     let rMatch;
     while ((rMatch = rowRegex.exec(html)) !== null) {
       const rowHtml = rMatch[1];
-      const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) || rowHtml.match(/>([가-힣A-Za-z\s]{2,10})<\/td>\s*<td[^>]*>\d+<\/td>/i);
+      const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) || rowHtml.match(/>([가-힣A-Za-z\s]{2,12})<\/td>\s*<td[^>]*>\d+<\/td>/i);
       const gamesMatch = rowHtml.match(/<td[^>]*>(\d+)<\/td>/i);
       if (nameMatch && gamesMatch) {
         const cName = nameMatch[1].trim();
         const games = parseInt(gamesMatch[1], 10);
-        if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체'].includes(cName)) {
+        if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체', '모든챔피언'].includes(cName)) {
           champCounts[cName] = (champCounts[cName] || 0) + games;
         }
       }
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
   if (!cleanName) return res.status(400).json({ error: "소환사명이 필요합니다." });
 
-  // 1차: 공식 라이엇 API 시도
+  // 1차: 공식 라이엇 API 시도 (티어, LP 정보 추출)
   try {
     const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(cleanName)}/${encodeURIComponent(cleanTag)}?api_key=${RIOT_API_KEY}`);
     if (accRes.ok) {
@@ -81,12 +81,24 @@ export default async function handler(req, res) {
             if (e.queueType === 'RANKED_FLEX_SR') flexRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins/(e.wins+e.losses))*100) };
           });
         }
-        return res.status(200).json({ name: `${accData.gameName}#${accData.tagLine}`, soloRank, flexRank, mostChamps: [] });
+
+        // 🌟 [핵심] 라이엇 API 성공 시에도 FOW 스크래핑을 병행 호출하여 모스트 챔피언 목록 채우기!
+        const fowFallback = await scrapeFowProfile(cleanName, cleanTag);
+        const mostChamps = (fowFallback && fowFallback.mostChamps && fowFallback.mostChamps.length > 0) ? fowFallback.mostChamps : [];
+        const playedChamps = (fowFallback && fowFallback.playedChamps && fowFallback.playedChamps.length > 0) ? fowFallback.playedChamps : [];
+
+        return res.status(200).json({
+          name: `${accData.gameName}#${accData.tagLine}`,
+          soloRank,
+          flexRank,
+          mostChamps,
+          playedChamps
+        });
       }
     }
   } catch (e) {}
 
-  // 2차 (핵심 폴백): API 키 만료/미인증 시 FOW 전적 스크래핑으로 페이커 등 모든 유저 즉시 복구
+  // 2차: 공식 API 실패 또는 키 만료 시 FOW 전적 스크래핑 폴백
   const fallbackData = await scrapeFowProfile(cleanName, cleanTag);
   if (fallbackData) return res.status(200).json(fallbackData);
 
