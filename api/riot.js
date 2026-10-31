@@ -82,7 +82,7 @@ export default async function handler(req, res) {
           });
         }
 
-        // 🌟 [핵심] 라이엇 API 성공 시에도 FOW 스크래핑을 병행 호출하여 모스트 챔피언 목록 채우기!
+        // FOW 전적 스크래핑을 병행 호출하여 모스트 챔피언 및 전체 숙련도 풀 채우기
         const fowFallback = await scrapeFowProfile(cleanName, cleanTag);
         const mostChamps = (fowFallback && fowFallback.mostChamps && fowFallback.mostChamps.length > 0) ? fowFallback.mostChamps : [];
         const playedChamps = (fowFallback && fowFallback.playedChamps && fowFallback.playedChamps.length > 0) ? fowFallback.playedChamps : [];
