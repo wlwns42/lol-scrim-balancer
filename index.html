@@ -1037,6 +1037,7 @@
 
     const ORDERED_ROLES = ['TOP', 'JUG', 'MID', 'ADC', 'SUP'];
 
+    let isCloudLoaded = false;
     let summoners = [];
     let selectedPlayerIds = new Set();
     let currentMatch = null;
@@ -1104,8 +1105,10 @@ async function initData() {
       setInterval(() => fetchCloudData(false), 4000);
     }
 
-    async function saveLocalData() {
-      // 로컬 스토리지에 캐시 기록
+    async function saveLocalData(options = {}) {
+      // 🌟 [DB 보호 락] 클라우드 DB에서 초기 데이터를 온전히 받아오기 전에는 빈 값으로 DB를 덮어쓰지 않음
+      if (!isCloudLoaded && !options.force) return;
+
       try {
         localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
         localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
@@ -1121,7 +1124,7 @@ async function initData() {
         }
       } catch(e) {}
 
-      // 🌟 Supabase 클라우드 DB로 즉시 전송
+      // 🌟 Supabase 클라우드 DB로 전송
       try {
         const now = Date.now();
         localStorage.setItem('scrim_last_sync_time', now.toString());
@@ -1136,6 +1139,8 @@ async function initData() {
             communityPosts,
             selectedPlayerIds: Array.from(selectedPlayerIds),
             currentMatch: currentMatch || null,
+            allowEmptyHistory: options.allowEmptyHistory || false,
+            allowEmptyPosts: options.allowEmptyPosts || false,
             updatedAt: now
           })
         });
@@ -1201,6 +1206,7 @@ async function initData() {
           renderAllViews();
           renderCalendar();
           renderScheduleBoard();
+          isCloudLoaded = true;
           renderCommunityBoard();
         }
       } catch (e) {
@@ -2361,7 +2367,7 @@ function resetMatchHistory() {
       if (confirm('[관리자 승인] 매치 히스토리를 모두 삭제하시겠습니까?')) {
         matchHistory = [];
         syncStatsFromHistory();
-        saveLocalData();
+        saveLocalData({ allowEmptyHistory: true, force: true });
         renderAllViews();
         showToast('매치 히스토리 및 참가자 내전 전적이 완전히 초기화되었습니다.', 'success');
       }
