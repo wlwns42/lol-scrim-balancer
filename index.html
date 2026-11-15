@@ -1479,8 +1479,8 @@
       return n;
     }
 
-    // 🌟 소환사 이름 유연 매칭 함수 (태그 유무 및 오탈자 양방향 호환)
-    function isSameSummonerName(nameA, nameB) {
+     // 기본 문자열 비교 헬퍼
+    function isRawSameName(nameA, nameB) {
       if (!nameA || !nameB) return false;
       const cleanA = normalizeSummonerName(nameA);
       const cleanB = normalizeSummonerName(nameB);
@@ -1488,6 +1488,25 @@
       const taglessA = cleanA.split('#')[0].replace(/\s+/g, '');
       const taglessB = cleanB.split('#')[0].replace(/\s+/g, '');
       return taglessA === taglessB;
+    }
+
+    // 🌟 소환사 이름 유연 매칭 함수 (태그 유무, 오탈자, historyAliases 이전 닉네임까지 전역 호환)
+    function isSameSummonerName(nameA, nameB) {
+      if (isRawSameName(nameA, nameB)) return true;
+      if (typeof summoners !== 'undefined' && Array.isArray(summoners)) {
+        return summoners.some(s => {
+          if (!s || !s.historyAliases) return false;
+          const aliases = Array.isArray(s.historyAliases)
+            ? s.historyAliases
+            : String(s.historyAliases).split(',').map(v => v.trim()).filter(Boolean);
+          if (aliases.length === 0) return false;
+
+          if (isRawSameName(s.name, nameA)) return aliases.some(a => isRawSameName(a, nameB));
+          if (isRawSameName(s.name, nameB)) return aliases.some(a => isRawSameName(a, nameA));
+          return false;
+        });
+      }
+      return false;
     }
 
     // 현재 닉네임뿐 아니라 관리자가 등록한 이전 닉네임으로도 과거 내전 기록을 연결한다.
