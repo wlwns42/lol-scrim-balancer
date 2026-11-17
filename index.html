@@ -1472,10 +1472,13 @@
     function normalizeSummonerName(name) {
       if (!name) return '';
       let n = name.trim().toLowerCase();
-      // 1. 세 사람의 오탈자 변이형 흡수
+      // 오탈자 및 주요 닉네임 변이형 자동 흡수
       n = n.replace('임다물면', '입다물면');
-      n = n.replace('화상이', '회상이');
+      n = n.replace('화상이', '희상이');
+      n = n.replace('회상이', '희상이');
       n = n.replace('펙탄', '핵탄');
+      n = n.replace('돌나무삼', '돌나무삽');
+      n = n.replace('따뜻한 봄', '따듯한 봄');
       return n;
     }
 
@@ -2113,34 +2116,41 @@ function syncStatsFromHistory() {
         return parseInt(tierStr.trim(), 10);
       }
       const str = tierStr.toUpperCase();
+      // 티어 간 간격을 320pt 단위로 정밀 조정 (1개 세부 단계 = 80pt, 100LP = 80pt)
       let tierBase = 2000;
-      if (str.includes('CHALLENGER') || str.match(/\bCH\b|\bC\s*\(/)) tierBase = 4300;
-      else if (str.includes('GRANDMASTER') || str.match(/\bGM\b/)) tierBase = 3700;
-      else if (str.includes('MASTER') || str.match(/\bMA\b|\bM\b|\bM\s*\(/)) tierBase = 3200;
-      else if (str.includes('DIAMOND') || str.match(/\bDI\b|\bD\b|\bD\s*\(/)) tierBase = 2800;
-      else if (str.includes('EMERALD') || str.match(/\bEM\b|\bE\b|\bE\s*\(/)) tierBase = 2400;
-      else if (str.includes('PLATINUM') || str.match(/\bPL\b|\bP\b|\bP\s*\(/)) tierBase = 2000;
-      else if (str.includes('GOLD') || str.match(/\bGO\b|\bG\b|\bG\s*\(/)) tierBase = 1600;
-      else if (str.includes('SILVER') || str.match(/\bSI\b|\bS\b|\bS\s*\(/)) tierBase = 1200;
-      else if (str.includes('BRONZE') || str.match(/\bBR\b|\bB\b|\bB\s*\(/)) tierBase = 800;
-      else if (str.includes('IRON') || str.match(/\bIR\b|\bI\s*\(/)) tierBase = 400;
+      if (str.includes('CHALLENGER') || str.match(/\bCH\b|\bC\s*\(/)) tierBase = 4100;
+      else if (str.includes('GRANDMASTER') || str.match(/\bGM\b/)) tierBase = 3600;
+      else if (str.includes('MASTER') || str.match(/\bMA\b|\bM\b|\bM\s*\(/)) tierBase = 3160;
+      else if (str.includes('DIAMOND') || str.match(/\bDI\b|\bD\b|\bD\s*\(/)) tierBase = 2840;
+      else if (str.includes('EMERALD') || str.match(/\bEM\b|\bE\b|\bE\s*\(/)) tierBase = 2520;
+      else if (str.includes('PLATINUM') || str.match(/\bPL\b|\bP\b|\bP\s*\(/)) tierBase = 2200;
+      else if (str.includes('GOLD') || str.match(/\bGO\b|\bG\b|\bG\s*\(/)) tierBase = 1880;
+      else if (str.includes('SILVER') || str.match(/\bSI\b|\bS\b|\bS\s*\(/)) tierBase = 1560;
+      else if (str.includes('BRONZE') || str.match(/\bBR\b|\bB\b|\bB\s*\(/)) tierBase = 1240;
+      else if (str.includes('IRON') || str.match(/\bIR\b|\bI\s*\(/)) tierBase = 920;
 
-      // 단계별 (IV: 0pt, III: 100pt, II: 200pt, I: 300pt)
-      let divBonus = 0;
-      if (str.match(/\bI\b|\bI\(/)) divBonus = 300;
-      else if (str.match(/\bII\b|\bII\(/)) divBonus = 200;
-      else if (str.match(/\bIII\b|\bIII\(/)) divBonus = 100;
-      else if (str.match(/\bIV\b|\bIV\(/)) divBonus = 0;
+      // 세부 단계(I, II, III, IV 또는 1, 2, 3, 4) 정밀 파싱 (1단계당 80pt 간격)
+      let divBonus = null;
+      if (str.match(/\bI\b|\bI\(|[A-Z]\s*1\b/)) divBonus = 240;
+      else if (str.match(/\bII\b|\bII\(|[A-Z]\s*2\b/)) divBonus = 160;
+      else if (str.match(/\bIII\b|\bIII\(|[A-Z]\s*3\b/)) divBonus = 80;
+      else if (str.match(/\bIV\b|\bIV\(|[A-Z]\s*4\b/)) divBonus = 0;
 
-      // LP 가산 (1LP = 1pt)
-      const lpMatch = str.match(/(\d+)\s*LP/);
+      // LP 추출 (괄호 안 숫자 또는 LP 앞 숫자 모두 인식)
+      const lpMatch = str.match(/(\d+)\s*LP/i) || str.match(/\(\s*(\d+)\s*\)/);
       const lp = lpMatch ? parseInt(lpMatch[1], 10) : 0;
 
-      // 마스터 이상은 단계 없이 순수 LP * 1.2 가산
-      if (tierBase >= 3200) {
-        return tierBase + Math.round(lp * 1.2);
+      // 마스터 이상은 단계 없이 순수 LP * 1.0 가산
+      if (tierBase >= 3160) {
+        return tierBase + Math.round(lp * 1.0);
       }
-      return tierBase + divBonus + lp;
+
+      // 세부 단계가 없는 단일 티어 문자열("DIAMOND", "EMERALD" 등)일 경우 티어 중간값(+120pt) 부여해 급락 방지
+      if (divBonus === null) {
+        return tierBase + 120;
+      }
+
+      return tierBase + divBonus + Math.round(lp * 0.8);
     }
 
 function getPlayerMMR(p) {
@@ -2356,27 +2366,53 @@ function getRoleSpecificMMR(player, assignedRole) {
       const sGames = solo ? solo.totalGames : 0;
       const fGames = flex ? flex.totalGames : 0;
 
-      const idx = summoners.findIndex(s => s.name.toLowerCase() === data.name.toLowerCase());
+      const idx = summoners.findIndex(s => isSameSummonerName(s.name, data.name));
+      const prev = idx >= 0 ? summoners[idx] : null;
+
+      // 이전 솔랭/최고 기록과 현재 솔랭 점수를 비교해 최고 티어(peakTier / peakDetail) 자동 보존 및 갱신
+      let nextPeakTier = prev ? (prev.peakTier || prev.tier || primaryTier) : primaryTier;
+      let nextPeakDetail = prev ? (prev.peakDetail || '') : (solo ? soloDisplay : '');
+
+      const prevSoloPts = prev && prev.soloTier && !prev.soloTier.includes('언랭') ? parseRankPoints(prev.soloTier) : 0;
+      const curSoloPts = solo ? parseRankPoints(soloDisplay) : 0;
+      const prevPeakPts = prev ? parseRankPoints(prev.peakDetail || prev.peakTier || prev.tier) : 0;
+
+      if (prevSoloPts > prevPeakPts && prev && prev.soloTier) {
+        nextPeakDetail = prev.soloTier;
+        if (prev.tier && parseRankPoints(prev.tier) > parseRankPoints(nextPeakTier)) {
+          nextPeakTier = prev.tier;
+        }
+      }
+      if (curSoloPts > Math.max(prevPeakPts, prevSoloPts) && solo) {
+        nextPeakTier = primaryTier;
+        nextPeakDetail = soloDisplay;
+      }
+
       const updatedPlayer = {
-        id: idx >= 0 ? summoners[idx].id : 'p-' + Date.now(),
+        id: prev ? prev.id : 'p-' + Date.now(),
         name: data.name,
+        description: prev ? (prev.description || '') : '',
         tier: primaryTier,
+        peakTier: nextPeakTier,
+        peakDetail: nextPeakDetail,
         flexBaseTier: flexTierBase,
         soloTier: soloDisplay,
         flexTier: flexDisplay,
         soloGames: sGames,
         flexGames: fGames,
-        mainRole: idx >= 0 ? summoners[idx].mainRole : 'ADC',
-        subRole: idx >= 0 ? summoners[idx].subRole : 'MID',
-        rolePrefs: idx >= 0 ? (summoners[idx].rolePrefs || ['ADC', 'MID', 'TOP', 'JUG']) : ['ADC', 'MID', 'TOP', 'JUG'],
+        mainRole: prev ? prev.mainRole : 'ADC',
+        subRole: prev ? prev.subRole : 'MID',
+        rolePrefs: prev ? (prev.rolePrefs || ['ADC', 'MID', 'TOP', 'JUG']) : ['ADC', 'MID', 'TOP', 'JUG'],
         // 🌟 카드 UI용 이번 시즌 모스트 3개
-        most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (idx >= 0 ? summoners[idx].most : []),
+        most: data.mostChamps && data.mostChamps.length ? data.mostChamps : (prev ? prev.most : []),
         // 🌟 밸런서 판정용 전체 숙련도 챔피언 풀 영구 보존
-        playedChamps: data.playedChamps && data.playedChamps.length ? data.playedChamps : (idx >= 0 && summoners[idx].playedChamps ? summoners[idx].playedChamps : (data.mostChamps || [])),
-        customBaseTier: idx >= 0 ? (summoners[idx].customBaseTier || '') : '',
-        formScore: idx >= 0 ? summoners[idx].formScore : 85,
-        wins: idx >= 0 ? summoners[idx].wins : 0,
-        losses: idx >= 0 ? summoners[idx].losses : 0
+        playedChamps: data.playedChamps && data.playedChamps.length ? data.playedChamps : (prev && prev.playedChamps ? prev.playedChamps : (data.mostChamps || [])),
+        customBaseTier: prev ? (prev.customBaseTier || '') : '',
+        historyAliases: prev ? (prev.historyAliases || []) : [],
+        formScore: prev ? prev.formScore : 85,
+        carryBonus: prev ? (prev.carryBonus || 0) : 0,
+        wins: prev ? prev.wins : 0,
+        losses: prev ? prev.losses : 0
       };
 
       if (idx >= 0) summoners[idx] = updatedPlayer;
