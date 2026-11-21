@@ -3966,7 +3966,15 @@ let summonerSortKey = 'mmr';
           : mvpScore >= 45 ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
           : 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
         const winTone = isBlueWin ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400';
-        const realNameOf = (p) => (summoners.find(sm => isSameSummonerName(sm.name, p.name))?.description) || String(p.name || '').split('#')[0];
+        
+        const formatHistoryName = (rawName) => {
+        const sm = summoners.find(s => isSameSummonerName(s.name, rawName));
+        const desc = sm?.description?.trim();
+        const nick = String(sm?.name || rawName || '').split('#')[0].trim();
+        return (desc && desc !== nick) ? `${desc} (${nick})` : nick;
+         };
+        
+const realNameOf = (p) => formatHistoryName(p?.name);
         const champImg = (champ, cls) => {
           const ko = getChampionKoName(champ || '자유픽');
           const url = getChampionIconUrl(champ);
@@ -4053,7 +4061,7 @@ let summonerSortKey = 'mmr';
             </div>`;
         };
 
-        const mvpDisplay = (summoners.find(sm => isSameSummonerName(sm.name, mvpName))?.description) || mvpName.split('#')[0];
+        const mvpDisplay = formatHistoryName(mvpName);
 
         const card = document.createElement('article');
         card.className = 'surface overflow-hidden transition hover:border-line-strong';
