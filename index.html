@@ -2738,9 +2738,10 @@ function getRoleSpecificMMR(player, assignedRole) {
           nextPeakTier = prev.tier;
         }
       }
-      if (curSoloPts > Math.max(prevPeakPts, prevSoloPts) && solo) {
-        nextPeakTier = primaryTier;
-        nextPeakDetail = soloDisplay;
+      const isMissingDetailSameTier = !nextPeakDetail && solo && (primaryTier === nextPeakTier);
+      if (solo && (curSoloPts > Math.max(prevPeakPts, prevSoloPts) || isMissingDetailSameTier)) {
+      nextPeakTier = primaryTier;
+      nextPeakDetail = soloDisplay;
       }
 
       const updatedPlayer = {
