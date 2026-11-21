@@ -3971,7 +3971,7 @@ let summonerSortKey = 'mmr';
         const sm = summoners.find(s => isSameSummonerName(s.name, rawName));
         const desc = sm?.description?.trim();
         const nick = String(sm?.name || rawName || '').split('#')[0].trim();
-        return (desc && desc !== nick) ? `${desc} (${nick})` : nick;
+        return (desc && desc !== nick) ? `${nick} (${desc})` : nick;
          };
         
 const realNameOf = (p) => formatHistoryName(p?.name);
