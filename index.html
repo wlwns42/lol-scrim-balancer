@@ -5895,9 +5895,17 @@ function resetMatchHistory() {
         const boundId = params.get('bound_id');
         const meParam = params.get('me');
         const kakaoErr = params.get('kakao_error');
+        const quickVoteDate = params.get('quickvote');
 
         if (kakaoErr) {
           showToast('카카오 로그인 오류: ' + kakaoErr, 'error');
+        }
+
+        // iOS PWA 알림 본문을 누르면 해당 날짜의 세 가지 투표 버튼으로 이동
+        if (quickVoteDate && /^\d{4}-\d{2}-\d{2}$/.test(quickVoteDate)) {
+          switchTab('schedule');
+          selectScheduleDate(quickVoteDate);
+          setTimeout(() => document.getElementById('btn-quick-join')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350);
         }
 
         if (kakaoId) {
@@ -5918,7 +5926,7 @@ function resetMatchHistory() {
           }
         }
 
-        if (kakaoId || kakaoErr || meParam || params.get('voted')) {
+        if (kakaoId || kakaoErr || meParam || params.get('voted') || quickVoteDate) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       } catch (e) {}
@@ -6005,10 +6013,13 @@ function resetMatchHistory() {
       const joined = (sched.participants || []).filter(p => p.status === 'JOIN').length;
       if (!confirm(`[${selectedSchedDateKey} ${sched.time || '22:00'}] 내전 모집 푸시 알림을 구독 중인 모든 멤버 스마트폰에 발송할까요? (현재 ${joined}/10명)`)) return;
 
+      const pushAdminToken = prompt('Vercel 환경변수 PUSH_ADMIN_TOKEN에 설정한 푸시 발송 관리자 토큰을 입력하세요.');
+      if (!pushAdminToken) return;
+
       try {
         const res = await fetch('/api/push?action=send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${pushAdminToken}` },
           body: JSON.stringify({ dateKey: selectedSchedDateKey })
         });
         const data = await res.json();

@@ -30,7 +30,8 @@ self.addEventListener('push', (event) => {
       url: data.url || '/',
       dateKey: data.dateKey || '',
       playerId: data.playerId || '',
-      playerName: data.playerName || ''
+      playerName: data.playerName || '',
+      voteToken: data.voteToken || ''
     },
     actions: [
       { action: 'JOIN', title: '✅ 참가하기' },
@@ -46,18 +47,18 @@ self.addEventListener('notificationclick', (event) => {
   const payload = event.notification.data || {};
   const action = event.action;
 
-  if ((action === 'JOIN' || action === 'ABSENT') && payload.playerId && payload.dateKey) {
+  if ((action === 'JOIN' || action === 'ABSENT') && payload.voteToken && payload.dateKey) {
     event.waitUntil(
       fetch('/api/push?action=quick-vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dateKey: payload.dateKey,
-          playerId: payload.playerId,
-          playerName: payload.playerName,
+          voteToken: payload.voteToken,
           status: action
         })
-      }).then(() => {
+      }).then((response) => {
+        if (!response.ok) throw new Error('투표 저장 실패');
         return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
           if (clientList.length > 0) {
             clientList[0].focus();
@@ -67,7 +68,7 @@ self.addEventListener('notificationclick', (event) => {
           }
         });
       }).catch(() => {
-        return self.clients.openWindow('/?quickVote=' + action);
+        return self.clients.openWindow(payload.url || '/?quickvote=' + encodeURIComponent(payload.dateKey || ''));
       })
     );
     return;
