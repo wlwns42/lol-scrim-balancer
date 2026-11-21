@@ -748,6 +748,7 @@
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-slate-500">대진 옵션:</span>
                   <span id="stat-candidate-badge" class="text-xs font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40">1대안 (최적)</span>
+                  <span id="balancer-sync-mode-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">전체 공유됨</span>
                 </div>
                 <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
                 <div class="flex items-center gap-2">
@@ -782,6 +783,14 @@
                 <button onclick="swapEntireTeams()" class="btn btn-outline" title="블루팀과 레드팀 진영 전체 맞교체">
                   <i class="fa-solid fa-right-left"></i>
                   <span>블루 ↔ 레드 진영 전체 교체</span>
+                </button>
+                <button id="btn-pull-shared-balancer" onclick="pullSharedBalancerFromCloud()" class="hidden btn btn-outline" title="내 화면 편집을 취소하고 현재 공유된 공식 대진표를 불러옵니다">
+                  <i class="fa-solid fa-cloud-arrow-down text-sky-500"></i>
+                  <span>공유 대진 불러오기</span>
+                </button>
+                <button id="btn-publish-balancer" onclick="publishBalancerToCloud()" class="btn bg-emerald-600 hover:bg-emerald-500 text-white" title="현재 내 화면의 대진표와 1~4대안 투표를 전체 멤버에게 공유합니다">
+                  <i class="fa-solid fa-share-nodes"></i>
+                  <span>대진표 공유하기</span>
                 </button>
                 <button id="btn-gen-tourney" onclick="generateTournamentCode()" class="btn btn-primary">
                   <i class="fa-solid fa-trophy"></i>
@@ -1639,6 +1648,9 @@
     let balancerPoll = null; // 현재 생성된 1~4대안에 대한 참가자 투표
     let selectedVoteVoterId = '';
     let selectedVoteCandidateIdx = null;
+    let activeTab = 'schedule';
+    let hasLocalBalancerDraft = false; // 개인 화면에서 밸런서 조작 중일 때 true (공유 전까지 DB 미반영)
+    let lastSharedBalancerState = { currentMatch: null, balancerPoll: null };
 
     function initTheme() {
       const savedTheme = localStorage.getItem('scrim_theme') || 'dark';
@@ -1716,8 +1728,8 @@ async function initData() {
       // 🌟 [핵심] 페이지 접속 즉시 Supabase 클라우드 DB를 최우선으로 읽어와 화면 완전 동기화
       await fetchCloudData(true);
 
-      // 이후 4초마다 백그라운드 자동 동기화
-      setInterval(() => fetchCloudData(false), 4000);
+      // 이후 15초마다 백그라운드 자동 동기화 (현재 보고 있는 탭만 조용히 갱신)
+      setInterval(() => fetchCloudData(false), 15000);
     }
 
     let cloudSaveInProgress = false;
@@ -1800,6 +1812,21 @@ async function initData() {
         } else if (options.scope === 'balancer') {
           payloadToSave.currentMatch = currentMatch || null;
           payloadToSave.balancerPoll = balancerPoll || null;
+        } else if (options.scope === 'balancer_vote') {
+          if (baseData && baseData.balancerPoll && balancerPoll && baseData.balancerPoll.id === balancerPoll.id) {
+            const mergedVotes = {
+              ...(baseData.balancerPoll.votes || {}),
+              ...(options.voteEntry || {})
+            };
+            payloadToSave.balancerPoll = {
+              ...baseData.balancerPoll,
+              votes: mergedVotes
+            };
+            balancerPoll.votes = mergedVotes;
+          } else {
+            payloadToSave.currentMatch = currentMatch || null;
+            payloadToSave.balancerPoll = balancerPoll || null;
+          }
         } else if (options.scope === 'community') {
           payloadToSave.communityPosts = communityPosts;
         } else if (options.scope === 'history') {
@@ -1843,11 +1870,155 @@ async function initData() {
       }
     }
 
-    // 🌟 Supabase DB를 단 하나의 절대적 진실(Single Source of Truth)로 동기화
+    function updateSidebarBadges() {
+      const rosterEl = document.getElementById('nav-roster-count');
+      if (rosterEl) rosterEl.textContent = summoners.length;
+      const histEl = document.getElementById('nav-history-count');
+      if (histEl) histEl.textContent = matchHistory.length;
+      const replayEl = document.getElementById('nav-replay-count');
+      if (replayEl) replayEl.textContent = replayArchives.length;
+      const postEl = document.getElementById('nav-post-count');
+      if (postEl) postEl.textContent = communityPosts.length;
+    }
+
+    function updateBalancerSyncBadge() {
+      const badge = document.getElementById('balancer-sync-mode-badge');
+      const pullBtn = document.getElementById('btn-pull-shared-balancer');
+      if (badge) {
+        if (hasLocalBalancerDraft) {
+          badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/40';
+          badge.textContent = '개인 화면 (미공유)';
+        } else {
+          badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30';
+          badge.textContent = '전체 공유됨';
+        }
+      }
+      if (pullBtn) {
+        const hasShared = !!(lastSharedBalancerState.currentMatch || lastSharedBalancerState.balancerPoll);
+        pullBtn.classList.toggle('hidden', !(hasLocalBalancerDraft && hasShared));
+      }
+    }
+
+    function publishBalancerToCloud() {
+      if (!currentMatch && (!balancedCandidates || balancedCandidates.length === 0)) {
+        showToast('공유할 대진표가 없습니다. 먼저 스마트 밸런싱을 실행해 주세요.', 'error');
+        return;
+      }
+      hasLocalBalancerDraft = false;
+      if (balancerPoll) {
+        balancerPoll.candidates = balancedCandidates;
+        balancerPoll.selectedIdx = currentCandidateIdx;
+      }
+      lastSharedBalancerState = {
+        currentMatch: currentMatch ? JSON.parse(JSON.stringify(currentMatch)) : null,
+        balancerPoll: balancerPoll ? JSON.parse(JSON.stringify(balancerPoll)) : null
+      };
+      updateBalancerSyncBadge();
+      saveLocalData({ scope: 'balancer', force: true });
+      showToast('현재 대진표와 1~4대안 투표가 전체 멤버에게 공유되었습니다!', 'success');
+    }
+
+    function pullSharedBalancerFromCloud() {
+      hasLocalBalancerDraft = false;
+      const sharedPoll = lastSharedBalancerState.balancerPoll;
+      const sharedMatch = lastSharedBalancerState.currentMatch;
+
+      if (sharedPoll && Array.isArray(sharedPoll.candidates)) {
+        balancerPoll = JSON.parse(JSON.stringify(sharedPoll));
+        balancedCandidates = balancerPoll.candidates;
+        currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
+        selectedVoteCandidateIdx = currentCandidateIdx;
+      } else {
+        balancerPoll = null;
+        balancedCandidates = [];
+        currentCandidateIdx = 0;
+        selectedVoteCandidateIdx = null;
+      }
+
+      if (sharedMatch) {
+        currentMatch = JSON.parse(JSON.stringify(sharedMatch));
+        document.getElementById('balancer-placeholder')?.classList.add('hidden');
+        document.getElementById('balancer-board')?.classList.remove('hidden');
+        recalculateMatchMMR();
+      } else {
+        currentMatch = null;
+        document.getElementById('balancer-placeholder')?.classList.remove('hidden');
+        document.getElementById('balancer-board')?.classList.add('hidden');
+      }
+      renderAlternativeCards();
+      renderBalancerVoting();
+      updateBalancerSyncBadge();
+      showToast('공유된 최신 대진표를 불러왔습니다.', 'info');
+    }
+
+    // 사용자가 입력 중이거나 모달/상세 아코디언을 열어둔 상태면 백그라운드 DOM 리렌더링을 보류한다.
+    function isUserBusyInCurrentTab() {
+      const modalIds = ['modal-member-detail', 'modal-board-view', 'modal-board-write', 'modal-admin-auth', 'modal-lobby', 'modal-summoner', 'modal-my-account'];
+      if (modalIds.some(id => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains('hidden');
+      })) return true;
+
+      const ae = document.activeElement;
+      if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) return true;
+
+      if (activeTab === 'schedule') {
+        const details = document.getElementById('rsvp-extra-details');
+        const reasonVal = document.getElementById('sched-reason-input')?.value?.trim();
+        if (details?.open || reasonVal) return true;
+      }
+      if (activeTab === 'history') {
+        if (document.querySelector('[id^="match-detail-"]:not(.hidden)')) return true;
+      }
+      if (activeTab === 'most') {
+        if (document.querySelector('[id^="most-detail-"]:not(.hidden)')) return true;
+      }
+      if (activeTab === 'community') {
+        const detail = document.getElementById('board-detail-container');
+        if (detail && !detail.classList.contains('hidden')) return true;
+      }
+      return false;
+    }
+
+    function renderActiveTabOnly() {
+      if (typeof syncStatsFromHistory === 'function') syncStatsFromHistory();
+      updateSidebarBadges();
+      updateMyAccountUI();
+
+      if (activeTab === 'schedule') {
+        renderCalendar();
+        renderScheduleBoard();
+      } else if (activeTab === 'balancer') {
+        renderSelectionGrid();
+        if (currentMatch) {
+          document.getElementById('balancer-placeholder')?.classList.add('hidden');
+          document.getElementById('balancer-board')?.classList.remove('hidden');
+          recalculateMatchMMR();
+        } else {
+          document.getElementById('balancer-placeholder')?.classList.remove('hidden');
+          document.getElementById('balancer-board')?.classList.add('hidden');
+        }
+        renderAlternativeCards();
+        renderBalancerVoting();
+        updateBalancerSyncBadge();
+      } else if (activeTab === 'summoners') {
+        renderSummonersList();
+      } else if (activeTab === 'history') {
+        renderMatchHistory();
+      } else if (activeTab === 'replay') {
+        renderReplayArchiveList();
+      } else if (activeTab === 'most') {
+        renderMostStatsTable();
+      } else if (activeTab === 'community') {
+        renderCommunityBoard();
+      }
+    }
+
+    // 🌟 Supabase DB를 단 하나의 절대적 진실(Single Source of Truth)로 동기화 (현재 보고 있는 탭만 조용히 갱신)
     let cloudFetchInProgress = false;
     async function fetchCloudData(isInitial = false) {
       if (cloudFetchInProgress) return;
-      if (!isInitial && (cloudSaveInProgress || (Date.now() - lastLocalSaveAt < 2500))) return;
+      if (!isInitial && (document.hidden || cloudSaveInProgress || (Date.now() - lastLocalSaveAt < 3000))) return;
       cloudFetchInProgress = true;
       try {
         const res = await fetch('/api/sync');
@@ -1859,7 +2030,7 @@ async function initData() {
         const localUpdated = parseInt(localStorage.getItem('scrim_last_sync_time') || '0', 10);
         const serverUpdated = parseInt(cloudData.updatedAt || '0', 10);
 
-        // 최초 로드이거나 서버 데이터가 더 최신일 때 화면 및 상태 갱신
+        // 최초 로드이거나 서버 데이터가 더 최신일 때 상태 갱신
         if (isInitial || serverUpdated > localUpdated) {
           if (Array.isArray(cloudData.summoners)) {
             summoners = cloudData.summoners;
@@ -1886,28 +2057,35 @@ async function initData() {
             communityPosts = [DEFAULT_GUIDE_POST];
             saveLocalData({ scope: 'community' });
           }
-          if (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) {
-            balancerPoll = cloudData.balancerPoll;
-            balancedCandidates = balancerPoll.candidates;
-            currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
-            localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
-          } else if (cloudData.balancerPoll === null) {
-            balancerPoll = null;
-            balancedCandidates = [];
-            currentCandidateIdx = 0;
-            selectedVoteCandidateIdx = null;
-            localStorage.removeItem('scrim_balancer_poll');
-          }
 
-          if (cloudData.currentMatch) {
-            currentMatch = cloudData.currentMatch;
-            document.getElementById('balancer-placeholder')?.classList.add('hidden');
-            document.getElementById('balancer-board')?.classList.remove('hidden');
-            recalculateMatchMMR();
-          } else if (cloudData.currentMatch === null) {
-            currentMatch = null;
-            document.getElementById('balancer-placeholder')?.classList.remove('hidden');
-            document.getElementById('balancer-board')?.classList.add('hidden');
+          // 서버의 최신 공유 대진표/투표 백업 보관
+          lastSharedBalancerState = {
+            currentMatch: cloudData.currentMatch || null,
+            balancerPoll: (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) ? cloudData.balancerPoll : null
+          };
+
+          if (!hasLocalBalancerDraft) {
+            if (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) {
+              balancerPoll = cloudData.balancerPoll;
+              balancedCandidates = balancerPoll.candidates;
+              currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
+              localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
+            } else if (cloudData.balancerPoll === null) {
+              balancerPoll = null;
+              balancedCandidates = [];
+              currentCandidateIdx = 0;
+              selectedVoteCandidateIdx = null;
+              localStorage.removeItem('scrim_balancer_poll');
+            }
+
+            if (cloudData.currentMatch) {
+              currentMatch = cloudData.currentMatch;
+            } else if (cloudData.currentMatch === null) {
+              currentMatch = null;
+            }
+          } else if (balancerPoll && cloudData.balancerPoll && balancerPoll.id === cloudData.balancerPoll.id) {
+            // 개인 화면에서 1~4대안 미리보기 중에도 동일 투표의 실시간 표 수는 유지
+            balancerPoll.votes = cloudData.balancerPoll.votes || {};
           }
 
           localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
@@ -1917,13 +2095,10 @@ async function initData() {
           localStorage.setItem('scrim_community_posts', JSON.stringify(communityPosts));
           localStorage.setItem('scrim_last_sync_time', (serverUpdated || Date.now()).toString());
 
-          renderAllViews();
-          renderAlternativeCards();
-          renderBalancerVoting();
-          renderCalendar();
-          renderScheduleBoard();
-          updateMyAccountUI();
-          renderCommunityBoard();
+          updateSidebarBadges();
+          if (isInitial || !isUserBusyInCurrentTab()) {
+            renderActiveTabOnly();
+          }
         }
       } catch (e) {
         console.warn("fetchCloudData error:", e);
@@ -2655,9 +2830,10 @@ function getRoleSpecificMMR(player, assignedRole) {
       document.getElementById('btn-run-balancing').disabled = (count !== 10);
     }
 
-// 대진표 편집은 공유 대진표에만 반영하고, 참가자 선택 초안은 건드리지 않는다.
+// 대진표 편집은 내 개인 화면에서만 즉시 반영한다. ([대진표 공유하기] 클릭 시 전체 게시)
     function syncSelectedFromCurrentMatch() {
-      saveLocalData({ scope: 'balancer' });
+      hasLocalBalancerDraft = true;
+      updateBalancerSyncBadge();
       renderSelectionGrid();
     }
 
@@ -2870,9 +3046,11 @@ function runSmartBalancing() {
       }
 
       currentCandidateIdx = 0;
+      hasLocalBalancerDraft = true;
       startBalancerPoll(pool);
       applyMatchCandidate(0, false);
-      showToast('1대안 (최적 균형) 대진표가 생성되었습니다! 하단에서 1~4대안을 비교하고 투표할 수 있습니다.', 'success');
+      updateBalancerSyncBadge();
+      showToast('1대안 대진표가 내 화면에 생성되었습니다! 비교/조정 후 [대진표 공유하기]를 누르면 모두에게 게시됩니다.', 'success');
     }
 
     function applyMatchCandidate(idx, isReroll = true) {
@@ -2909,10 +3087,10 @@ function runSmartBalancing() {
 
       document.getElementById('balancer-placeholder').classList.add('hidden');
       document.getElementById('balancer-board').classList.remove('hidden');
-      saveLocalData({ scope: 'balancer' });
-
       if (isReroll) {
-        showToast(`🔄 [${currentCandidateIdx + 1}대안 대진표]가 적용되었습니다!`, 'info');
+        hasLocalBalancerDraft = true;
+        updateBalancerSyncBadge();
+        showToast(`🔄 [${currentCandidateIdx + 1}대안]을 내 화면에 적용했습니다. (전체 반영은 [대진표 공유하기])`, 'info');
       }
     }
 
@@ -2968,7 +3146,6 @@ function runSmartBalancing() {
       const mySavedId = typeof getMySavedPlayerId === 'function' ? getMySavedPlayerId() : '';
       selectedVoteVoterId = (mySavedId && participants.some(p => p.id === mySavedId)) ? mySavedId : (participants[0]?.id || '');
       selectedVoteCandidateIdx = 0;
-      saveLocalData({ scope: 'balancer' });
       renderBalancerVoting();
     }
 
@@ -3071,7 +3248,7 @@ function runSmartBalancing() {
       balancerPoll.votes[voterId] = candidateIdx;
       selectedVoteVoterId = voterId;
       selectedVoteCandidateIdx = candidateIdx;
-      saveLocalData({ scope: 'balancer' });
+      saveLocalData({ scope: 'balancer_vote', voteEntry: { [voterId]: candidateIdx } });
       renderBalancerVoting();
       const name = balancerPoll.participants.find(p => p.id === voterId)?.name || '참가자';
       showToast(previousVote === undefined
@@ -3115,6 +3292,7 @@ function runSmartBalancing() {
     }
 
     function clearMatchTeams() {
+      const alsoClearShared = !hasLocalBalancerDraft && isAdminLoggedIn && confirm('전체 멤버에게 공유된 대진표도 함께 초기화할까요?\n(취소를 누르면 내 화면만 초기화됩니다)');
       currentMatch = null;
       balancedCandidates = [];
       currentCandidateIdx = 0;
@@ -3123,8 +3301,16 @@ function runSmartBalancing() {
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
       renderBalancerVoting();
-      saveLocalData({ scope: 'balancer' });
-      showToast('대진표가 초기화되었습니다.', 'info');
+      if (alsoClearShared) {
+        hasLocalBalancerDraft = false;
+        lastSharedBalancerState = { currentMatch: null, balancerPoll: null };
+        saveLocalData({ scope: 'balancer', force: true });
+        showToast('공유된 대진표가 전체 초기화되었습니다.', 'info');
+      } else {
+        hasLocalBalancerDraft = true;
+        showToast('내 화면의 대진표가 초기화되었습니다.', 'info');
+      }
+      updateBalancerSyncBadge();
     }
 
 
@@ -3166,9 +3352,10 @@ function runSmartBalancing() {
       const temp = currentMatch.blue;
       currentMatch.blue = currentMatch.red;
       currentMatch.red = temp;
+      hasLocalBalancerDraft = true;
       recalculateMatchMMR();
-      saveLocalData({ scope: 'balancer' });
-      showToast('블루팀과 레드팀 진영이 전체 맞교체되었습니다!', 'success');
+      updateBalancerSyncBadge();
+      showToast('내 화면에서 블루 ↔ 레드 진영이 교체되었습니다. (전체 반영은 [대진표 공유하기])', 'success');
     }
 
     function swapLaneLineup() {
@@ -3181,9 +3368,10 @@ function runSmartBalancing() {
       currentMatch.blue[idx] = currentMatch.red[idx];
       currentMatch.red[idx] = temp;
 
+      hasLocalBalancerDraft = true;
       recalculateMatchMMR();
-      saveLocalData({ scope: 'balancer' });
-      showToast(`${targetPos} 라인이 맞교체되었습니다.`, 'info');
+      updateBalancerSyncBadge();
+      showToast(`내 화면에서 ${targetPos} 라인이 맞교체되었습니다.`, 'info');
     }
 
       function recalculateMatchMMR() {
@@ -4201,6 +4389,7 @@ function resetMatchHistory() {
     }
 
     function switchTab(tabKey) {
+      activeTab = tabKey;
       if (window.innerWidth < 768) {
         document.getElementById('app-sidebar')?.classList.add('hidden');
       }
@@ -4214,11 +4403,21 @@ function resetMatchHistory() {
       });
       window.scrollTo({ top: 0 });
       if (tabKey === 'schedule') { renderCalendar(); renderScheduleBoard(); }
-      if (tabKey === 'balancer') renderSelectionGrid();
+      if (tabKey === 'balancer') {
+        renderSelectionGrid();
+        if (currentMatch) {
+          document.getElementById('balancer-placeholder')?.classList.add('hidden');
+          document.getElementById('balancer-board')?.classList.remove('hidden');
+          recalculateMatchMMR();
+        }
+        renderAlternativeCards();
+        renderBalancerVoting();
+        updateBalancerSyncBadge();
+      }
       if (tabKey === 'summoners') renderSummonersList();
       if (tabKey === 'history') renderMatchHistory();
       if (tabKey === 'replay') renderReplayArchiveList();
-      if (tabKey === 'most') { renderMostStatsTable(); } // ✅ 수정 완료 (불필요한 함수 호출 제거)
+      if (tabKey === 'most') { renderMostStatsTable(); }
       if (tabKey === 'community') { closePostDetailView(); renderCommunityBoard(); }
     }
 
@@ -5090,11 +5289,11 @@ function resetMatchHistory() {
       selectedVoteCandidateIdx = null;
       selectedPlayerIds = new Set(matchedPlayers.map(s => s.id));
 
-      // 이전 대진표가 화면에 남지 않도록 빈 상태 UI로 되돌린다.
+      // 이전 대진표가 내 화면에 남지 않도록 빈 상태 UI로 되돌린다 (공유 DB는 유지).
+      hasLocalBalancerDraft = true;
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
 
-      saveLocalData({ scope: 'balancer' });
       switchTab('balancer');
       renderSelectionGrid();
 
@@ -5445,7 +5644,6 @@ function resetMatchHistory() {
 
       activeViewingPostId = postId;
       p.views = (p.views || 0) + 1;
-      saveLocalData({ scope: 'community' });
 
       document.getElementById('board-list-container')?.classList.add('hidden');
       document.getElementById('board-detail-container')?.classList.remove('hidden');
