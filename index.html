@@ -6001,10 +6001,17 @@ function resetMatchHistory() {
       }
     }
 
-    function updatePushButtonUI() {
+      function updatePushButtonUI() {
+      const btn = document.getElementById('btn-push-subscribe');
       const btnText = document.getElementById('btn-push-text');
       const isGranted = ('Notification' in window && Notification.permission === 'granted') && localStorage.getItem('scrim_push_enabled') === 'true';
-      if (btnText) btnText.textContent = isGranted ? '알림 켜짐' : '알림 켜기';
+
+      if (btnText) btnText.textContent = isGranted ? '알림 켜짐' : '알림 꺼짐';
+      if (btn) {
+        btn.className = isGranted
+          ? 'shrink-0 h-9 px-3 rounded-xl text-[13px] font-bold transition flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 border border-emerald-500/40'
+          : 'shrink-0 h-9 px-3 rounded-xl text-[13px] font-bold transition flex items-center gap-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/40';
+      }
     }
 
     async function sendManualPushBroadcast() {
