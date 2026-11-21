@@ -5882,7 +5882,7 @@ function resetMatchHistory() {
     }
 
     function startKakaoOAuthLogin() {
-      const REST_KEY = 'df3d27164574150005ce5e7d7af5422c';
+      const REST_KEY = '3abc3d8133950b3da107c156870a80e7';
       const redirectUri = encodeURIComponent(window.location.origin + '/api/kakao-callback');
       window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_KEY}&redirect_uri=${redirectUri}&response_type=code`;
     }
