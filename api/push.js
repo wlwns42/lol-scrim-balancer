@@ -119,7 +119,6 @@ export default async function handler(req, res) {
       const verified = verifyVoteToken(voteToken);
       if (!verified) return res.status(401).json({ error: '투표 토큰이 유효하지 않거나 만료되었습니다. 알림을 다시 받아주세요.' });
       const { playerId, dateKey: targetDate } = verified;
-      const playerName = '';
 
       if (!payload.scrimSchedules) payload.scrimSchedules = {};
       if (!payload.scrimSchedules[targetDate]) {
@@ -193,6 +192,7 @@ export default async function handler(req, res) {
       const targetDate = body.dateKey || getTodayKstKey();
       const sched = payload.scrimSchedules?.[targetDate] || { time: '22:00', participants: [] };
       const joinedCount = (sched.participants || []).filter(p => p.status === 'JOIN').length;
+
       const validSubs = [];
       let sentCount = 0;
 
@@ -231,3 +231,10 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ success: true, sentCount, totalSubscribers: validSubs.length });
     }
+
+    return res.status(400).json({ error: '알 수 없는 action 입니다.' });
+  } catch (err) {
+    console.error('Push API error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
