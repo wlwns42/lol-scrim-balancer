@@ -193,11 +193,6 @@ export default async function handler(req, res) {
       const targetDate = body.dateKey || getTodayKstKey();
       const sched = payload.scrimSchedules?.[targetDate] || { time: '22:00', participants: [] };
       const joinedCount = (sched.participants || []).filter(p => p.status === 'JOIN').length;
-
-      if (action === 'cron' && joinedCount >= 10) {
-        return res.status(200).json({ skipped: true, reason: '이미 10인 확정됨' });
-      }
-
       const validSubs = [];
       let sentCount = 0;
 
@@ -236,10 +231,3 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ success: true, sentCount, totalSubscribers: validSubs.length });
     }
-
-    return res.status(400).json({ error: '알 수 없는 action 입니다.' });
-  } catch (err) {
-    console.error('Push API error:', err);
-    return res.status(500).json({ error: err.message });
-  }
-}
