@@ -2,8 +2,14 @@
 <html lang="ko" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SCRIM-BALANCER - 실시간 내전 팀 밸런서 & 전적 엔진</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#090c12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="롤 내전">
+  <link rel="apple-touch-icon" href="/scrim_banner.png">
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -412,6 +418,13 @@
           <span class="hidden 2xl:inline">라이엇 서버 전원 최신 전적 갱신</span><span class="2xl:hidden">전원 전적 갱신</span>
         </button>
         <div class="hidden xl:block h-6 w-px bg-slate-200 dark:bg-line mx-1" aria-hidden="true"></div>
+        <!-- 🔔 푸시 알림 켜기 & 내 계정(카카오) 버튼 -->
+        <button id="btn-push-subscribe" onclick="enablePushNotifications()" class="shrink-0 h-9 px-3 rounded-xl text-[13px] font-bold transition flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" title="스마트폰 잠금화면 내전 모집 푸시 알림 켜기">
+          <i class="fa-solid fa-bell"></i> <span id="btn-push-text">알림 켜기</span>
+        </button>
+        <button id="btn-my-account" onclick="openMyAccountModal()" class="shrink-0 h-9 px-3 rounded-xl text-[13px] font-bold transition flex items-center gap-1.5 bg-[#FEE500]/15 hover:bg-[#FEE500]/25 text-amber-500 border border-amber-500/40" title="내 소환사 고정 및 카카오 1초 로그인">
+          <i class="fa-solid fa-user-check"></i> <span id="btn-my-account-text">내 닉네임 설정</span>
+        </button>
         <!-- 👑 관리자 권한 버튼 (이준희) -->
         <button id="btn-admin-auth" onclick="toggleAdminAuthModal()" class="shrink-0 h-9 px-3 rounded-xl text-[13px] font-bold transition flex items-center gap-1.5 border">
         </button>
@@ -582,92 +595,81 @@
               </button>
             </div>
 
-<!-- 빠른 참가 / 보류 / 불참 투표 폼 (사유 입력란 완비) -->
-            <div class="p-4 rounded-xl bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line space-y-3">
-              <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <span class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
-                  <i class="fa-solid fa-hand text-amber-500"></i> 내전 참가 투표하기
-                </span>
-                <span class="text-[11px] text-slate-400">※ 불참 또는 보류 시 사유를 남길 수 있습니다.</span>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-12 gap-2">
-                <div class="2xl:col-span-4">
-                  <select id="sched-player-select" aria-label="투표할 소환사" class="w-full bg-white dark:bg-card border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-200 focus:outline-none">
-                    <!-- 멤버 목록 자동 렌더링 -->
-                  </select>
+<!-- ⚡ 0.5초 원클릭 내전 참가 투표 카드 (내 계정 자동 기억) -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-50 to-emerald-500/5 dark:from-amber-500/10 dark:via-muted dark:to-emerald-500/5 border-2 border-amber-500/30 space-y-3.5 shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-7 h-7 rounded-lg bg-amber-500 text-gray-950 flex items-center justify-center text-xs font-black shadow">
+                    <i class="fa-solid fa-bolt"></i>
+                  </span>
+                  <div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs font-black text-slate-900 dark:text-gray-100">원클릭 출석 투표</span>
+                      <span id="quick-vote-identity-badge" onclick="openMyAccountModal()" class="cursor-pointer px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40 text-[11px] font-black hover:bg-amber-500/30 transition" title="클릭하여 내 소환사 변경">
+                        내 닉네임 미설정 (클릭)
+                      </span>
+                    </div>
+                    <p id="quick-vote-status-hint" class="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
+                      한 번만 내 이름을 지정하면 다음부터는 버튼만 누르면 됩니다.
+                    </p>
+                  </div>
                 </div>
-                <div class="2xl:col-span-3">
-                  <select id="sched-avail-time" aria-label="참가 가능 시간" class="w-full bg-white dark:bg-card border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
-                    <option value="정시 가능" selected>정시 즉시 가능 (기본)</option>
-                    <option value="언제든 상시 가능">언제든 상시 가능 (ALL TIME)</option>
-                    <option value="00:00 이후">00:00 (자정) 이후 가능</option>
-                    <option value="00:30 이후">00:30 이후 가능</option>
-                    <option value="01:00 이후">01:00 이후 가능</option>
-                    <option value="01:30 이후">01:30 이후 가능</option>
-                    <option value="02:00 이후">02:00 이후 가능</option>
-                    <option value="02:30 이후">02:30 이후 가능</option>
-                    <option value="03:00 이후">03:00 이후 가능</option>
-                    <option value="03:30 이후">03:30 이후 가능</option>
-                    <option value="04:00 이후">04:00 이후 가능</option>
-                    <option value="04:30 이후">04:30 이후 가능</option>
-                    <option value="05:00 이후">05:00 이후 가능</option>
-                    <option value="05:30 이후">05:30 이후 가능</option>
-                    <option value="06:00 이후">06:00 이후 가능</option>
-                    <option value="06:30 이후">06:30 이후 가능</option>
-                    <option value="07:00 이후">07:00 이후 가능</option>
-                    <option value="07:30 이후">07:30 이후 가능</option>
-                    <option value="08:00 이후">08:00 이후 가능</option>
-                    <option value="08:30 이후">08:30 이후 가능</option>
-                    <option value="09:00 이후">09:00 이후 가능</option>
-                    <option value="09:30 이후">09:30 이후 가능</option>
-                    <option value="10:00 이후">10:00 이후 가능</option>
-                    <option value="10:30 이후">10:30 이후 가능</option>
-                    <option value="11:00 이후">11:00 이후 가능</option>
-                    <option value="11:30 이후">11:30 이후 가능</option>
-                    <option value="12:00 이후">12:00 (낮) 이후 가능</option>
-                    <option value="12:30 이후">12:30 이후 가능</option>
-                    <option value="13:00 이후">13:00 이후 가능</option>
-                    <option value="13:30 이후">13:30 이후 가능</option>
-                    <option value="14:00 이후">14:00 이후 가능</option>
-                    <option value="14:30 이후">14:30 이후 가능</option>
-                    <option value="15:00 이후">15:00 이후 가능</option>
-                    <option value="15:30 이후">15:30 이후 가능</option>
-                    <option value="16:00 이후">16:00 이후 가능</option>
-                    <option value="16:30 이후">16:30 이후 가능</option>
-                    <option value="17:00 이후">17:00 이후 가능</option>
-                    <option value="17:30 이후">17:30 이후 가능</option>
-                    <option value="18:00 이후">18:00 이후 가능</option>
-                    <option value="18:30 이후">18:30 이후 가능</option>
-                    <option value="19:00 이후">19:00 이후 가능</option>
-                    <option value="19:30 이후">19:30 이후 가능</option>
-                    <option value="20:00 이후">20:00 이후 가능</option>
-                    <option value="20:30 이후">20:30 이후 가능</option>
-                    <option value="21:00 이후">21:00 이후 가능</option>
-                    <option value="21:30 이후">21:30 이후 가능</option>
-                    <option value="22:00 이후">22:00 이후 가능</option>
-                    <option value="22:30 이후">22:30 이후 가능</option>
-                    <option value="23:00 이후">23:00 이후 가능</option>
-                    <option value="23:30 이후">23:30 이후 가능</option>
-                    <option value="시간 조율 필요">시간 조율 필요 (댓글 협의)</option>
-                  </select>
-                </div>
-                <div class="sm:col-span-2 2xl:col-span-5 flex items-center gap-1.5">
-                  <button onclick="submitRsvpVote('JOIN')" class="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-1" title="참가 확정">
-                    <i class="fa-solid fa-circle-check"></i> 참가
+
+                <div class="flex items-center gap-1.5">
+                  <button id="btn-admin-send-push" onclick="sendManualPushBroadcast()" class="hidden h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition flex items-center gap-1 shadow" title="알림 허용한 전체 멤버 스마트폰에 지금 푸시 알림 발송">
+                    <i class="fa-solid fa-paper-plane"></i> <span>모집 푸시 발송</span>
                   </button>
-                  <button onclick="submitRsvpVote('HOLD')" class="flex-1 h-10 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-500 font-black text-xs transition flex items-center justify-center gap-1" title="보류 (대기열)">
-                    <i class="fa-solid fa-clock"></i> 보류
-                  </button>
-                  <button onclick="submitRsvpVote('ABSENT')" class="px-4 h-10 rounded-xl bg-slate-200 dark:bg-line hover:bg-rose-500/20 hover:text-rose-500 text-slate-600 dark:text-gray-400 font-bold text-xs transition" title="불참">
-                    불참
+                  <button onclick="openMyAccountModal()" class="h-8 px-2.5 rounded-lg bg-white dark:bg-card border border-slate-200 dark:border-line-strong text-slate-600 dark:text-gray-300 hover:text-amber-500 font-bold text-[11px] transition">
+                    <i class="fa-solid fa-user-pen mr-1"></i>계정 변경
                   </button>
                 </div>
               </div>
 
-              <!-- 🌟 불참 / 보류 사유 입력 인풋 (여기에 사유 작성 가능) -->
-              <div>
-                <input id="sched-reason-input" type="text" aria-label="불참·보류 사유" placeholder="불참 또는 보류 사유를 적어주세요 (예: 야근 때문에 11시 이후 가능, 회식 등)" class="w-full bg-white dark:bg-card border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-medium text-slate-800 dark:text-gray-200 focus:outline-none focus:border-amber-500">
+              <div class="grid grid-cols-3 gap-2">
+                <button id="btn-quick-join" onclick="submitRsvpVote('JOIN')" class="h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black text-sm shadow-md transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-circle-check"></i> <span>참가</span>
+                </button>
+                <button id="btn-quick-hold" onclick="submitRsvpVote('HOLD')" class="h-12 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 active:scale-[0.98] border border-amber-500/40 text-amber-500 font-black text-sm transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-clock"></i> <span>보류</span>
+                </button>
+                <button id="btn-quick-absent" onclick="submitRsvpVote('ABSENT')" class="h-12 rounded-xl bg-slate-200 dark:bg-card hover:bg-rose-500/20 hover:text-rose-500 active:scale-[0.98] border border-slate-300 dark:border-line-strong text-slate-600 dark:text-gray-300 font-black text-sm transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-circle-xmark"></i> <span>불참</span>
+                </button>
               </div>
+
+              <details id="rsvp-extra-details" class="group rounded-xl bg-white/70 dark:bg-card/70 border border-slate-200 dark:border-line px-3 py-2">
+                <summary class="text-[11px] font-bold text-slate-500 dark:text-gray-400 cursor-pointer select-none flex items-center justify-between">
+                  <span><i class="fa-solid fa-sliders text-amber-500 mr-1.5"></i>늦참 시간 · 불참 사유 · 다른 사람 대리 투표</span>
+                  <i class="fa-solid fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="pt-2.5 mt-2 border-t border-slate-200 dark:border-line grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label for="sched-player-select" class="block text-[10px] font-bold text-slate-400 mb-1">투표 대상 소환사 (자동 선택됨)</label>
+                    <select id="sched-player-select" onchange="onSchedPlayerSelectChange(this.value)" aria-label="투표할 소환사" class="w-full bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-200 focus:outline-none">
+                    </select>
+                  </div>
+                  <div>
+                    <label for="sched-avail-time" class="block text-[10px] font-bold text-slate-400 mb-1">참가 가능 시간</label>
+                    <select id="sched-avail-time" aria-label="참가 가능 시간" class="w-full bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold text-amber-500 focus:outline-none">
+                      <option value="정시 가능" selected>정시 즉시 가능 (기본)</option>
+                      <option value="언제든 상시 가능">언제든 상시 가능 (ALL TIME)</option>
+                      <option value="20:00 이후">20:00 이후 가능</option>
+                      <option value="20:30 이후">20:30 이후 가능</option>
+                      <option value="21:00 이후">21:00 이후 가능</option>
+                      <option value="21:30 이후">21:30 이후 가능</option>
+                      <option value="22:00 이후">22:00 이후 가능</option>
+                      <option value="22:30 이후">22:30 이후 가능</option>
+                      <option value="23:00 이후">23:00 이후 가능</option>
+                      <option value="23:30 이후">23:30 이후 가능</option>
+                      <option value="00:00 이후">00:00 (자정) 이후 가능</option>
+                      <option value="시간 조율 필요">시간 조율 필요 (댓글 협의)</option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <input id="sched-reason-input" type="text" aria-label="불참·보류 사유" placeholder="불참 또는 보류 사유를 적어주세요 (예: 야근 때문에 11시 이후 가능, 회식 등)" class="w-full bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-medium text-slate-800 dark:text-gray-200 focus:outline-none focus:border-amber-500">
+                  </div>
+                </div>
+              </details>
             </div>
 
             <!-- 참가 확정자 명단 (10인 슬롯) -->
@@ -1668,6 +1670,7 @@ async function initData() {
             communityPosts,
             currentMatch: currentMatch || null,
             balancerPoll: balancerPoll || null,
+            kakaoBindings: kakaoBindings || {},
             allowEmptyHistory: options.allowEmptyHistory || false,
             allowEmptyPosts: options.allowEmptyPosts || false,
             updatedAt: now
@@ -1705,6 +1708,13 @@ async function initData() {
           }
           if (cloudData.scrimSchedules && typeof cloudData.scrimSchedules === 'object') {
             scrimSchedules = cloudData.scrimSchedules;
+          }
+          if (cloudData.kakaoBindings && typeof cloudData.kakaoBindings === 'object') {
+            kakaoBindings = cloudData.kakaoBindings;
+            const myKId = localStorage.getItem('scrim_kakao_id');
+            if (myKId && kakaoBindings[myKId]?.playerId && !getMySavedPlayerId()) {
+              setMySavedPlayer(kakaoBindings[myKId].playerId, false);
+            }
           }
           if (Array.isArray(cloudData.communityPosts) && cloudData.communityPosts.length > 0) {
             communityPosts = cloudData.communityPosts;
@@ -4617,12 +4627,12 @@ function resetMatchHistory() {
       }
 
       const select = document.getElementById('sched-player-select');
+      const mySavedId = getMySavedPlayerId();
       if (select) {
-        const joinedPlayerIds = new Set(roster.map(p => p.id || summoners.find(s => isSameSummonerName(s.name, p.name))?.id).filter(Boolean));
-        const availableSummoners = summoners.filter(s => !joinedPlayerIds.has(s.id));
         select.innerHTML = '<option value="">소환사 선택 (본인 이름)...</option>' + 
-          availableSummoners.map(s => `<option value="${s.id}">${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
+          summoners.map(s => `<option value="${s.id}" ${s.id === mySavedId ? 'selected' : ''}>${s.name} ${s.description ? `(${s.description})` : ''} - ${s.tier}</option>`).join('');
       }
+      updateQuickVoteCardUI(roster);
 
       const rosterListEl = document.getElementById('sched-roster-list');
       if (rosterListEl) {
@@ -4765,9 +4775,10 @@ function resetMatchHistory() {
 
     function submitRsvpVote(voteType) {
       const select = document.getElementById('sched-player-select');
-      const selectedId = select?.value;
+      const selectedId = select?.value || getMySavedPlayerId();
       if (!selectedId) {
-        showToast('먼저 본인 소환사를 목록에서 선택해 주세요.', 'error');
+        showToast('먼저 본인 소환사를 한 번만 선택해 주세요!', 'info');
+        openMyAccountModal();
         return;
       }
 
@@ -4970,6 +4981,7 @@ function resetMatchHistory() {
         }
         if (resetBtn) resetBtn.classList.remove('hidden');
         if (histBtn) histBtn.classList.remove('hidden');
+        document.getElementById('btn-admin-send-push')?.classList.remove('hidden');
       } else {
         if (btn) {
           btn.className = "shrink-0 h-9 px-3 rounded-xl text-[13px] font-semibold transition flex items-center gap-1.5 bg-transparent border border-slate-200 dark:border-line-strong text-slate-600 dark:text-gray-300 hover:bg-muted hover:text-primary";
@@ -4978,6 +4990,7 @@ function resetMatchHistory() {
         }
         if (resetBtn) resetBtn.classList.add('hidden');
         if (histBtn) histBtn.classList.add('hidden');
+        document.getElementById('btn-admin-send-push')?.classList.add('hidden');
       }
     }
 
@@ -5727,10 +5740,316 @@ function resetMatchHistory() {
       if (entry && entry.backdrop && isModalOpen(e.target)) { try { entry.close(); } catch (err) {} }
     });
 
+
+    // ==========================================
+    // 📱 PWA + 카카오 1초 로그인 + 원클릭 투표 + 웹 푸시 엔진
+    // ==========================================
+    let kakaoBindings = {};
+
+    function getMySavedPlayerId() {
+      try {
+        const id = localStorage.getItem('scrim_my_voter_id') || '';
+        if (id && summoners.some(s => s.id === id)) return id;
+        const name = localStorage.getItem('scrim_my_voter_name') || '';
+        if (name) {
+          const found = summoners.find(s => isSameSummonerName(s.name, name));
+          if (found) {
+            localStorage.setItem('scrim_my_voter_id', found.id);
+            return found.id;
+          }
+        }
+      } catch (e) {}
+      return '';
+    }
+
+    function getMySavedPlayer() {
+      const id = getMySavedPlayerId();
+      return summoners.find(s => s.id === id) || null;
+    }
+
+    function setMySavedPlayer(playerId, syncToCloud = true) {
+      const p = summoners.find(s => s.id === playerId);
+      if (!p) return;
+      try {
+        localStorage.setItem('scrim_my_voter_id', p.id);
+        localStorage.setItem('scrim_my_voter_name', p.name);
+        const kakaoId = localStorage.getItem('scrim_kakao_id');
+        const kakaoNick = localStorage.getItem('scrim_kakao_nick') || '';
+        if (kakaoId && syncToCloud) {
+          kakaoBindings[kakaoId] = {
+            playerId: p.id,
+            playerName: p.name,
+            kakaoNick,
+            updatedAt: Date.now()
+          };
+          saveLocalData();
+        }
+      } catch (e) {}
+      selectedVoteVoterId = p.id;
+      updateMyAccountUI();
+      renderScheduleBoard();
+      renderBalancerVoting();
+      if (typeof updateAndBroadcastPresence === 'function') updateAndBroadcastPresence();
+    }
+
+    function onSchedPlayerSelectChange(val) {
+      if (val) setMySavedPlayer(val, true);
+    }
+
+    function updateMyAccountUI() {
+      const me = getMySavedPlayer();
+      const headerText = document.getElementById('btn-my-account-text');
+      const badge = document.getElementById('quick-vote-identity-badge');
+      const modalSelect = document.getElementById('my-account-player-select');
+      const kakaoStatus = document.getElementById('kakao-login-status-text');
+
+      const displayLabel = me
+        ? `${me.description ? me.description + ' · ' : ''}${me.name.split('#')[0]}`
+        : '내 닉네임 설정';
+
+      if (headerText) headerText.textContent = displayLabel;
+      if (badge) {
+        badge.textContent = me ? `👤 ${displayLabel}` : '⚠️ 내 닉네임 미설정 (클릭)';
+      }
+      if (modalSelect) {
+        modalSelect.innerHTML = '<option value="">-- 내 롤 소환사 계정 선택 --</option>' +
+          summoners.map(s => `<option value="${s.id}" ${me && s.id === me.id ? 'selected' : ''}>${s.name} ${s.description ? `(${s.description})` : ''}</option>`).join('');
+      }
+      if (kakaoStatus) {
+        const kNick = localStorage.getItem('scrim_kakao_nick');
+        kakaoStatus.textContent = kNick ? `카카오 계정 연결됨: ${kNick}` : '카카오 로그인 시 기기를 바꿔도 내 계정이 자동 연동됩니다.';
+      }
+    }
+
+    function updateQuickVoteCardUI(roster) {
+      const me = getMySavedPlayer();
+      const hintEl = document.getElementById('quick-vote-status-hint');
+      const btnJoin = document.getElementById('btn-quick-join');
+      const btnHold = document.getElementById('btn-quick-hold');
+      const btnAbsent = document.getElementById('btn-quick-absent');
+
+      if (!me) {
+        if (hintEl) hintEl.textContent = '위 노란색 [내 닉네임 미설정]을 눌러 본인 이름을 한 번만 선택하세요.';
+        return;
+      }
+
+      const myVote = (roster || []).find(p => p.id === me.id || isSameSummonerName(p.name, me.name));
+      if (hintEl) {
+        if (!myVote) {
+          hintEl.innerHTML = `<strong class="text-amber-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님, 아직 오늘 투표 전입니다. 버튼만 누르세요!`;
+        } else if (myVote.status === 'JOIN') {
+          hintEl.innerHTML = `현재 상태: <strong class="text-emerald-500">✅ 참가 확정 (${escHtml(myVote.availTime || '정시 가능')})</strong> · 변경하려면 다른 버튼 클릭`;
+        } else if (myVote.status === 'HOLD') {
+          hintEl.innerHTML = `현재 상태: <strong class="text-amber-500">⏳ 보류</strong> · 변경하려면 다른 버튼 클릭`;
+        } else {
+          hintEl.innerHTML = `현재 상태: <strong class="text-rose-500">❌ 불참</strong> · 변경하려면 다른 버튼 클릭`;
+        }
+      }
+
+      if (btnJoin && btnHold && btnAbsent) {
+        btnJoin.classList.toggle('ring-2', myVote?.status === 'JOIN');
+        btnJoin.classList.toggle('ring-white', myVote?.status === 'JOIN');
+        btnHold.classList.toggle('ring-2', myVote?.status === 'HOLD');
+        btnHold.classList.toggle('ring-amber-400', myVote?.status === 'HOLD');
+        btnAbsent.classList.toggle('ring-2', myVote?.status === 'ABSENT');
+        btnAbsent.classList.toggle('ring-rose-500', myVote?.status === 'ABSENT');
+      }
+    }
+
+    function openMyAccountModal() {
+      updateMyAccountUI();
+      const modal = document.getElementById('modal-my-account');
+      modal?.classList.remove('hidden');
+      modal?.classList.add('flex');
+    }
+
+    function closeMyAccountModal() {
+      const modal = document.getElementById('modal-my-account');
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
+    }
+
+    function saveMyAccountSelection() {
+      const sel = document.getElementById('my-account-player-select');
+      const val = sel?.value;
+      if (!val) {
+        showToast('본인 롤 소환사 계정을 선택해 주세요.', 'error');
+        return;
+      }
+      setMySavedPlayer(val, true);
+      closeMyAccountModal();
+      showToast('내 소환사 계정이 고정되었습니다! 이제 버튼 한 번으로 투표할 수 있습니다.', 'success');
+    }
+
+    function startKakaoOAuthLogin() {
+      const REST_KEY = 'df3d27164574150005ce5e7d7af5422c';
+      const redirectUri = encodeURIComponent(window.location.origin + '/api/kakao-callback');
+      window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_KEY}&redirect_uri=${redirectUri}&response_type=code`;
+    }
+
+    function handleOAuthRedirectParams() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const kakaoId = params.get('kakao_id');
+        const kakaoNick = params.get('kakao_nick');
+        const boundId = params.get('bound_id');
+        const meParam = params.get('me');
+        const kakaoErr = params.get('kakao_error');
+
+        if (kakaoErr) {
+          showToast('카카오 로그인 오류: ' + kakaoErr, 'error');
+        }
+
+        if (kakaoId) {
+          localStorage.setItem('scrim_kakao_id', kakaoId);
+          if (kakaoNick) localStorage.setItem('scrim_kakao_nick', kakaoNick);
+          if (boundId) {
+            setMySavedPlayer(boundId, false);
+            showToast(`카카오 로그인 완료! [${kakaoNick}] 계정으로 자동 연결되었습니다.`, 'success');
+          } else {
+            openMyAccountModal();
+            showToast(`카카오 로그인 완료! 본인 롤 계정을 한 번만 선택해 연결하세요.`, 'info');
+          }
+        } else if (meParam) {
+          const found = summoners.find(s => isSameSummonerName(s.name, meParam) || (s.description && s.description.includes(meParam)));
+          if (found) {
+            setMySavedPlayer(found.id, false);
+            showToast(`[${found.name}] 계정으로 자동 설정되었습니다!`, 'success');
+          }
+        }
+
+        if (kakaoId || kakaoErr || meParam || params.get('voted')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } catch (e) {}
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
+    }
+
+    async function enablePushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          alert('📱 아이폰(iOS)에서는 하단 [공유 버튼 ⬆] ➔ [홈 화면에 추가]를 누른 뒤, 홈 화면 아이콘으로 앱을 열어야 푸시 알림을 켤 수 있습니다!');
+        } else {
+          showToast('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.', 'error');
+        }
+        return;
+      }
+
+      const me = getMySavedPlayer();
+      if (!me) {
+        showToast('먼저 내 소환사 계정을 설정한 뒤 알림을 켜주세요!', 'info');
+        openMyAccountModal();
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showToast('알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해 주세요.', 'error');
+          return;
+        }
+
+        const reg = await navigator.serviceWorker.ready;
+        const keyRes = await fetch('/api/push?action=vapid-key');
+        const keyData = await keyRes.json();
+        if (!keyData.publicKey) {
+          showToast('서버 VAPID 키가 아직 설정되지 않았습니다.', 'error');
+          return;
+        }
+
+        const subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+        });
+
+        const subRes = await fetch('/api/push?action=subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription,
+            playerId: me.id,
+            playerName: me.name,
+            kakaoId: localStorage.getItem('scrim_kakao_id') || ''
+          })
+        });
+
+        if (subRes.ok) {
+          localStorage.setItem('scrim_push_enabled', 'true');
+          updatePushButtonUI();
+          showToast('🔔 푸시 알림 등록 완료! 이제 잠금화면에서 바로 내전 투표를 받을 수 있습니다.', 'success');
+        }
+      } catch (err) {
+        console.error('Push subscribe error:', err);
+        showToast('푸시 등록 중 오류: ' + err.message, 'error');
+      }
+    }
+
+    function updatePushButtonUI() {
+      const btnText = document.getElementById('btn-push-text');
+      const isGranted = ('Notification' in window && Notification.permission === 'granted') && localStorage.getItem('scrim_push_enabled') === 'true';
+      if (btnText) btnText.textContent = isGranted ? '알림 켜짐' : '알림 켜기';
+    }
+
+    async function sendManualPushBroadcast() {
+      if (!checkAdminAuth('전체 멤버 푸시 알림 발송')) return;
+      const sched = scrimSchedules[selectedSchedDateKey] || { time: '22:00', participants: [] };
+      const joined = (sched.participants || []).filter(p => p.status === 'JOIN').length;
+      if (!confirm(`[${selectedSchedDateKey} ${sched.time || '22:00'}] 내전 모집 푸시 알림을 구독 중인 모든 멤버 스마트폰에 발송할까요? (현재 ${joined}/10명)`)) return;
+
+      try {
+        const res = await fetch('/api/push?action=send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dateKey: selectedSchedDateKey })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`📢 총 ${data.sentCount}명의 스마트폰으로 내전 모집 알림을 발송했습니다!`, 'success');
+        } else {
+          showToast(data.error || '푸시 발송 실패', 'error');
+        }
+      } catch (e) {
+        showToast('푸시 발송 오류: ' + e.message, 'error');
+      }
+    }
+
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW register fail:', err));
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'REFRESH_SCRIM_DATA') {
+            localStorage.setItem('scrim_last_sync_time', '0');
+            fetchCloudData(true);
+            showToast('알림창에서 투표가 반영되었습니다!', 'success');
+          }
+        });
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+      registerServiceWorker();
       updateAdminButtonUI();
-      initData();
+      initData().then(() => {
+        handleOAuthRedirectParams();
+        updateMyAccountUI();
+        updatePushButtonUI();
+        renderScheduleBoard();
+        if (!getMySavedPlayerId() && summoners.length > 0) {
+          setTimeout(() => {
+            if (!getMySavedPlayerId()) openMyAccountModal();
+          }, 800);
+        }
+      });
       initKakaoSDK();
       updateAndBroadcastPresence();
     });
@@ -5758,5 +6077,43 @@ function resetMatchHistory() {
     </div>
   </div>
 
+
+  <!-- 👤 내 소환사 고정 & 카카오 1초 로그인 모달 -->
+  <div id="modal-my-account" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="my-account-title" class="bg-white dark:bg-card border border-slate-200 dark:border-line w-full max-w-sm rounded-2xl shadow-2xl p-6 relative space-y-4">
+      <button aria-label="닫기" onclick="closeMyAccountModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 text-xl mx-auto mb-2">
+          <i class="fa-solid fa-user-check"></i>
+        </div>
+        <h3 id="my-account-title" class="text-base font-black text-slate-900 dark:text-gray-100">내 소환사 계정 고정 (1회 설정)</h3>
+        <p class="text-xs text-slate-500 dark:text-gray-400">한 번만 지정해 두면 다음부터는 이름 선택 없이 <strong>[참가] 버튼만 0.5초 만에</strong> 누를 수 있습니다.</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="my-account-player-select" class="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">내 롤 계정 선택</label>
+          <select id="my-account-player-select" class="w-full bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 dark:text-gray-200 focus:outline-none focus:border-amber-500">
+          </select>
+        </div>
+        <button type="button" onclick="saveMyAccountSelection()" class="btn btn-primary w-full h-10">
+          이 계정으로 고정하기
+        </button>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 dark:border-line space-y-2">
+        <button type="button" onclick="startKakaoOAuthLogin()" class="w-full h-10 rounded-xl bg-[#FEE500] hover:brightness-95 text-[#191919] font-black text-xs transition flex items-center justify-center gap-2 border border-[#E6CE00]">
+          <i class="fa-solid fa-comment text-sm"></i> <span>카카오로 1초 계정 연동하기</span>
+        </button>
+        <p id="kakao-login-status-text" class="text-[11px] text-center text-slate-400">카카오 로그인 시 기기를 바꿔도 내 계정이 자동 연동됩니다.</p>
+      </div>
+
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line text-[11px] text-slate-500 dark:text-gray-400 space-y-1">
+        <div class="font-bold text-slate-700 dark:text-gray-200"><i class="fa-solid fa-mobile-screen-button text-amber-500 mr-1"></i>스마트폰 앱처럼 설치하는 법</div>
+        <div>• <strong>아이폰(Safari):</strong> 하단 공유 버튼(<i class="fa-solid fa-arrow-up-from-bracket"></i>) ➔ <strong>[홈 화면에 추가]</strong></div>
+        <div>• <strong>갤럭시(Chrome):</strong> 우측 상단 메뉴(⋮) ➔ <strong>[홈 화면에 추가]</strong></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
