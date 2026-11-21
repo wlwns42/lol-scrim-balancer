@@ -6,10 +6,15 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const { code, error: oauthError } = req.query;
+  const { code, error: oauthError, error_description: oauthDesc } = req.query;
 
-  if (oauthError || !code) {
-    return res.redirect('/?kakao_error=' + encodeURIComponent(oauthError || 'no_code'));
+  if (oauthError) {
+    const detail = oauthDesc ? `${oauthError}: ${oauthDesc}` : String(oauthError);
+    return res.redirect('/?kakao_error=' + encodeURIComponent(detail));
+  }
+
+  if (!code) {
+    return res.redirect('/?kakao_error=' + encodeURIComponent('no_code (query: ' + JSON.stringify(req.query) + ')'));
   }
 
   try {
