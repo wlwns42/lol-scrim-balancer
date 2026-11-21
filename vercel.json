@@ -12,7 +12,7 @@
     },
     {
       "path": "/api/push?action=cron",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
