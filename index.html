@@ -5869,6 +5869,22 @@ function resetMatchHistory() {
       modal?.classList.remove('flex');
     }
 
+    function resetMyAccountSession() {
+      try {
+        localStorage.removeItem('scrim_my_voter_id');
+        localStorage.removeItem('scrim_my_voter_name');
+        localStorage.removeItem('scrim_kakao_id');
+        localStorage.removeItem('scrim_kakao_nick');
+      } catch (e) {}
+
+      selectedVoteVoterId = '';
+      updateMyAccountUI();
+      renderScheduleBoard();
+      renderBalancerVoting();
+      if (typeof updateAndBroadcastPresence === 'function') updateAndBroadcastPresence();
+      showToast('내 계정 연결이 해제되었습니다. 다시 고정하거나 카카오로 로그인해 보세요!', 'info');
+    }
+
     function saveMyAccountSelection() {
       const sel = document.getElementById('my-account-player-select');
       const val = sel?.value;
@@ -6124,6 +6140,12 @@ function resetMatchHistory() {
           <i class="fa-solid fa-comment text-sm"></i> <span>카카오로 1초 계정 연동하기</span>
         </button>
         <p id="kakao-login-status-text" class="text-[11px] text-center text-slate-400">카카오 로그인 시 기기를 바꿔도 내 계정이 자동 연동됩니다.</p>
+      </div>
+
+      <div class="pt-2 flex justify-center">
+        <button type="button" onclick="resetMyAccountSession()" class="text-xs font-bold text-rose-500 hover:underline">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i>내 계정 연결 해제 (로그아웃)
+        </button>
       </div>
 
       <div class="p-3 rounded-xl bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line text-[11px] text-slate-500 dark:text-gray-400 space-y-1">
