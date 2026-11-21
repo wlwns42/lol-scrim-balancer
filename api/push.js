@@ -1,4 +1,5 @@
 import webpush from 'web-push';
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -25,10 +26,44 @@ function getTodayKstKey() {
   return `${y}-${m}-${d}`;
 }
 
+function bearerMatches(req, expected) {
+  if (!expected) return false;
+  const header = req.headers?.authorization || req.headers?.Authorization || '';
+  const supplied = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function createVoteToken(playerId, dateKey, exp) {
+  const secret = process.env.VOTE_TOKEN_SECRET;
+  if (!secret) throw new Error('VOTE_TOKEN_SECRET 환경변수가 설정되지 않았습니다.');
+  const payload = Buffer.from(JSON.stringify({ playerId, dateKey, exp })).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyVoteToken(token) {
+  const secret = process.env.VOTE_TOKEN_SECRET;
+  if (!secret || typeof token !== 'string' || token.length > 2048) return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [payload, suppliedSig] = parts;
+  const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  const a = Buffer.from(suppliedSig);
+  const b = Buffer.from(expectedSig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (!data.playerId || !/^\d{4}-\d{2}-\d{2}$/.test(data.dateKey) || !Number.isFinite(data.exp) || data.exp < Date.now()) return null;
+    return data;
+  } catch { return null; }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -77,11 +112,14 @@ export default async function handler(req, res) {
 
     if (action === 'quick-vote' && req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const { dateKey, playerId, playerName, status } = body || {};
-      const targetDate = dateKey || getTodayKstKey();
-      if (!playerId || !['JOIN', 'HOLD', 'ABSENT'].includes(status)) {
+      const { voteToken, status } = body || {};
+      if (!['JOIN', 'HOLD', 'ABSENT'].includes(status)) {
         return res.status(400).json({ error: '잘못된 투표 요청입니다.' });
       }
+      const verified = verifyVoteToken(voteToken);
+      if (!verified) return res.status(401).json({ error: '투표 토큰이 유효하지 않거나 만료되었습니다. 알림을 다시 받아주세요.' });
+      const { playerId, dateKey: targetDate } = verified;
+      const playerName = '';
 
       if (!payload.scrimSchedules) payload.scrimSchedules = {};
       if (!payload.scrimSchedules[targetDate]) {
@@ -90,7 +128,8 @@ export default async function handler(req, res) {
 
       const sched = payload.scrimSchedules[targetDate];
       const summoners = Array.isArray(payload.summoners) ? payload.summoners : [];
-      const playerObj = summoners.find(s => s.id === playerId) || { id: playerId, name: playerName || '멤버' };
+      const playerObj = summoners.find(s => s.id === playerId);
+      if (!playerObj) return res.status(404).json({ error: '등록된 소환사 계정을 찾을 수 없습니다.' });
 
       const existingIdx = sched.participants.findIndex(p => p.id === playerObj.id || p.name === playerObj.name);
       const oldStatus = existingIdx >= 0 ? sched.participants[existingIdx].status : '미투표';
@@ -120,16 +159,29 @@ export default async function handler(req, res) {
         reason: '푸시 알림 원클릭'
       });
 
-      await supabase.from('scrim_data').upsert({
+      const { error: voteSaveError } = await supabase.from('scrim_data').upsert({
         id: rowId,
         payload,
         updated_at: now
       });
+      if (voteSaveError) throw voteSaveError;
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, dateKey: targetDate, status });
     }
 
     if (action === 'cron' || action === 'send') {
+      if (action === 'cron') {
+        if (req.method !== 'GET' || !bearerMatches(req, process.env.CRON_SECRET)) {
+          return res.status(401).json({ error: '크론 인증에 실패했습니다.' });
+        }
+      } else {
+        if (req.method !== 'POST' || !bearerMatches(req, process.env.PUSH_ADMIN_TOKEN)) {
+          return res.status(401).json({ error: '푸시 발송 관리자 인증에 실패했습니다.' });
+        }
+      }
+      if (!process.env.VOTE_TOKEN_SECRET) {
+        return res.status(500).json({ error: 'VOTE_TOKEN_SECRET 환경변수가 설정되지 않았습니다.' });
+      }
       if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
         return res.status(500).json({ error: 'VAPID 키 환경변수가 설정되지 않았습니다.' });
       }
@@ -150,14 +202,17 @@ export default async function handler(req, res) {
       let sentCount = 0;
 
       for (const item of subs) {
+        if (!item.playerId) { validSubs.push(item); continue; }
         try {
+          const exp = Date.now() + 24 * 60 * 60 * 1000;
           const pushPayload = JSON.stringify({
             title: body.title || `⚔️ [${targetDate} ${sched.time || '22:00'}] 롤 내전 인원 모집!`,
-            body: body.body || `현재 ${joinedCount}/10명 참가 중! 터치해서 0.5초 만에 참가/불참을 눌러주세요.`,
-            url: '/',
+            body: body.body || `현재 ${joinedCount}/10명 참가 중! 알림에서 참가/불참, 앱에서 보류를 선택하세요.`,
+            url: `/?quickvote=${encodeURIComponent(targetDate)}`,
             dateKey: targetDate,
             playerId: item.playerId || '',
-            playerName: item.playerName || ''
+            playerName: item.playerName || '',
+            voteToken: item.playerId ? createVoteToken(item.playerId, targetDate, exp) : ''
           });
 
           await webpush.sendNotification(item.subscription, pushPayload);
