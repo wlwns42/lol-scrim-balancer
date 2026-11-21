@@ -1379,7 +1379,7 @@
       '신 짜오':'XinZhao','신짜오':'XinZhao','신드라':'Syndra','신지드':'Singed','쓰레쉬':'Thresh',
       '아리':'Ahri','아무무':'Amumu','아우렐리온 솔':'AurelionSol','아우솔':'AurelionSol','아이번':'Ivern',
       '아지르':'Azir','아칼리':'Akali','아크샨':'Akshan','아트록스':'Aatrox','아펠리오스':'Aphelios',
-      '알리스타':'Alistar','암베사':'Ambessa','야스오':'Yasuo','에코':'Ekko','엘리스':'Elise','오공':'MonkeyKing',
+      '알리스타':'Alistar','암베사':'Ambessa','애니':'Annie','애니비아':'Anivia','애쉬':'Ashe','야스오':'Yasuo','에코':'Ekko','엘리스':'Elise','오공':'MonkeyKing',
       '오로라':'Aurora','오른':'Ornn','오리아나':'Orianna','올라프':'Olaf','요네':'Yone','요릭':'Yorick',
       '우디르':'Udyr','우르곳':'Urgot','워윅':'Warwick','유미':'Yuumi','유나라':'Yunara','이렐리아':'Irelia',
       '이즈리얼':'Ezreal','일라오이':'Illaoi','자르반':'JarvanIV','자르반 4세':'JarvanIV','자르반4세':'JarvanIV',
@@ -1392,7 +1392,7 @@
       '탐 켄치':'TahmKench','탐켄치':'TahmKench','tahmkench':'TahmKench','트런들':'Trundle','트리스타나':'Tristana',
       '트린다미어':'Tryndamere','트위스티드 페이트':'TwistedFate','트페':'TwistedFate','트위스티드페이트':'TwistedFate',
       '트위치':'Twitch','티모':'Teemo','파이크':'Pyke','판테온':'Pantheon','피들스틱':'Fiddlesticks','피오라':'Fiora',
-      '피즈':'Fizz','하이머딩거':'Heimerdinger','헤카림':'Hecarim','흐웨이':'Hwei','화이':'Hwei','애니':'Annie','애니비아':'Anivia','애쉬':'Ashe'
+      '피즈':'Fizz','하이머딩거':'Heimerdinger','헤카림':'Hecarim','흐웨이':'Hwei','화이':'Hwei'
     };
 
     const CHAMPION_NAME_EN_TO_KO = Object.entries(CHAMPION_NAME_KO_TO_EN).reduce((acc, [ko, en]) => {
@@ -1432,6 +1432,31 @@
       return clean;
     }
 
+    let DDRAGON_VERSION = '14.24.1';
+
+    async function syncLatestChampionMap() {
+      try {
+        const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+        const versions = await verRes.json();
+        const latestVer = Array.isArray(versions) ? versions[0] : '';
+        if (!latestVer) return;
+        DDRAGON_VERSION = latestVer;
+
+        const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/data/ko_KR/champion.json`);
+        const champJson = await champRes.json();
+        Object.values(champJson.data || {}).forEach(c => {
+          if (c?.name && c?.id) {
+            CHAMPION_NAME_KO_TO_EN[c.name] = c.id;
+            CHAMPION_NAME_EN_TO_KO[c.id.toLowerCase()] = c.name;
+            CHAMPION_NAME_EN_TO_KO[c.id.replace(/[\s\.\'\-_]/g, '').toLowerCase()] = c.name;
+          }
+        });
+        if (typeof renderAllViews === 'function') renderAllViews();
+      } catch (e) {
+        console.warn('DDragon 최신 버전/챔피언 동기화 실패 (기본 사전 사용):', e);
+      }
+    }
+
     function getChampionIconUrl(champ) {
       if (!champ || champ === '자유픽') return '';
       const clean = champ.toString().trim();
@@ -1447,7 +1472,7 @@
       }
       if (!enKey && clean.match(/^[A-Za-z]+$/)) enKey = clean;
       if (!enKey || enKey.length <= 1) return '';
-      return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${enKey}.png`;
+      return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${enKey}.png`;
     }
 
     // 🌟 모스트 칩 렌더러 (한글명 + 원형 얼굴 사진 + 엑박 방지 onerror)
@@ -1634,9 +1659,12 @@ async function initData() {
       setInterval(() => fetchCloudData(false), 4000);
     }
 
+    let cloudSaveInProgress = false;
+    let lastLocalSaveAt = 0;
+
     async function saveLocalData(options = {}) {
-      // 🌟 [DB 보호 락] 클라우드 DB에서 초기 데이터를 온전히 받아오기 전에는 빈 값으로 DB를 덮어쓰지 않음
-      if (!isCloudLoaded && !options.force) return;
+      // 🌟 [DB 보호 락] 초기 로드 전 전체 덮어쓰기는 차단하되, scope 병합 저장이나 force 저장은 허용
+      if (!isCloudLoaded && !options.force && !options.scope) return;
 
       try {
         localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
@@ -1655,29 +1683,102 @@ async function initData() {
         }
       } catch(e) {}
 
-      // 🌟 Supabase 클라우드 DB로 전송
+      // 🌟 Supabase 클라우드 DB로 전송 (영역별 병합으로 다른 사용자의 실명/별명 등 덮어쓰기 방지)
+      cloudSaveInProgress = true;
+      lastLocalSaveAt = Date.now();
       try {
-        const now = Date.now();
+        let baseData = null;
+        if (options.scope && !options.fullReplace) {
+          try {
+            const latestRes = await fetch('/api/sync');
+            if (latestRes.ok) {
+              const latestJson = await latestRes.json();
+              if (latestJson && typeof latestJson === 'object') baseData = latestJson;
+            }
+          } catch (fetchErr) {}
+        }
+
+        const payloadToSave = {
+          summoners: (baseData && Array.isArray(baseData.summoners)) ? baseData.summoners : summoners,
+          matchHistory: (baseData && Array.isArray(baseData.matchHistory)) ? baseData.matchHistory : matchHistory,
+          replayArchives: (baseData && Array.isArray(baseData.replayArchives)) ? baseData.replayArchives : replayArchives,
+          scrimSchedules: (baseData && baseData.scrimSchedules && typeof baseData.scrimSchedules === 'object') ? baseData.scrimSchedules : scrimSchedules,
+          communityPosts: (baseData && Array.isArray(baseData.communityPosts)) ? baseData.communityPosts : communityPosts,
+          currentMatch: (baseData && baseData.currentMatch !== undefined) ? baseData.currentMatch : (currentMatch || null),
+          balancerPoll: (baseData && baseData.balancerPoll !== undefined) ? baseData.balancerPoll : (balancerPoll || null),
+          kakaoBindings: {
+            ...((baseData && baseData.kakaoBindings && typeof baseData.kakaoBindings === 'object') ? baseData.kakaoBindings : {}),
+            ...(kakaoBindings || {})
+          }
+        };
+
+        if (!options.scope || options.fullReplace) {
+          payloadToSave.summoners = summoners;
+          payloadToSave.matchHistory = matchHistory;
+          payloadToSave.replayArchives = replayArchives;
+          payloadToSave.scrimSchedules = scrimSchedules;
+          payloadToSave.communityPosts = communityPosts;
+          payloadToSave.currentMatch = currentMatch || null;
+          payloadToSave.balancerPoll = balancerPoll || null;
+        } else if (options.scope === 'summoners') {
+          if (options.editedSummonerId && Array.isArray(payloadToSave.summoners)) {
+            const edited = summoners.find(s => s.id === options.editedSummonerId);
+            if (edited) {
+              const idx = payloadToSave.summoners.findIndex(s => s.id === options.editedSummonerId);
+              if (idx >= 0) payloadToSave.summoners[idx] = edited;
+              else payloadToSave.summoners.unshift(edited);
+              summoners = payloadToSave.summoners;
+            } else {
+              payloadToSave.summoners = summoners;
+            }
+          } else {
+            payloadToSave.summoners = summoners;
+          }
+        } else if (options.scope === 'schedule') {
+          payloadToSave.scrimSchedules = scrimSchedules;
+        } else if (options.scope === 'balancer') {
+          payloadToSave.currentMatch = currentMatch || null;
+          payloadToSave.balancerPoll = balancerPoll || null;
+        } else if (options.scope === 'community') {
+          payloadToSave.communityPosts = communityPosts;
+        } else if (options.scope === 'history') {
+          payloadToSave.matchHistory = matchHistory;
+          payloadToSave.replayArchives = replayArchives;
+        } else if (options.scope === 'history_and_summoners') {
+          payloadToSave.matchHistory = matchHistory;
+          payloadToSave.replayArchives = replayArchives;
+          payloadToSave.summoners = summoners;
+        }
+
+        const now = Math.max(Date.now(), (parseInt(baseData?.updatedAt || '0', 10) || 0) + 1);
         localStorage.setItem('scrim_last_sync_time', now.toString());
-        await fetch('/api/sync', {
+
+        const postRes = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summoners,
-            matchHistory,
-            replayArchives,
-            scrimSchedules,
-            communityPosts,
-            currentMatch: currentMatch || null,
-            balancerPoll: balancerPoll || null,
-            kakaoBindings: kakaoBindings || {},
+            ...payloadToSave,
             allowEmptyHistory: options.allowEmptyHistory || false,
             allowEmptyPosts: options.allowEmptyPosts || false,
             updatedAt: now
           })
         });
+        if (!postRes.ok) {
+          console.warn('Cloud save HTTP error:', postRes.status);
+          if (options.scope === 'summoners') {
+            showToast('서버 DB 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+          }
+        } else {
+          lastLocalSaveAt = Date.now();
+          isCloudLoaded = true;
+        }
       } catch (e) {
         console.warn("Cloud save failed:", e);
+        if (options.scope === 'summoners') {
+          showToast('네트워크 오류로 서버 DB 저장에 실패했습니다.', 'error');
+        }
+      } finally {
+        cloudSaveInProgress = false;
       }
     }
 
@@ -1685,6 +1786,7 @@ async function initData() {
     let cloudFetchInProgress = false;
     async function fetchCloudData(isInitial = false) {
       if (cloudFetchInProgress) return;
+      if (!isInitial && (cloudSaveInProgress || (Date.now() - lastLocalSaveAt < 2500))) return;
       cloudFetchInProgress = true;
       try {
         const res = await fetch('/api/sync');
@@ -1692,10 +1794,11 @@ async function initData() {
         const cloudData = await res.json();
         if (!cloudData) return;
 
+        isCloudLoaded = true;
         const localUpdated = parseInt(localStorage.getItem('scrim_last_sync_time') || '0', 10);
         const serverUpdated = parseInt(cloudData.updatedAt || '0', 10);
 
-        // 최초 로드이거나 서버 데이터가 더 최신이거나 같을 때 화면 및 상태 갱신
+        // 최초 로드이거나 서버 데이터가 더 최신일 때 화면 및 상태 갱신
         if (isInitial || serverUpdated > localUpdated) {
           if (Array.isArray(cloudData.summoners)) {
             summoners = cloudData.summoners;
@@ -1720,13 +1823,19 @@ async function initData() {
             communityPosts = cloudData.communityPosts;
           } else if (!communityPosts || communityPosts.length === 0) {
             communityPosts = [DEFAULT_GUIDE_POST];
-            saveLocalData();
+            saveLocalData({ scope: 'community' });
           }
           if (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) {
             balancerPoll = cloudData.balancerPoll;
             balancedCandidates = balancerPoll.candidates;
             currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
             localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
+          } else if (cloudData.balancerPoll === null) {
+            balancerPoll = null;
+            balancedCandidates = [];
+            currentCandidateIdx = 0;
+            selectedVoteCandidateIdx = null;
+            localStorage.removeItem('scrim_balancer_poll');
           }
 
           if (cloudData.currentMatch) {
@@ -1752,7 +1861,7 @@ async function initData() {
           renderBalancerVoting();
           renderCalendar();
           renderScheduleBoard();
-          isCloudLoaded = true;
+          updateMyAccountUI();
           renderCommunityBoard();
         }
       } catch (e) {
@@ -2430,7 +2539,7 @@ function getRoleSpecificMMR(player, assignedRole) {
 
       // 🌟 전적 조회 시 무조건 선택 명단에 추가하지 않고, 10인 미만일 때만 추가
       if (selectedPlayerIds.size < 10) selectedPlayerIds.add(updatedPlayer.id);
-      saveLocalData();
+      saveLocalData({ scope: 'summoners', editedSummonerId: updatedPlayer.id });
       renderAllViews();
     }
 
@@ -2487,7 +2596,7 @@ function getRoleSpecificMMR(player, assignedRole) {
 
 // 대진표 편집은 공유 대진표에만 반영하고, 참가자 선택 초안은 건드리지 않는다.
     function syncSelectedFromCurrentMatch() {
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
       renderSelectionGrid();
     }
 
@@ -2712,6 +2821,7 @@ function runSmartBalancing() {
       if (balancerPoll) {
         balancerPoll.selectedIdx = currentCandidateIdx;
       }
+      selectedVoteCandidateIdx = currentCandidateIdx;
 
       const candidateBadge = document.getElementById('stat-candidate-badge');
       if (candidateBadge) {
@@ -2738,7 +2848,7 @@ function runSmartBalancing() {
 
       document.getElementById('balancer-placeholder').classList.add('hidden');
       document.getElementById('balancer-board').classList.remove('hidden');
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
 
       if (isReroll) {
         showToast(`🔄 [${currentCandidateIdx + 1}대안 대진표]가 적용되었습니다!`, 'info');
@@ -2794,8 +2904,10 @@ function runSmartBalancing() {
         votes: {},
         selectedIdx: 0
       };
-      selectedVoteVoterId = participants[0]?.id || '';
-      saveLocalData();
+      const mySavedId = typeof getMySavedPlayerId === 'function' ? getMySavedPlayerId() : '';
+      selectedVoteVoterId = (mySavedId && participants.some(p => p.id === mySavedId)) ? mySavedId : (participants[0]?.id || '');
+      selectedVoteCandidateIdx = 0;
+      saveLocalData({ scope: 'balancer' });
       renderBalancerVoting();
     }
 
@@ -2820,8 +2932,9 @@ function runSmartBalancing() {
       }
 
       const participants = Array.isArray(balancerPoll.participants) ? balancerPoll.participants : [];
+      const mySavedId = typeof getMySavedPlayerId === 'function' ? getMySavedPlayerId() : '';
       if (!selectedVoteVoterId || !participants.some(p => p.id === selectedVoteVoterId)) {
-        selectedVoteVoterId = participants[0]?.id || '';
+        selectedVoteVoterId = (mySavedId && participants.some(p => p.id === mySavedId)) ? mySavedId : (participants[0]?.id || '');
       }
       select.innerHTML = '<option value="">참가자 선택</option>' + participants.map(p =>
         `<option value="${escapeBalancerVoteText(p.id)}" ${p.id === selectedVoteVoterId ? 'selected' : ''}>${escapeBalancerVoteText(p.name)}</option>`
@@ -2874,9 +2987,17 @@ function runSmartBalancing() {
     }
 
     function submitBalancerVote(candidateIdx = selectedVoteCandidateIdx) {
-      if (!Number.isInteger(candidateIdx) || !balancerPoll || !Array.isArray(balancerPoll.candidates) || !balancerPoll.candidates[candidateIdx]) {
+      if (!balancerPoll || !Array.isArray(balancerPoll.candidates) || balancerPoll.candidates.length === 0) {
         showToast('먼저 스마트 밸런싱으로 대진안을 생성해 주세요.', 'error');
         return;
+      }
+      if (!Number.isInteger(candidateIdx) || !balancerPoll.candidates[candidateIdx]) {
+        if (Number.isInteger(currentCandidateIdx) && balancerPoll.candidates[currentCandidateIdx]) {
+          candidateIdx = currentCandidateIdx;
+        } else {
+          showToast('투표할 대진안(1~4대안)을 먼저 눌러서 선택해 주세요.', 'error');
+          return;
+        }
       }
       const select = document.getElementById('balancer-voter-select');
       const voterId = select?.value || selectedVoteVoterId;
@@ -2889,7 +3010,7 @@ function runSmartBalancing() {
       balancerPoll.votes[voterId] = candidateIdx;
       selectedVoteVoterId = voterId;
       selectedVoteCandidateIdx = candidateIdx;
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
       renderBalancerVoting();
       const name = balancerPoll.participants.find(p => p.id === voterId)?.name || '참가자';
       showToast(previousVote === undefined
@@ -2936,9 +3057,12 @@ function runSmartBalancing() {
       currentMatch = null;
       balancedCandidates = [];
       currentCandidateIdx = 0;
+      balancerPoll = null;
+      selectedVoteCandidateIdx = null;
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
-      saveLocalData();
+      renderBalancerVoting();
+      saveLocalData({ scope: 'balancer' });
       showToast('대진표가 초기화되었습니다.', 'info');
     }
 
@@ -2982,7 +3106,7 @@ function runSmartBalancing() {
       currentMatch.blue = currentMatch.red;
       currentMatch.red = temp;
       recalculateMatchMMR();
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
       showToast('블루팀과 레드팀 진영이 전체 맞교체되었습니다!', 'success');
     }
 
@@ -2997,7 +3121,7 @@ function runSmartBalancing() {
       currentMatch.red[idx] = temp;
 
       recalculateMatchMMR();
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
       showToast(`${targetPos} 라인이 맞교체되었습니다.`, 'info');
     }
 
@@ -3360,7 +3484,7 @@ let summonerSortKey = 'mmr';
       if (confirm(`[관리자 승인] 정말 [${name}] 소환사를 명단에서 완전히 삭제하시겠습니까?`)) {
         summoners = summoners.filter(s => s.id !== id);
         selectedPlayerIds.delete(id);
-        saveLocalData();
+        saveLocalData({ scope: 'summoners' });
         renderAllViews();
         showToast(`[${name}] 소환사가 삭제되었습니다.`, 'info');
       }
@@ -3761,7 +3885,7 @@ let summonerSortKey = 'mmr';
       if (confirm('해당 경기 기록을 삭제하시겠습니까?\n(삭제 시 전적 및 실시간 점수가 자동 재계산됩니다)')) {
         matchHistory = matchHistory.filter(m => (m.id !== matchId && m.matchId !== matchId));
         syncStatsFromHistory();
-        saveLocalData();
+        saveLocalData({ scope: 'history_and_summoners' });
         renderAllViews();
         showToast('해당 경기 기록이 삭제되었습니다.', 'info');
       }
@@ -3771,7 +3895,7 @@ function resetMatchHistory() {
       if (confirm('[관리자 승인] 매치 히스토리를 모두 삭제하시겠습니까?')) {
         matchHistory = [];
         syncStatsFromHistory();
-        saveLocalData({ allowEmptyHistory: true, force: true });
+        saveLocalData({ scope: 'history_and_summoners', allowEmptyHistory: true, force: true });
         renderAllViews();
         showToast('매치 히스토리 및 참가자 내전 전적이 완전히 초기화되었습니다.', 'success');
       }
@@ -3968,7 +4092,7 @@ function resetMatchHistory() {
             return s;
           });
 
-          saveLocalData();
+          saveLocalData({ scope: 'history_and_summoners' });
           renderAllViews();
           showToast(`[${detectedMatchId}] 리플레이 파일에서 10인 통계를 직접 성공적으로 추출했습니다!`, 'success');
           switchTab('history');
@@ -3990,7 +4114,7 @@ function resetMatchHistory() {
               blue: matchData.blueTeam,
               red: matchData.redTeam
             });
-            saveLocalData();
+            saveLocalData({ scope: 'history' });
             renderAllViews();
             showToast(`[${detectedMatchId}] 등록 완료!`, 'success');
             switchTab('history');
@@ -4125,9 +4249,10 @@ function resetMatchHistory() {
         selectedPlayerIds.add(player.id);
       }
 
-      saveLocalData();
+      saveLocalData({ scope: 'summoners', editedSummonerId: id || player.id, force: true });
       closeSummonerModal();
       renderAllViews();
+      updateMyAccountUI();
       showToast('소환사 정보, 과거 최고 티어 및 실명이 저장되었습니다.', 'success');
     }
 
@@ -4168,7 +4293,7 @@ function resetMatchHistory() {
       });
 
       selectedPlayerIds = new Set(names.slice(0, 10).map(n => summoners.find(s => s.name === n)?.id).filter(Boolean));
-      saveLocalData();
+      saveLocalData({ scope: 'summoners' });
       closeLobbyModal();
       renderAllViews();
       showToast(`${names.length}명의 로비 인원이 등록되었습니다. 상단 [라이엇 서버 전원 최신 전적 갱신]을 눌러 실제 전적을 불러오세요!`, 'success');
@@ -4221,7 +4346,7 @@ function resetMatchHistory() {
               currentCandidateIdx = balancerPoll && Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
             }
 
-            await saveLocalData({ force: true, allowEmptyHistory: true, allowEmptyPosts: true });
+            await saveLocalData({ fullReplace: true, force: true, allowEmptyHistory: true, allowEmptyPosts: true });
             renderAllViews();
             if (typeof renderCalendar === 'function') renderCalendar();
             if (typeof renderScheduleBoard === 'function') renderScheduleBoard();
@@ -4383,7 +4508,7 @@ function resetMatchHistory() {
         return s;
       });
 
-      saveLocalData();
+      saveLocalData({ scope: 'history_and_summoners' });
       closeRecordMatchModal();
       renderAllViews();
       showToast(`[${selectedWinnerTeam}팀 승리] 내전 점수 및 히스토리가 즉시 갱신되었습니다!`, 'success');
@@ -4715,7 +4840,7 @@ function resetMatchHistory() {
       } else {
         scrimSchedules[selectedSchedDateKey].time = newTime;
       }
-      saveLocalData();
+      saveLocalData({ scope: 'schedule' });
       showToast(`시작 시간이 [${newTime}]으로 변경되었습니다.`, 'info');
     }
 
@@ -4827,15 +4952,17 @@ function resetMatchHistory() {
         showToast(`[${p.name}] 불참 사유가 등록되었습니다.`, 'info');
       }
 
-      // 🌟 투표한 소환사 신원을 이 브라우저에 저장 (실시간 접속자 위젯용) - 참가/보류/불참 공통
-      try {
-        localStorage.setItem('scrim_my_voter_id', p.id);
-        localStorage.setItem('scrim_my_voter_name', p.name);
-      } catch (e) { /* 저장소 차단 환경은 무시 */ }
+      // 🌟 아직 본인 계정이 미설정일 때만 신원 저장 (대리 투표 시 본인 고정 계정 보호)
+      if (!getMySavedPlayerId()) {
+        try {
+          localStorage.setItem('scrim_my_voter_id', p.id);
+          localStorage.setItem('scrim_my_voter_name', p.name);
+        } catch (e) { /* 저장소 차단 환경은 무시 */ }
+      }
       if (typeof updateAndBroadcastPresence === 'function') updateAndBroadcastPresence();
 
       if (reasonInput) reasonInput.value = '';
-      saveLocalData();
+      saveLocalData({ scope: 'schedule' });
       renderCalendar();
       renderScheduleBoard();
       renderVoteLogs();
@@ -4849,7 +4976,7 @@ function resetMatchHistory() {
         recordVoteLog(target.name, target.status, 'CANCEL', '-', '참가 취소');
       }
       sched.participants = sched.participants.filter(item => item.id !== playerId && item.name !== playerId);
-      saveLocalData();
+      saveLocalData({ scope: 'schedule' });
       renderCalendar();
       renderScheduleBoard();
       renderVoteLogs();
@@ -4898,13 +5025,15 @@ function resetMatchHistory() {
       currentMatch = null;
       balancedCandidates = [];
       currentCandidateIdx = 0;
+      balancerPoll = null;
+      selectedVoteCandidateIdx = null;
       selectedPlayerIds = new Set(matchedPlayers.map(s => s.id));
 
       // 이전 대진표가 화면에 남지 않도록 빈 상태 UI로 되돌린다.
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
 
-      saveLocalData();
+      saveLocalData({ scope: 'balancer' });
       switchTab('balancer');
       renderSelectionGrid();
 
@@ -5153,7 +5282,8 @@ function resetMatchHistory() {
           document.getElementById('post-content').value = p.content;
         }
       } else {
-        const savedAuthor = localStorage.getItem('scrim_my_author_name') || '';
+        const mePlayer = typeof getMySavedPlayer === 'function' ? getMySavedPlayer() : null;
+        const savedAuthor = localStorage.getItem('scrim_my_author_name') || (mePlayer ? (mePlayer.description || mePlayer.name.split('#')[0]) : '');
         document.getElementById('post-author').value = savedAuthor;
         document.getElementById('post-pw').value = '';
         document.getElementById('post-category').value = '잡담';
@@ -5191,7 +5321,7 @@ function resetMatchHistory() {
           p.category = category;
           p.title = title;
           p.content = content;
-          saveLocalData();
+          saveLocalData({ scope: 'community' });
           closeWritePostModal();
           openViewPostModal(editId);
           showToast('게시글이 성공적으로 수정되었습니다!', 'success');
@@ -5218,7 +5348,7 @@ function resetMatchHistory() {
       };
 
       communityPosts.unshift(newPost);
-      saveLocalData();
+      saveLocalData({ scope: 'community' });
       closeWritePostModal();
       renderCommunityBoard();
       showToast('게시글이 성공적으로 등록되었습니다!', 'success');
@@ -5254,7 +5384,7 @@ function resetMatchHistory() {
 
       activeViewingPostId = postId;
       p.views = (p.views || 0) + 1;
-      saveLocalData();
+      saveLocalData({ scope: 'community' });
 
       document.getElementById('board-list-container')?.classList.add('hidden');
       document.getElementById('board-detail-container')?.classList.remove('hidden');
@@ -5350,7 +5480,7 @@ function resetMatchHistory() {
           <!-- 댓글 작성 폼 -->
           <div class="pt-3 border-t border-slate-200 dark:border-line space-y-2">
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-              <input id="comment-author-input" type="text" placeholder="닉네임" value="${localStorage.getItem('scrim_my_author_name') || ''}" class="sm:col-span-3 bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
+              <input id="comment-author-input" type="text" placeholder="닉네임" value="${escHtml(localStorage.getItem('scrim_my_author_name') || (getMySavedPlayer()?.description || getMySavedPlayer()?.name?.split('#')[0] || ''))}" class="sm:col-span-3 bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
               <input id="comment-pw-input" type="password" placeholder="비밀번호" class="sm:col-span-3 bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-amber-500">
               <div class="sm:col-span-6 flex gap-2">
                 <input id="comment-text-input" onkeyup="if(event.key==='Enter') submitComment('${p.id}')" type="text" placeholder="댓글을 입력하세요..." class="flex-1 bg-slate-50 dark:bg-muted border border-slate-200 dark:border-line-strong rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
@@ -5412,7 +5542,7 @@ function resetMatchHistory() {
       if (isAdminLoggedIn) {
         if (confirm('[관리자 권한] 이 게시글을 정말 삭제하시겠습니까?')) {
           communityPosts = communityPosts.filter(item => item.id !== postId);
-          saveLocalData();
+          saveLocalData({ scope: 'community' });
           closeViewPostModal();
           renderCommunityBoard();
           showToast('게시글이 관리자에 의해 삭제되었습니다. 👑', 'info');
@@ -5425,7 +5555,7 @@ function resetMatchHistory() {
       if (inputPw === p.password || inputPw === 'wnsgml42') {
         if (confirm('정말 이 게시글을 삭제하시겠습니까?')) {
           communityPosts = communityPosts.filter(item => item.id !== postId);
-          saveLocalData();
+          saveLocalData({ scope: 'community' });
           closeViewPostModal();
           renderCommunityBoard();
           showToast('게시글이 삭제되었습니다.', 'info');
@@ -5462,7 +5592,7 @@ function resetMatchHistory() {
 
       if (!p.comments) p.comments = [];
       p.comments.push({ id: 'c-' + Date.now(), author, password, text, date: dateStr });
-      saveLocalData();
+      saveLocalData({ scope: 'community' });
       openViewPostModal(postId);
       showToast('댓글이 등록되었습니다.', 'success');
     }
@@ -5475,7 +5605,7 @@ function resetMatchHistory() {
       if (isAdminLoggedIn) {
         if (confirm('[관리자 권한] 이 댓글을 삭제하시겠습니까?')) {
           p.comments.splice(commentIdx, 1);
-          saveLocalData();
+          saveLocalData({ scope: 'community' });
           openViewPostModal(postId);
           showToast('댓글이 관리자에 의해 삭제되었습니다. 👑', 'info');
         }
@@ -5486,7 +5616,7 @@ function resetMatchHistory() {
       if (inputPw === null) return;
       if (inputPw === targetComment.password || inputPw === 'wnsgml42') {
         p.comments.splice(commentIdx, 1);
-        saveLocalData();
+        saveLocalData({ scope: 'community' });
         openViewPostModal(postId);
         showToast('댓글이 삭제되었습니다.', 'info');
       } else {
@@ -5508,7 +5638,7 @@ function resetMatchHistory() {
       likedList.push(postId);
       localStorage.setItem('scrim_liked_posts', JSON.stringify(likedList));
 
-      saveLocalData();
+      saveLocalData({ scope: 'community' });
       openViewPostModal(postId);
       showToast('게시글을 추천했습니다! 👍', 'success');
     }
@@ -5782,7 +5912,7 @@ function resetMatchHistory() {
             kakaoNick,
             updatedAt: Date.now()
           };
-          saveLocalData();
+          saveLocalData({ scope: 'kakao' });
         }
       } catch (e) {}
       selectedVoteVoterId = p.id;
@@ -5790,10 +5920,36 @@ function resetMatchHistory() {
       renderScheduleBoard();
       renderBalancerVoting();
       if (typeof updateAndBroadcastPresence === 'function') updateAndBroadcastPresence();
+      if (syncToCloud && typeof resyncExistingPushSubscription === 'function') {
+        resyncExistingPushSubscription(p);
+      }
+    }
+
+    async function resyncExistingPushSubscription(playerObj) {
+      try {
+        if (!playerObj || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        if (Notification.permission !== 'granted') return;
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (!sub) return;
+        await fetch('/api/push?action=subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: sub,
+            playerId: playerObj.id,
+            playerName: playerObj.name,
+            kakaoId: localStorage.getItem('scrim_kakao_id') || ''
+          })
+        });
+      } catch (e) {}
     }
 
     function onSchedPlayerSelectChange(val) {
-      if (val) setMySavedPlayer(val, true);
+      // 이미 본인 계정이 고정된 상태에서는 대리 투표 시 본인 고정 계정/카카오 연동을 덮어쓰지 않음
+      if (val && !getMySavedPlayerId()) {
+        setMySavedPlayer(val, true);
+      }
     }
 
     function updateMyAccountUI() {
@@ -5927,9 +6083,10 @@ function resetMatchHistory() {
         if (kakaoId) {
           localStorage.setItem('scrim_kakao_id', kakaoId);
           if (kakaoNick) localStorage.setItem('scrim_kakao_nick', kakaoNick);
-          if (boundId) {
-            setMySavedPlayer(boundId, false);
-            showToast(`카카오 로그인 완료! [${kakaoNick}] 계정으로 자동 연결되었습니다.`, 'success');
+          const effectiveBoundId = boundId || kakaoBindings?.[kakaoId]?.playerId || '';
+          if (effectiveBoundId && summoners.some(s => s.id === effectiveBoundId)) {
+            setMySavedPlayer(effectiveBoundId, false);
+            showToast(`카카오 로그인 완료! [${kakaoNick || '연동 계정'}] 계정으로 자동 연결되었습니다.`, 'success');
           } else {
             openMyAccountModal();
             showToast(`카카오 로그인 완료! 본인 롤 계정을 한 번만 선택해 연결하세요.`, 'info');
@@ -6071,6 +6228,7 @@ function resetMatchHistory() {
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+      syncLatestChampionMap();
       registerServiceWorker();
       updateAdminButtonUI();
       initData().then(() => {
