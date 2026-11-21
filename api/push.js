@@ -1,0 +1,190 @@
+import webpush from 'web-push';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(
+    'mailto:admin@lol-scrim-balancer.vercel.app',
+    VAPID_PUBLIC,
+    VAPID_PRIVATE
+  );
+}
+
+function getTodayKstKey() {
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const action = req.query.action || '';
+  const rowId = 'main_scrim_data_row';
+
+  try {
+    if (action === 'vapid-key') {
+      return res.status(200).json({ publicKey: VAPID_PUBLIC || '' });
+    }
+
+    const { data: current } = await supabase
+      .from('scrim_data')
+      .select('payload, updated_at')
+      .eq('id', rowId)
+      .single();
+
+    const payload = current?.payload || {};
+    let subs = Array.isArray(payload.pushSubscriptions) ? payload.pushSubscriptions : [];
+
+    if (action === 'subscribe' && req.method === 'POST') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const { subscription, playerId, playerName, kakaoId } = body || {};
+      if (!subscription || !subscription.endpoint) {
+        return res.status(400).json({ error: '유효하지 않은 푸시 구독 정보입니다.' });
+      }
+
+      subs = subs.filter(s => s.subscription?.endpoint !== subscription.endpoint);
+      subs.push({
+        subscription,
+        playerId: playerId || '',
+        playerName: playerName || '',
+        kakaoId: kakaoId || '',
+        updatedAt: Date.now()
+      });
+
+      payload.pushSubscriptions = subs;
+      await supabase.from('scrim_data').upsert({
+        id: rowId,
+        payload,
+        updated_at: Date.now()
+      });
+
+      return res.status(200).json({ success: true, totalSubscribers: subs.length });
+    }
+
+    if (action === 'quick-vote' && req.method === 'POST') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const { dateKey, playerId, playerName, status } = body || {};
+      const targetDate = dateKey || getTodayKstKey();
+      if (!playerId || !['JOIN', 'HOLD', 'ABSENT'].includes(status)) {
+        return res.status(400).json({ error: '잘못된 투표 요청입니다.' });
+      }
+
+      if (!payload.scrimSchedules) payload.scrimSchedules = {};
+      if (!payload.scrimSchedules[targetDate]) {
+        payload.scrimSchedules[targetDate] = { time: '22:00', participants: [], voteLogs: [] };
+      }
+
+      const sched = payload.scrimSchedules[targetDate];
+      const summoners = Array.isArray(payload.summoners) ? payload.summoners : [];
+      const playerObj = summoners.find(s => s.id === playerId) || { id: playerId, name: playerName || '멤버' };
+
+      const existingIdx = sched.participants.findIndex(p => p.id === playerObj.id || p.name === playerObj.name);
+      const oldStatus = existingIdx >= 0 ? sched.participants[existingIdx].status : '미투표';
+      const now = Date.now();
+
+      const newItem = {
+        id: playerObj.id,
+        name: playerObj.name,
+        status,
+        availTime: status === 'ABSENT' ? '불참' : '정시 가능',
+        reason: status === 'ABSENT' ? '알림창 불참' : '',
+        votedAt: now
+      };
+
+      if (existingIdx >= 0) sched.participants[existingIdx] = newItem;
+      else sched.participants.push(newItem);
+
+      const kstNow = new Date(now + 9 * 60 * 60 * 1000);
+      const timeStr = `${String(kstNow.getUTCHours()).padStart(2, '0')}:${String(kstNow.getUTCMinutes()).padStart(2, '0')}:${String(kstNow.getUTCSeconds()).padStart(2, '0')}`;
+      if (!Array.isArray(sched.voteLogs)) sched.voteLogs = [];
+      sched.voteLogs.unshift({
+        timestamp: timeStr,
+        name: playerObj.name,
+        oldStatus,
+        newStatus: status,
+        availTime: newItem.availTime,
+        reason: '푸시 알림 원클릭'
+      });
+
+      await supabase.from('scrim_data').upsert({
+        id: rowId,
+        payload,
+        updated_at: now
+      });
+
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'cron' || action === 'send') {
+      if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+        return res.status(500).json({ error: 'VAPID 키 환경변수가 설정되지 않았습니다.' });
+      }
+
+      const body = req.method === 'POST'
+        ? (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}))
+        : {};
+
+      const targetDate = body.dateKey || getTodayKstKey();
+      const sched = payload.scrimSchedules?.[targetDate] || { time: '22:00', participants: [] };
+      const joinedCount = (sched.participants || []).filter(p => p.status === 'JOIN').length;
+
+      if (action === 'cron' && joinedCount >= 10) {
+        return res.status(200).json({ skipped: true, reason: '이미 10인 확정됨' });
+      }
+
+      const validSubs = [];
+      let sentCount = 0;
+
+      for (const item of subs) {
+        try {
+          const pushPayload = JSON.stringify({
+            title: body.title || `⚔️ [${targetDate} ${sched.time || '22:00'}] 롤 내전 인원 모집!`,
+            body: body.body || `현재 ${joinedCount}/10명 참가 중! 터치해서 0.5초 만에 참가/불참을 눌러주세요.`,
+            url: '/',
+            dateKey: targetDate,
+            playerId: item.playerId || '',
+            playerName: item.playerName || ''
+          });
+
+          await webpush.sendNotification(item.subscription, pushPayload);
+          validSubs.push(item);
+          sentCount++;
+        } catch (err) {
+          if (err.statusCode !== 410 && err.statusCode !== 404) {
+            validSubs.push(item);
+          }
+        }
+      }
+
+      if (validSubs.length !== subs.length) {
+        payload.pushSubscriptions = validSubs;
+        await supabase.from('scrim_data').upsert({
+          id: rowId,
+          payload,
+          updated_at: Date.now()
+        });
+      }
+
+      return res.status(200).json({ success: true, sentCount, totalSubscribers: validSubs.length });
+    }
+
+    return res.status(400).json({ error: '알 수 없는 action 입니다.' });
+  } catch (err) {
+    console.error('Push API error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
