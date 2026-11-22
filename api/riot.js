@@ -13,7 +13,7 @@ async function scrapeFowProfile(name, tag) {
     const html = await res.text();
     if (html.includes('존재하지 않는 소환사')) return null;
 
-    let soloRank = null, flexRank = null;
+    let soloRank = null;
     const soloMatch = html.match(/솔로랭크[\s\S]*?(CHALLENGER|GRANDMASTER|MASTER|DIAMOND|EMERALD|PLATINUM|GOLD|SILVER|BRONZE|IRON)\s*([1-4IVX]*)\s*<\/b>[\s\S]*?(\d+[\d,]*)\s*LP[\s\S]*?(\d+)\s*승[\s\S]*?(\d+)\s*패/i);
     if (soloMatch) {
       const tier = soloMatch[1].toUpperCase();
@@ -59,36 +59,67 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { name, tag } = req.query;
+  const { name, tag, puuid } = req.query;
   const cleanName = (name || '').trim();
   const cleanTag = (tag || 'KR1').trim();
+  const cleanPuuid = (puuid || '').trim();
   const RIOT_API_KEY = process.env.RIOT_API_KEY || "RGAPI-a6320551-eb63-4c17-ad45-75ce5332f201";
 
-  if (!cleanName) return res.status(400).json({ error: "소환사명이 필요합니다." });
+  if (!cleanName && !cleanPuuid) {
+    return res.status(400).json({ error: "소환사명 또는 PUUID가 필요합니다." });
+  }
 
-  // 1차: 공식 라이엇 API 시도 (티어, LP 정보 추출)
+  // 1차: 공식 라이엇 API 시도 (PUUID 우선 조회 -> 실패 시 Riot ID 폴백)
   try {
-    const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(cleanName)}/${encodeURIComponent(cleanTag)}?api_key=${RIOT_API_KEY}`);
-    if (accRes.ok) {
-      const accData = await accRes.json();
-      const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${accData.puuid}?api_key=${RIOT_API_KEY}`);
+    let accData = null;
+
+    if (cleanPuuid) {
+      const puuidRes = await fetch(
+        `https://asia.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(cleanPuuid)}?api_key=${RIOT_API_KEY}`
+      );
+      if (puuidRes.ok) {
+        accData = await puuidRes.json();
+      }
+    }
+
+    if (!accData && cleanName) {
+      const accRes = await fetch(
+        `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(cleanName)}/${encodeURIComponent(cleanTag)}?api_key=${RIOT_API_KEY}`
+      );
+      if (accRes.ok) {
+        accData = await accRes.json();
+      }
+    }
+
+    if (accData && accData.puuid) {
+      const latestName = (accData.gameName || cleanName).trim();
+      const latestTag = (accData.tagLine || cleanTag).trim();
+
+      const leagueRes = await fetch(
+        `https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(accData.puuid)}?api_key=${RIOT_API_KEY}`
+      );
       if (leagueRes.ok) {
         const leagueData = await leagueRes.json();
         let soloRank = null, flexRank = null;
         if (Array.isArray(leagueData)) {
           leagueData.forEach(e => {
-            if (e.queueType === 'RANKED_SOLO_5x5') soloRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins/(e.wins+e.losses))*100) };
-            if (e.queueType === 'RANKED_FLEX_SR') flexRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins/(e.wins+e.losses))*100) };
+            if (e.queueType === 'RANKED_SOLO_5x5') {
+              soloRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins / (e.wins + e.losses)) * 100) };
+            }
+            if (e.queueType === 'RANKED_FLEX_SR') {
+              flexRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins / (e.wins + e.losses)) * 100) };
+            }
           });
         }
 
-        // FOW 전적 스크래핑을 병행 호출하여 모스트 챔피언 및 전체 숙련도 풀 채우기
-        const fowFallback = await scrapeFowProfile(cleanName, cleanTag);
+        // 닉변이 감지되었더라도 최신 닉네임으로 FOW 모스트 챔피언 조회
+        const fowFallback = await scrapeFowProfile(latestName, latestTag);
         const mostChamps = (fowFallback && fowFallback.mostChamps && fowFallback.mostChamps.length > 0) ? fowFallback.mostChamps : [];
         const playedChamps = (fowFallback && fowFallback.playedChamps && fowFallback.playedChamps.length > 0) ? fowFallback.playedChamps : [];
 
         return res.status(200).json({
-          name: `${accData.gameName}#${accData.tagLine}`,
+          name: `${latestName}#${latestTag}`,
+          puuid: accData.puuid,
           soloRank,
           flexRank,
           mostChamps,
@@ -99,8 +130,10 @@ export default async function handler(req, res) {
   } catch (e) {}
 
   // 2차: 공식 API 실패 또는 키 만료 시 FOW 전적 스크래핑 폴백
-  const fallbackData = await scrapeFowProfile(cleanName, cleanTag);
-  if (fallbackData) return res.status(200).json(fallbackData);
+  if (cleanName) {
+    const fallbackData = await scrapeFowProfile(cleanName, cleanTag);
+    if (fallbackData) return res.status(200).json(fallbackData);
+  }
 
-  return res.status(404).json({ error: `[${cleanName}#${cleanTag}] 소환사를 찾을 수 없습니다.` });
+  return res.status(404).json({ error: `[${cleanName ? `${cleanName}#${cleanTag}` : cleanPuuid}] 소환사를 찾을 수 없습니다.` });
 }
