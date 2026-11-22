@@ -63,7 +63,7 @@ export default async function handler(req, res) {
   const cleanName = (name || '').trim();
   const cleanTag = (tag || 'KR1').trim();
   const cleanPuuid = (puuid || '').trim();
-  const RIOT_API_KEY = process.env.RIOT_API_KEY || "RGAPI-403b181c-6b78-4d45-b34a-1e94f1c41401";
+  const RIOT_API_KEY = process.env.RIOT_API_KEY || "RGAPI-a6320551-eb63-4c17-ad45-75ce5332f201";
 
   if (!cleanName && !cleanPuuid) {
     return res.status(400).json({ error: "소환사명 또는 PUUID가 필요합니다." });
