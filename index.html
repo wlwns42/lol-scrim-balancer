@@ -2689,15 +2689,22 @@ function getRoleSpecificMMR(player, assignedRole) {
       btn.disabled = true;
 
       let successCount = 0;
-      for (const s of summoners) {
-        if (!s.name.includes('#')) continue;
-        const [name, tag] = s.name.split('#');
+      let renamedCount = 0;
+      const snapshot = [...summoners];
+      for (const s of snapshot) {
+        if (!s.puuid && (!s.name || !s.name.includes('#'))) continue;
+        const [name, tag] = (s.name || '').includes('#') ? s.name.split('#') : ['', 'KR1'];
+        const qs = new URLSearchParams();
+        if (name) qs.set('name', name);
+        if (tag) qs.set('tag', tag);
+        if (s.puuid) qs.set('puuid', s.puuid);
         try {
-          const res = await fetch(`/api/riot?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
+          const res = await fetch(`/api/riot?${qs.toString()}`);
           if (res.ok) {
             const data = await res.json();
             if (data.name) {
-              applyRiotAPIData(data);
+              const result = applyRiotAPIData(data);
+              if (result?.renamed) renamedCount++;
               successCount++;
             }
           }
@@ -2706,7 +2713,8 @@ function getRoleSpecificMMR(player, assignedRole) {
 
       btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> <span>라이엇 서버 전원 최신 전적 갱신</span>';
       btn.disabled = false;
-      showToast(`${successCount}명의 실시간 최신 라이엇 티어 및 판수가 갱신되었습니다!`, 'success');
+      const renameMsg = renamedCount > 0 ? ` (닉변 ${renamedCount}명 자동 추적·히스토리 통합 완료)` : '';
+      showToast(`${successCount}명의 실시간 최신 라이엇 티어 및 판수가 갱신되었습니다!${renameMsg}`, 'success');
     }
      function applyRiotAPIData(data) {
       const solo = data.soloRank;
@@ -2721,15 +2729,35 @@ function getRoleSpecificMMR(player, assignedRole) {
       const sGames = solo ? solo.totalGames : 0;
       const fGames = flex ? flex.totalGames : 0;
 
-      const idx = summoners.findIndex(s => isSameSummonerName(s.name, data.name));
+      // PUUID 우선 매칭 (닉변해도 동일 인물 자동 추적) -> 없으면 이름 매칭
+      let idx = -1;
+      if (data.puuid) {
+        idx = summoners.findIndex(s => s.puuid && s.puuid === data.puuid);
+      }
+      if (idx < 0) {
+        idx = summoners.findIndex(s => isSameSummonerName(s.name, data.name));
+      }
       const prev = idx >= 0 ? summoners[idx] : null;
 
-      // 이전 솔랭/최고 기록과 현재 솔랭 점수를 비교해 최고 티어(peakTier / peakDetail) 자동 보존 및 갱신
+      // 닉변 감지 시 이전 닉네임을 historyAliases에 자동 누적
+      const prevAliases = prev
+        ? (Array.isArray(prev.historyAliases)
+            ? [...prev.historyAliases]
+            : String(prev.historyAliases || '').split(',').map(v => v.trim()).filter(Boolean))
+        : [];
+      const isRenamed = !!(prev && prev.name && prev.name.trim().toLowerCase() !== data.name.trim().toLowerCase());
+      if (isRenamed && !prevAliases.some(a => a.trim().toLowerCase() === prev.name.trim().toLowerCase())) {
+        prevAliases.push(prev.name.trim());
+      }
+
+      // 이전 솔랭/최고 기록과 현재 랭크 점수를 비교해 최고 티어(peakTier / peakDetail) 자동 보존 및 갱신
+      const activeRank = solo || flex;
+      const activeDisplay = solo ? soloDisplay : (flex ? flexDisplay : '');
       let nextPeakTier = prev ? (prev.peakTier || prev.tier || primaryTier) : primaryTier;
-      let nextPeakDetail = prev ? (prev.peakDetail || '') : (solo ? soloDisplay : '');
+      let nextPeakDetail = prev ? (prev.peakDetail || '') : activeDisplay;
 
       const prevSoloPts = prev && prev.soloTier && !prev.soloTier.includes('언랭') ? parseRankPoints(prev.soloTier) : 0;
-      const curSoloPts = solo ? parseRankPoints(soloDisplay) : 0;
+      const curRankPts = activeRank ? parseRankPoints(activeDisplay) : 0;
       const prevPeakPts = prev ? parseRankPoints(prev.peakDetail || prev.peakTier || prev.tier) : 0;
 
       if (prevSoloPts > prevPeakPts && prev && prev.soloTier) {
@@ -2738,14 +2766,15 @@ function getRoleSpecificMMR(player, assignedRole) {
           nextPeakTier = prev.tier;
         }
       }
-      const isMissingDetailSameTier = !nextPeakDetail && solo && (primaryTier === nextPeakTier);
-      if (solo && (curSoloPts > Math.max(prevPeakPts, prevSoloPts) || isMissingDetailSameTier)) {
-      nextPeakTier = primaryTier;
-      nextPeakDetail = soloDisplay;
+      const isMissingDetailSameTier = !nextPeakDetail && activeRank && (primaryTier === nextPeakTier);
+      if (activeRank && (curRankPts > Math.max(prevPeakPts, prevSoloPts) || isMissingDetailSameTier)) {
+        nextPeakTier = primaryTier;
+        nextPeakDetail = activeDisplay;
       }
 
       const updatedPlayer = {
         id: prev ? prev.id : 'p-' + Date.now(),
+        puuid: data.puuid || (prev ? (prev.puuid || '') : ''),
         name: data.name,
         description: prev ? (prev.description || '') : '',
         tier: primaryTier,
@@ -2764,7 +2793,7 @@ function getRoleSpecificMMR(player, assignedRole) {
         // 🌟 밸런서 판정용 전체 숙련도 챔피언 풀 영구 보존
         playedChamps: data.playedChamps && data.playedChamps.length ? data.playedChamps : (prev && prev.playedChamps ? prev.playedChamps : (data.mostChamps || [])),
         customBaseTier: prev ? (prev.customBaseTier || '') : '',
-        historyAliases: prev ? (prev.historyAliases || []) : [],
+        historyAliases: prevAliases,
         formScore: prev ? prev.formScore : 85,
         carryBonus: prev ? (prev.carryBonus || 0) : 0,
         wins: prev ? prev.wins : 0,
@@ -2778,6 +2807,7 @@ function getRoleSpecificMMR(player, assignedRole) {
       if (selectedPlayerIds.size < 10) selectedPlayerIds.add(updatedPlayer.id);
       saveLocalData({ scope: 'summoners', editedSummonerId: updatedPlayer.id });
       renderAllViews();
+      return { renamed: isRenamed, player: updatedPlayer };
     }
 
         function openAddModalWithData(name, tag) {
@@ -3967,15 +3997,13 @@ let summonerSortKey = 'mmr';
           : mvpScore >= 45 ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
           : 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
         const winTone = isBlueWin ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400';
-        
         const formatHistoryName = (rawName) => {
-        const sm = summoners.find(s => isSameSummonerName(s.name, rawName));
-        const desc = sm?.description?.trim();
-        const nick = String(sm?.name || rawName || '').split('#')[0].trim();
-        return (desc && desc !== nick) ? `${nick} (${desc})` : nick;
-         };
-        
-const realNameOf = (p) => formatHistoryName(p?.name);
+          const sm = summoners.find(s => isSameSummonerName(s.name, rawName));
+          const desc = sm?.description?.trim();
+          const nick = String(sm?.name || rawName || '').split('#')[0].trim();
+          return (desc && desc !== nick) ? `${nick} (${desc})` : nick;
+        };
+        const realNameOf = (p) => formatHistoryName(p?.name);
         const champImg = (champ, cls) => {
           const ko = getChampionKoName(champ || '자유픽');
           const url = getChampionIconUrl(champ);
@@ -4501,9 +4529,17 @@ function resetMatchHistory() {
       if (id) {
         summoners = summoners.map(s => {
           if (s.id !== id) return s;
+          const mergedAliases = [...(player.historyAliases || [])];
+          if (s.name && s.name.trim().toLowerCase() !== player.name.trim().toLowerCase()) {
+            if (!mergedAliases.some(a => a.trim().toLowerCase() === s.name.trim().toLowerCase())) {
+              mergedAliases.push(s.name.trim());
+            }
+          }
           return {
             ...s,
             ...player,
+            puuid: s.puuid || '',
+            historyAliases: mergedAliases,
             wins: s.wins ?? 0,
             losses: s.losses ?? 0,
             formScore: s.formScore ?? 85,
