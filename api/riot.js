@@ -1,56 +1,28 @@
-// api/riot.js
-async function scrapeFowProfile(name, tag) {
+// api/riot.js - 공식 라이엇 API 기반 (Account-V1, League-V4, Summoner-V4, Champion-Mastery-V4)
+let cachedChampMap = null;
+let cachedChampAt = 0;
+
+async function getChampionIdToKoMap() {
+  if (cachedChampMap && (Date.now() - cachedChampAt < 12 * 60 * 60 * 1000)) {
+    return cachedChampMap;
+  }
   try {
-    const cleanName = name.trim();
-    const cleanTag = tag.trim();
-    const url = `https://fow.kr/find/${encodeURIComponent(cleanName)}-${encodeURIComponent(cleanTag)}`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36'
-      }
+    const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+    if (!verRes.ok) return cachedChampMap || {};
+    const versions = await verRes.json();
+    const latest = Array.isArray(versions) ? versions[0] : '15.24.1';
+    const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latest}/data/ko_KR/champion.json`);
+    if (!champRes.ok) return cachedChampMap || {};
+    const champJson = await champRes.json();
+    const map = {};
+    Object.values(champJson.data || {}).forEach(c => {
+      if (c && c.key && c.name) map[String(c.key)] = c.name;
     });
-    if (!res.ok) return null;
-    const html = await res.text();
-    if (html.includes('존재하지 않는 소환사')) return null;
-
-    let soloRank = null;
-    const soloMatch = html.match(/솔로랭크[\s\S]*?(CHALLENGER|GRANDMASTER|MASTER|DIAMOND|EMERALD|PLATINUM|GOLD|SILVER|BRONZE|IRON)\s*([1-4IVX]*)\s*<\/b>[\s\S]*?(\d+[\d,]*)\s*LP[\s\S]*?(\d+)\s*승[\s\S]*?(\d+)\s*패/i);
-    if (soloMatch) {
-      const tier = soloMatch[1].toUpperCase();
-      let rank = soloMatch[2].trim().toUpperCase() || 'I';
-      if (['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(tier)) rank = 'I';
-      const lp = parseInt(soloMatch[3].replace(/,/g, ''), 10) || 0;
-      const wins = parseInt(soloMatch[4], 10) || 0;
-      const losses = parseInt(soloMatch[5], 10) || 0;
-      soloRank = { tier, rank, lp, wins, losses, totalGames: wins + losses, winRate: Math.round((wins / (wins + losses)) * 100) };
-    }
-
-    const champCounts = {};
-    const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-    let rMatch;
-    while ((rMatch = rowRegex.exec(html)) !== null) {
-      const rowHtml = rMatch[1];
-      const nameMatch = rowHtml.match(/class=['"]c_name['"][^>]*>([^<]+)<\/td>/i) || rowHtml.match(/>([가-힣A-Za-z\s]{2,12})<\/td>\s*<td[^>]*>\d+<\/td>/i);
-      const gamesMatch = rowHtml.match(/<td[^>]*>(\d+)<\/td>/i);
-      if (nameMatch && gamesMatch) {
-        const cName = nameMatch[1].trim();
-        const games = parseInt(gamesMatch[1], 10);
-        if (cName && !isNaN(games) && games > 0 && !cName.includes('%') && !['솔로랭크', '자유랭크', '전체', '모든챔피언'].includes(cName)) {
-          champCounts[cName] = (champCounts[cName] || 0) + games;
-        }
-      }
-    }
-    const sortedChamps = Object.keys(champCounts).sort((a, b) => champCounts[b] - champCounts[a]);
-
-    return {
-      name: `${cleanName}#${cleanTag}`,
-      soloRank,
-      flexRank: null,
-      mostChamps: sortedChamps.slice(0, 5),
-      playedChamps: sortedChamps
-    };
-  } catch (err) {
-    return null;
+    cachedChampMap = map;
+    cachedChampAt = Date.now();
+    return map;
+  } catch (e) {
+    return cachedChampMap || {};
   }
 }
 
@@ -69,7 +41,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "소환사명 또는 PUUID가 필요합니다." });
   }
 
-  // 1차: 공식 라이엇 API 시도 (PUUID 우선 조회 -> 실패 시 Riot ID 폴백)
   try {
     let accData = null;
 
@@ -77,63 +48,88 @@ export default async function handler(req, res) {
       const puuidRes = await fetch(
         `https://asia.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(cleanPuuid)}?api_key=${RIOT_API_KEY}`
       );
-      if (puuidRes.ok) {
-        accData = await puuidRes.json();
-      }
+      if (puuidRes.ok) accData = await puuidRes.json();
     }
 
     if (!accData && cleanName) {
       const accRes = await fetch(
         `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(cleanName)}/${encodeURIComponent(cleanTag)}?api_key=${RIOT_API_KEY}`
       );
-      if (accRes.ok) {
-        accData = await accRes.json();
-      }
+      if (accRes.ok) accData = await accRes.json();
     }
 
-    if (accData && accData.puuid) {
-      const latestName = (accData.gameName || cleanName).trim();
-      const latestTag = (accData.tagLine || cleanTag).trim();
+    if (!accData || !accData.puuid) {
+      return res.status(404).json({ error: `[${cleanName ? `${cleanName}#${cleanTag}` : cleanPuuid}] 소환사를 찾을 수 없습니다.` });
+    }
 
-      const leagueRes = await fetch(
-        `https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(accData.puuid)}?api_key=${RIOT_API_KEY}`
-      );
-      if (leagueRes.ok) {
-        const leagueData = await leagueRes.json();
-        let soloRank = null, flexRank = null;
-        if (Array.isArray(leagueData)) {
-          leagueData.forEach(e => {
-            if (e.queueType === 'RANKED_SOLO_5x5') {
-              soloRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins / (e.wins + e.losses)) * 100) };
-            }
-            if (e.queueType === 'RANKED_FLEX_SR') {
-              flexRank = { tier: e.tier, rank: e.rank, lp: e.leaguePoints, wins: e.wins, losses: e.losses, totalGames: e.wins + e.losses, winRate: Math.round((e.wins / (e.wins + e.losses)) * 100) };
-            }
-          });
-        }
+    const targetPuuid = accData.puuid;
+    const latestName = (accData.gameName || cleanName).trim();
+    const latestTag = (accData.tagLine || cleanTag).trim();
 
-        // 닉변이 감지되었더라도 최신 닉네임으로 FOW 모스트 챔피언 조회
-        const fowFallback = await scrapeFowProfile(latestName, latestTag);
-        const mostChamps = (fowFallback && fowFallback.mostChamps && fowFallback.mostChamps.length > 0) ? fowFallback.mostChamps : [];
-        const playedChamps = (fowFallback && fowFallback.playedChamps && fowFallback.playedChamps.length > 0) ? fowFallback.playedChamps : [];
+    // League-V4, Summoner-V4, Champion-Mastery-V4, DDragon 병렬 조회
+    const [leagueRes, summonerRes, masteryRes, champMap] = await Promise.all([
+      fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(targetPuuid)}?api_key=${RIOT_API_KEY}`),
+      fetch(`https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(targetPuuid)}?api_key=${RIOT_API_KEY}`),
+      fetch(`https://kr.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(targetPuuid)}/top?count=15&api_key=${RIOT_API_KEY}`),
+      getChampionIdToKoMap()
+    ]);
 
-        return res.status(200).json({
-          name: `${latestName}#${latestTag}`,
-          puuid: accData.puuid,
-          soloRank,
-          flexRank,
-          mostChamps,
-          playedChamps
+    let soloRank = null;
+    let flexRank = null;
+    if (leagueRes.ok) {
+      const leagueData = await leagueRes.json();
+      if (Array.isArray(leagueData)) {
+        leagueData.forEach(e => {
+          const total = (e.wins || 0) + (e.losses || 0);
+          const rankObj = {
+            tier: e.tier,
+            rank: e.rank,
+            lp: e.leaguePoints,
+            wins: e.wins,
+            losses: e.losses,
+            totalGames: total,
+            winRate: total > 0 ? Math.round((e.wins / total) * 100) : 0
+          };
+          if (e.queueType === 'RANKED_SOLO_5x5') soloRank = rankObj;
+          if (e.queueType === 'RANKED_FLEX_SR') flexRank = rankObj;
         });
       }
     }
-  } catch (e) {}
 
-  // 2차: 공식 API 실패 또는 키 만료 시 FOW 전적 스크래핑 폴백
-  if (cleanName) {
-    const fallbackData = await scrapeFowProfile(cleanName, cleanTag);
-    if (fallbackData) return res.status(200).json(fallbackData);
+    let profileIconId = null;
+    let summonerLevel = null;
+    if (summonerRes.ok) {
+      const sumData = await summonerRes.json();
+      if (sumData) {
+        profileIconId = sumData.profileIconId ?? null;
+        summonerLevel = sumData.summonerLevel ?? null;
+      }
+    }
+
+    let mostChamps = [];
+    let playedChamps = [];
+    if (masteryRes.ok) {
+      const masteryData = await masteryRes.json();
+      if (Array.isArray(masteryData)) {
+        const names = masteryData
+          .map(m => champMap[String(m.championId)])
+          .filter(Boolean);
+        mostChamps = names.slice(0, 5);
+        playedChamps = names;
+      }
+    }
+
+    return res.status(200).json({
+      name: `${latestName}#${latestTag}`,
+      puuid: targetPuuid,
+      profileIconId,
+      summonerLevel,
+      soloRank,
+      flexRank,
+      mostChamps,
+      playedChamps
+    });
+  } catch (e) {
+    return res.status(500).json({ error: `라이엇 API 조회 오류: ${e.message}` });
   }
-
-  return res.status(404).json({ error: `[${cleanName ? `${cleanName}#${cleanTag}` : cleanPuuid}] 소환사를 찾을 수 없습니다.` });
 }
