@@ -674,10 +674,13 @@
 
             <!-- 참가 확정자 명단 (10인 슬롯) -->
             <div>
-              <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center justify-between mb-2 gap-2">
                 <h4 class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
                   <i class="fa-solid fa-clipboard-user text-amber-500"></i> 참가 확정 인원 명단
                 </h4>
+                <button id="btn-check-live" type="button" onclick="checkLiveGameStatuses()" class="btn btn-outline btn-sm" title="참가자들의 현재 롤 인게임 여부 확인">
+                  <i class="fa-solid fa-tower-broadcast text-emerald-500"></i> <span>인게임 확인</span>
+                </button>
               </div>
               <div id="sched-roster-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 min-h-[140px]">
                 <!-- 자바스크립트로 참가자 칩 렌더링 -->
@@ -1543,6 +1546,50 @@
       const enKey = resolveChampionEnKey(champ);
       if (!enKey) return '';
       return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${enKey}.png`;
+    }
+
+    function getProfileIconUrl(iconId) {
+      if (iconId === null || iconId === undefined || iconId === '') return '';
+      return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/${iconId}.png`;
+    }
+
+    let liveGameStatuses = {};
+    async function checkLiveGameStatuses() {
+      const btn = document.getElementById('btn-check-live');
+      const puuids = summoners.map(s => s.puuid).filter(Boolean);
+      if (puuids.length === 0) {
+        showToast('먼저 상단 [전원 전적 갱신]을 한 번 실행해 PUUID를 저장해 주세요.', 'info');
+        return;
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>조회 중...</span>';
+      }
+      try {
+        const res = await fetch(`/api/live?puuids=${encodeURIComponent(puuids.join(','))}`);
+        if (res.ok) {
+          const data = await res.json();
+          liveGameStatuses = data.statuses || {};
+          const inGameCount = Object.values(liveGameStatuses).filter(v => v && v.inGame).length;
+          renderScheduleBoard();
+          renderSummonersList();
+          showToast(inGameCount > 0 ? `현재 ${inGameCount}명이 인게임 중입니다!` : '현재 게임 중인 멤버가 없습니다.', 'info');
+        }
+      } catch (e) {
+        showToast('인게임 상태 조회 중 오류가 발생했습니다.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-tower-broadcast text-emerald-500"></i> <span>인게임 확인</span>';
+        }
+      }
+    }
+
+    function renderLiveBadgeHtml(puuid) {
+      if (!puuid) return '';
+      const st = liveGameStatuses[puuid];
+      if (!st || !st.inGame) return '';
+      return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 text-[10px] font-black shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>${escHtml(st.queueName || '게임 중')} ${st.minutes || 0}분</span>`;
     }
 
     // 🌟 모스트 칩 렌더러 (한글명 + 원형 얼굴 사진 + 엑박 방지 onerror)
@@ -2775,6 +2822,7 @@ function getRoleSpecificMMR(player, assignedRole) {
       const updatedPlayer = {
         id: prev ? prev.id : 'p-' + Date.now(),
         puuid: data.puuid || (prev ? (prev.puuid || '') : ''),
+        profileIconId: (data.profileIconId !== undefined && data.profileIconId !== null) ? data.profileIconId : (prev ? (prev.profileIconId ?? null) : null),
         name: data.name,
         description: prev ? (prev.description || '') : '',
         tier: primaryTier,
@@ -3730,9 +3778,11 @@ let summonerSortKey = 'mmr';
               <div class="text-[10px] font-bold text-primary/70 tracking-wide">MMR</div>
             </div>
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+                ${s.profileIconId ? `<img src="${getProfileIconUrl(s.profileIconId)}" alt="" loading="lazy" class="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-300 dark:border-line-strong" onerror="this.remove()">` : ''}
                 <span class="font-bold text-[15px] text-slate-900 dark:text-gray-100 truncate min-w-0">${escHtml(s.name)}</span>
                 <span class="tier-badge tier-${escHtml(tierKey)} shrink-0">${escHtml(s.tier)}</span>
+                ${renderLiveBadgeHtml(s.puuid)}
               </div>
               <div class="mt-1 flex items-center gap-x-2 gap-y-1 flex-wrap text-xs text-slate-500 dark:text-muted-foreground">
                 ${s.description ? `<span class="font-semibold text-primary">${escHtml(s.description)}</span><span aria-hidden="true">·</span>` : ''}
@@ -4539,6 +4589,7 @@ function resetMatchHistory() {
             ...s,
             ...player,
             puuid: s.puuid || '',
+            profileIconId: s.profileIconId ?? null,
             historyAliases: mergedAliases,
             wins: s.wins ?? 0,
             losses: s.losses ?? 0,
@@ -5080,9 +5131,11 @@ function resetMatchHistory() {
                   ${idx + 1}
                 </span>
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    ${fullSummoner?.profileIconId ? `<img src="${getProfileIconUrl(fullSummoner.profileIconId)}" alt="" class="w-4 h-4 rounded-full object-cover shrink-0 border border-amber-500/40" onerror="this.remove()">` : ''}
                     <span class="font-extrabold truncate">${p.name}</span>
                     ${fullSummoner?.description ? `<span class="text-[11px] text-amber-500 font-bold shrink-0">(${fullSummoner.description})</span>` : ''}
+                    ${renderLiveBadgeHtml(fullSummoner?.puuid)}
                   </div>
                   <span class="text-[11px] text-slate-400 block">${fullSummoner?.tier || 'UNRANKED'}</span>
                   ${p.reason ? `<span class="text-[11px] text-emerald-400 block mt-0.5 font-medium">💬 "${p.reason}"</span>` : ''}
