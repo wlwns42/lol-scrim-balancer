@@ -678,9 +678,7 @@
                 <h4 class="text-xs font-black text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
                   <i class="fa-solid fa-clipboard-user text-amber-500"></i> 참가 확정 인원 명단
                 </h4>
-                <button id="btn-check-live" type="button" onclick="checkLiveGameStatuses()" class="btn btn-outline btn-sm" title="참가자들의 현재 롤 인게임 여부 확인">
-                  <i class="fa-solid fa-tower-broadcast text-emerald-500"></i> <span>인게임 확인</span>
-                </button>
+
               </div>
               <div id="sched-roster-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 min-h-[140px]">
                 <!-- 자바스크립트로 참가자 칩 렌더링 -->
@@ -1554,42 +1552,60 @@
     }
 
     let liveGameStatuses = {};
-    async function checkLiveGameStatuses() {
-      const btn = document.getElementById('btn-check-live');
+    let hasCheckedLiveOnce = false;
+    async function checkLiveGameStatuses(opts = {}) {
+      const silent = !!opts.silent;
+      const btns = document.querySelectorAll('.btn-check-live');
       const puuids = summoners.map(s => s.puuid).filter(Boolean);
       if (puuids.length === 0) {
-        showToast('먼저 상단 [전원 전적 갱신]을 한 번 실행해 PUUID를 저장해 주세요.', 'info');
+        if (!silent) showToast('먼저 상단 [전원 전적 갱신]을 한 번 실행해 PUUID를 저장해 주세요.', 'info');
         return;
       }
-      if (btn) {
+      btns.forEach(btn => {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>조회 중...</span>';
-      }
+      });
       try {
-        const res = await fetch(`/api/live?puuids=${encodeURIComponent(puuids.join(','))}`);
-        if (res.ok) {
-          const data = await res.json();
-          liveGameStatuses = data.statuses || {};
-          const inGameCount = Object.values(liveGameStatuses).filter(v => v && v.inGame).length;
-          renderScheduleBoard();
-          renderSummonersList();
+        // 20명 초과 시 20명씩 분할 조회
+        const nextStatuses = {};
+        for (let i = 0; i < puuids.length; i += 20) {
+          const chunk = puuids.slice(i, i + 20);
+          const res = await fetch(`/api/live?puuids=${encodeURIComponent(chunk.join(','))}`);
+          if (res.ok) {
+            const data = await res.json();
+            Object.assign(nextStatuses, data.statuses || {});
+          }
+        }
+        liveGameStatuses = nextStatuses;
+        hasCheckedLiveOnce = true;
+        const inGameCount = Object.values(liveGameStatuses).filter(v => v && v.inGame).length;
+        renderScheduleBoard();
+        renderSummonersList();
+        if (!silent) {
           showToast(inGameCount > 0 ? `현재 ${inGameCount}명이 인게임 중입니다!` : '현재 게임 중인 멤버가 없습니다.', 'info');
         }
       } catch (e) {
-        showToast('인게임 상태 조회 중 오류가 발생했습니다.', 'error');
+        if (!silent) showToast('인게임 상태 조회 중 오류가 발생했습니다.', 'error');
       } finally {
-        if (btn) {
+        btns.forEach(btn => {
           btn.disabled = false;
           btn.innerHTML = '<i class="fa-solid fa-tower-broadcast text-emerald-500"></i> <span>인게임 확인</span>';
-        }
+        });
       }
     }
 
-    function renderLiveBadgeHtml(puuid) {
+    function renderLiveStatusDotHtml(puuid) {
       if (!puuid) return '';
       const st = liveGameStatuses[puuid];
       if (!st || !st.inGame) return '';
-      return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 text-[10px] font-black shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>${escHtml(st.queueName || '게임 중')} ${st.minutes || 0}분</span>`;
+      return `<span class="inline-flex items-center gap-1 shrink-0" title="롤 인게임 중 (${escHtml(st.queueName || '게임 중')} ${st.minutes || 0}분)">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30 animate-pulse inline-block"></span>
+        <span class="px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 text-[10px] font-black leading-none">${escHtml(st.queueName || '게임 중')} ${st.minutes || 0}분</span>
+      </span>`;
+    }
+
+    function renderLiveBadgeHtml(puuid) {
+      return renderLiveStatusDotHtml(puuid);
     }
 
     // 🌟 모스트 칩 렌더러 (한글명 + 원형 얼굴 사진 + 엑박 방지 onerror)
@@ -2750,7 +2766,7 @@ function getRoleSpecificMMR(player, assignedRole) {
           if (res.ok) {
             const data = await res.json();
             if (data.name) {
-              const result = applyRiotAPIData(data);
+              const result = applyRiotAPIData(data, { skipSave: true });
               if (result?.renamed) renamedCount++;
               successCount++;
             }
@@ -2758,12 +2774,18 @@ function getRoleSpecificMMR(player, assignedRole) {
         } catch (e) {}
       }
 
-      btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> <span>라이엇 서버 전원 최신 전적 갱신</span>';
+      if (successCount > 0) {
+        await saveLocalData({ scope: 'summoners', force: true });
+        renderAllViews();
+        checkLiveGameStatuses({ silent: true });
+      }
+
+      btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> <span class="hidden 2xl:inline">라이엇 서버 전원 최신 전적 갱신</span><span class="2xl:hidden">전원 전적 갱신</span>';
       btn.disabled = false;
       const renameMsg = renamedCount > 0 ? ` (닉변 ${renamedCount}명 자동 추적·히스토리 통합 완료)` : '';
-      showToast(`${successCount}명의 실시간 최신 라이엇 티어 및 판수가 갱신되었습니다!${renameMsg}`, 'success');
+      showToast(`${successCount}명의 실시간 최신 라이엇 티어·아이콘·판수가 일괄 갱신되었습니다!${renameMsg}`, 'success');
     }
-     function applyRiotAPIData(data) {
+     function applyRiotAPIData(data, opts = {}) {
       const solo = data.soloRank;
       const flex = data.flexRank;
 
@@ -2853,8 +2875,10 @@ function getRoleSpecificMMR(player, assignedRole) {
 
       // 🌟 전적 조회 시 무조건 선택 명단에 추가하지 않고, 10인 미만일 때만 추가
       if (selectedPlayerIds.size < 10) selectedPlayerIds.add(updatedPlayer.id);
-      saveLocalData({ scope: 'summoners', editedSummonerId: updatedPlayer.id });
-      renderAllViews();
+      if (!opts.skipSave) {
+        saveLocalData({ scope: 'summoners', editedSummonerId: updatedPlayer.id });
+        renderAllViews();
+      }
       return { renamed: isRenamed, player: updatedPlayer };
     }
 
@@ -5172,9 +5196,11 @@ function resetMatchHistory() {
                     ${isAbsent ? '불참' : '보류'}
                   </span>
                   <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      ${fullSummoner?.profileIconId ? `<img src="${getProfileIconUrl(fullSummoner.profileIconId)}" alt="" class="w-4 h-4 rounded-full object-cover shrink-0 border border-slate-300 dark:border-line-strong" onerror="this.remove()">` : ''}
                       <span class="font-bold truncate">${p.name}</span>
                       ${fullSummoner?.description ? `<span class="text-[11px] text-slate-400 font-bold shrink-0">(${fullSummoner.description})</span>` : ''}
+                      ${renderLiveBadgeHtml(fullSummoner?.puuid)}
                     </div>
                     <span class="text-[11px] ${isAbsent ? 'text-rose-400' : 'text-amber-400'} block mt-0.5 font-bold">사유: "${p.reason || '사유 미작성'}"</span>
                   </div>
@@ -6593,6 +6619,14 @@ function resetMatchHistory() {
         updateMyAccountUI();
         updatePushButtonUI();
         renderScheduleBoard();
+        if (summoners.some(s => s.puuid)) {
+          checkLiveGameStatuses({ silent: true });
+        }
+        setInterval(() => {
+          if (!document.hidden && summoners.some(s => s.puuid)) {
+            checkLiveGameStatuses({ silent: true });
+          }
+        }, 60000);
         if (!getMySavedPlayerId() && summoners.length > 0) {
           setTimeout(() => {
             if (!getMySavedPlayerId()) openMyAccountModal();
