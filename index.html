@@ -715,7 +715,7 @@
                 </span>
               </div>
               <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">
-                타일을 클릭해 현재 브라우저의 10인 선택 초안을 구성하세요. 게시된 대진표는 별도로 유지됩니다.
+                타일을 클릭해 오늘 내전에 참여할 10명을 선택하세요. 대진표 화면은 모든 접속자와 실시간으로 함께 공유됩니다.
               </p>
             </div>
 
@@ -749,7 +749,7 @@
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-slate-500">대진 옵션:</span>
                   <span id="stat-candidate-badge" class="text-xs font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40">1대안 (최적)</span>
-                  <span id="balancer-sync-mode-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">전체 공유됨</span>
+                  <span id="balancer-sync-mode-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"><i class="fa-solid fa-users mr-1"></i>실시간 전체 공유</span>
                 </div>
                 <div class="h-3 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
                 <div class="flex items-center gap-2">
@@ -785,14 +785,7 @@
                   <i class="fa-solid fa-right-left"></i>
                   <span>블루 ↔ 레드 진영 전체 교체</span>
                 </button>
-                <button id="btn-pull-shared-balancer" onclick="pullSharedBalancerFromCloud()" class="hidden btn btn-outline" title="내 화면 편집을 취소하고 현재 공유된 공식 대진표를 불러옵니다">
-                  <i class="fa-solid fa-cloud-arrow-down text-sky-500"></i>
-                  <span>공유 대진 불러오기</span>
-                </button>
-                <button id="btn-publish-balancer" onclick="publishBalancerToCloud()" class="btn bg-emerald-600 hover:bg-emerald-500 text-white" title="현재 내 화면의 대진표와 1~4대안 투표를 전체 멤버에게 공유합니다">
-                  <i class="fa-solid fa-share-nodes"></i>
-                  <span>대진표 공유하기</span>
-                </button>
+
                 <button id="btn-gen-tourney" onclick="generateTournamentCode()" class="btn btn-primary">
                   <i class="fa-solid fa-trophy"></i>
                   <span>인게임 토너먼트 코드 생성</span>
@@ -879,18 +872,22 @@
                 <!-- 자바스크립트로 1~4대안 카드 4장 동시 렌더링 -->
               </div>
 
-              <!-- 1~4대안 참가자 투표 -->
+              <!-- 1~4대안 개인별 투표 (각자 본인 계정으로 개별 투표) -->
               <div id="balancer-voting-box" class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h4 class="text-sm font-black text-slate-800 dark:text-gray-100"><i class="fa-solid fa-check-to-slot text-amber-500 mr-1.5"></i>대진안 투표</h4>
-                    <p class="text-[11px] text-slate-500 dark:text-gray-400 mt-1">참가자를 선택하고 마음에 드는 대진안에 투표하세요. 참가자당 1표이며, 다시 투표하면 선택이 변경됩니다.</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h4 class="text-sm font-black text-slate-800 dark:text-gray-100"><i class="fa-solid fa-check-to-slot text-amber-500 mr-1.5"></i>대진안 개인 투표</h4>
+                      <span id="balancer-vote-identity-badge" onclick="openMyAccountModal()" class="cursor-pointer px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40 text-[11px] font-black hover:bg-amber-500/30 transition" title="클릭하여 내 소환사 변경">
+                        내 닉네임 미설정 (클릭)
+                      </span>
+                    </div>
+                    <p id="balancer-vote-hint" class="text-[11px] text-slate-500 dark:text-gray-400 mt-1">각자 본인 계정으로 마음에 드는 대진안에 개인 투표하세요. (참가자당 1표 · 재투표 시 변경)</p>
                   </div>
-                  <div class="flex items-center gap-2 text-xs">
-                    <label for="balancer-voter-select" class="font-bold text-slate-500 dark:text-gray-400">투표자</label>
-                    <select id="balancer-voter-select" class="max-w-[220px] bg-white dark:bg-muted border border-slate-300 dark:border-line-strong rounded-lg px-2.5 py-2 text-slate-800 dark:text-gray-200">
-                      <option value="">참가자 선택</option>
-                    </select>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="openMyAccountModal()" class="h-8 px-2.5 rounded-lg bg-white dark:bg-card border border-slate-200 dark:border-line-strong text-slate-600 dark:text-gray-300 hover:text-amber-500 font-bold text-[11px] transition">
+                      <i class="fa-solid fa-user-pen mr-1"></i>계정 변경
+                    </button>
                   </div>
                 </div>
                 <div id="balancer-vote-options" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -898,8 +895,8 @@
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-amber-500/20 pt-3">
                   <p id="balancer-vote-summary" class="text-xs font-bold text-slate-600 dark:text-gray-300">아직 투표가 없습니다.</p>
-                  <button type="button" onclick="submitBalancerVote()" class="btn btn-primary">
-                    <i class="fa-solid fa-vote-yea mr-1"></i>투표하기
+                  <button id="btn-submit-balancer-vote" type="button" onclick="submitBalancerVote()" class="btn btn-primary">
+                    <i class="fa-solid fa-vote-yea mr-1"></i>내 표 투표하기
                   </button>
                 </div>
               </div>
@@ -1699,7 +1696,9 @@
 
     function saveSelectionDraft() {
       try {
-        sessionStorage.setItem('scrim_selected_ids_v2', JSON.stringify(Array.from(selectedPlayerIds).slice(0, 10)));
+        const arr = JSON.stringify(Array.from(selectedPlayerIds).slice(0, 10));
+        sessionStorage.setItem('scrim_selected_ids_v2', arr);
+        localStorage.setItem('scrim_selected_ids_shared', arr);
       } catch (e) {}
     }
     let matchHistory = [];
@@ -1712,8 +1711,6 @@
     let selectedVoteVoterId = '';
     let selectedVoteCandidateIdx = null;
     let activeTab = 'schedule';
-    let hasLocalBalancerDraft = false; // 개인 화면에서 밸런서 조작 중일 때 true (공유 전까지 DB 미반영)
-    let lastSharedBalancerState = { currentMatch: null, balancerPoll: null };
 
     function initTheme() {
       const savedTheme = localStorage.getItem('scrim_theme') || 'dark';
@@ -1746,9 +1743,7 @@ async function initData() {
         if (storedR) replayArchives = JSON.parse(storedR);
         const storedM = localStorage.getItem('scrim_current_match');
         if (storedM) currentMatch = JSON.parse(storedM);
-        // 새 탭은 다른 접속자의/이전 공용 선택을 물려받지 않는다.
-        // 새로고침 시에는 sessionStorage에서 현재 탭의 초안만 복원한다.
-        const storedSel = sessionStorage.getItem('scrim_selected_ids_v2');
+        const storedSel = localStorage.getItem('scrim_selected_ids_shared') || sessionStorage.getItem('scrim_selected_ids_v2');
         if (storedSel) selectedPlayerIds = new Set(JSON.parse(storedSel).slice(0, 10));
         else selectedPlayerIds = new Set();
         saveSelectionDraft();
@@ -1840,6 +1835,7 @@ async function initData() {
           replayArchives: (baseData && Array.isArray(baseData.replayArchives)) ? baseData.replayArchives : replayArchives,
           scrimSchedules: (baseData && baseData.scrimSchedules && typeof baseData.scrimSchedules === 'object') ? baseData.scrimSchedules : scrimSchedules,
           communityPosts: (baseData && Array.isArray(baseData.communityPosts)) ? baseData.communityPosts : communityPosts,
+          selectedPlayerIds: (baseData && Array.isArray(baseData.selectedPlayerIds)) ? baseData.selectedPlayerIds : Array.from(selectedPlayerIds || []),
           currentMatch: (baseData && baseData.currentMatch !== undefined) ? baseData.currentMatch : (currentMatch || null),
           balancerPoll: (baseData && baseData.balancerPoll !== undefined) ? baseData.balancerPoll : (balancerPoll || null),
           kakaoBindings: {
@@ -1854,6 +1850,7 @@ async function initData() {
           payloadToSave.replayArchives = replayArchives;
           payloadToSave.scrimSchedules = scrimSchedules;
           payloadToSave.communityPosts = communityPosts;
+          payloadToSave.selectedPlayerIds = Array.from(selectedPlayerIds || []);
           payloadToSave.currentMatch = currentMatch || null;
           payloadToSave.balancerPoll = balancerPoll || null;
         } else if (options.scope === 'summoners') {
@@ -1873,6 +1870,7 @@ async function initData() {
         } else if (options.scope === 'schedule') {
           payloadToSave.scrimSchedules = scrimSchedules;
         } else if (options.scope === 'balancer') {
+          payloadToSave.selectedPlayerIds = Array.from(selectedPlayerIds || []);
           payloadToSave.currentMatch = currentMatch || null;
           payloadToSave.balancerPoll = balancerPoll || null;
         } else if (options.scope === 'balancer_vote') {
@@ -1946,72 +1944,10 @@ async function initData() {
 
     function updateBalancerSyncBadge() {
       const badge = document.getElementById('balancer-sync-mode-badge');
-      const pullBtn = document.getElementById('btn-pull-shared-balancer');
       if (badge) {
-        if (hasLocalBalancerDraft) {
-          badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/40';
-          badge.textContent = '개인 화면 (미공유)';
-        } else {
-          badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30';
-          badge.textContent = '전체 공유됨';
-        }
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30';
+        badge.innerHTML = '<i class="fa-solid fa-users mr-1"></i>실시간 전체 공유';
       }
-      if (pullBtn) {
-        const hasShared = !!(lastSharedBalancerState.currentMatch || lastSharedBalancerState.balancerPoll);
-        pullBtn.classList.toggle('hidden', !(hasLocalBalancerDraft && hasShared));
-      }
-    }
-
-    function publishBalancerToCloud() {
-      if (!currentMatch && (!balancedCandidates || balancedCandidates.length === 0)) {
-        showToast('공유할 대진표가 없습니다. 먼저 스마트 밸런싱을 실행해 주세요.', 'error');
-        return;
-      }
-      hasLocalBalancerDraft = false;
-      if (balancerPoll) {
-        balancerPoll.candidates = balancedCandidates;
-        balancerPoll.selectedIdx = currentCandidateIdx;
-      }
-      lastSharedBalancerState = {
-        currentMatch: currentMatch ? JSON.parse(JSON.stringify(currentMatch)) : null,
-        balancerPoll: balancerPoll ? JSON.parse(JSON.stringify(balancerPoll)) : null
-      };
-      updateBalancerSyncBadge();
-      saveLocalData({ scope: 'balancer', force: true });
-      showToast('현재 대진표와 1~4대안 투표가 전체 멤버에게 공유되었습니다!', 'success');
-    }
-
-    function pullSharedBalancerFromCloud() {
-      hasLocalBalancerDraft = false;
-      const sharedPoll = lastSharedBalancerState.balancerPoll;
-      const sharedMatch = lastSharedBalancerState.currentMatch;
-
-      if (sharedPoll && Array.isArray(sharedPoll.candidates)) {
-        balancerPoll = JSON.parse(JSON.stringify(sharedPoll));
-        balancedCandidates = balancerPoll.candidates;
-        currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
-        selectedVoteCandidateIdx = currentCandidateIdx;
-      } else {
-        balancerPoll = null;
-        balancedCandidates = [];
-        currentCandidateIdx = 0;
-        selectedVoteCandidateIdx = null;
-      }
-
-      if (sharedMatch) {
-        currentMatch = JSON.parse(JSON.stringify(sharedMatch));
-        document.getElementById('balancer-placeholder')?.classList.add('hidden');
-        document.getElementById('balancer-board')?.classList.remove('hidden');
-        recalculateMatchMMR();
-      } else {
-        currentMatch = null;
-        document.getElementById('balancer-placeholder')?.classList.remove('hidden');
-        document.getElementById('balancer-board')?.classList.add('hidden');
-      }
-      renderAlternativeCards();
-      renderBalancerVoting();
-      updateBalancerSyncBadge();
-      showToast('공유된 최신 대진표를 불러왔습니다.', 'info');
     }
 
     // 사용자가 입력 중이거나 모달/상세 아코디언을 열어둔 상태면 백그라운드 DOM 리렌더링을 보류한다.
@@ -2121,34 +2057,45 @@ async function initData() {
             saveLocalData({ scope: 'community' });
           }
 
-          // 서버의 최신 공유 대진표/투표 백업 보관
-          lastSharedBalancerState = {
-            currentMatch: cloudData.currentMatch || null,
-            balancerPoll: (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) ? cloudData.balancerPoll : null
-          };
-
-          if (!hasLocalBalancerDraft) {
-            if (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) {
-              balancerPoll = cloudData.balancerPoll;
-              balancedCandidates = balancerPoll.candidates;
-              currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
-              localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
-            } else if (cloudData.balancerPoll === null) {
-              balancerPoll = null;
-              balancedCandidates = [];
-              currentCandidateIdx = 0;
+          // 스마트 밸런서 상태(10인 선택, 1~4대안, 현재 대진표, 투표 현황)는 항상 전체 공유 동기화
+          const prevPollId = balancerPoll?.id || null;
+          if (cloudData.balancerPoll && Array.isArray(cloudData.balancerPoll.candidates)) {
+            balancerPoll = cloudData.balancerPoll;
+            balancedCandidates = balancerPoll.candidates;
+            currentCandidateIdx = Number.isInteger(balancerPoll.selectedIdx) ? balancerPoll.selectedIdx : 0;
+            if (prevPollId !== balancerPoll.id) {
               selectedVoteCandidateIdx = null;
-              localStorage.removeItem('scrim_balancer_poll');
             }
+            localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
+          } else if (cloudData.balancerPoll === null) {
+            balancerPoll = null;
+            balancedCandidates = [];
+            currentCandidateIdx = 0;
+            selectedVoteCandidateIdx = null;
+            localStorage.removeItem('scrim_balancer_poll');
+          }
 
-            if (cloudData.currentMatch) {
-              currentMatch = cloudData.currentMatch;
-            } else if (cloudData.currentMatch === null) {
-              currentMatch = null;
+          if (cloudData.currentMatch) {
+            currentMatch = cloudData.currentMatch;
+            localStorage.setItem('scrim_current_match', JSON.stringify(currentMatch));
+          } else if (cloudData.currentMatch === null) {
+            currentMatch = null;
+            localStorage.removeItem('scrim_current_match');
+          }
+
+          if (Array.isArray(cloudData.selectedPlayerIds)) {
+            selectedPlayerIds = new Set(cloudData.selectedPlayerIds.slice(0, 10));
+            saveSelectionDraft();
+          } else if (balancerPoll && Array.isArray(balancerPoll.selectedIds) && balancerPoll.selectedIds.length > 0) {
+            selectedPlayerIds = new Set(balancerPoll.selectedIds.slice(0, 10));
+            saveSelectionDraft();
+          } else if (currentMatch) {
+            const matchIds = [...(currentMatch.blue || []), ...(currentMatch.red || [])]
+              .filter(Boolean).map(p => p.id).filter(Boolean);
+            if (matchIds.length > 0) {
+              selectedPlayerIds = new Set(matchIds.slice(0, 10));
+              saveSelectionDraft();
             }
-          } else if (balancerPoll && cloudData.balancerPoll && balancerPoll.id === cloudData.balancerPoll.id) {
-            // 개인 화면에서 1~4대안 미리보기 중에도 동일 투표의 실시간 표 수는 유지
-            balancerPoll.votes = cloudData.balancerPoll.votes || {};
           }
 
           localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
@@ -2933,15 +2880,19 @@ function getRoleSpecificMMR(player, assignedRole) {
       document.getElementById('btn-run-balancing').disabled = (count !== 10);
     }
 
-// 대진표 편집은 내 개인 화면에서만 즉시 반영한다. ([대진표 공유하기] 클릭 시 전체 게시)
     function syncSelectedFromCurrentMatch() {
-      hasLocalBalancerDraft = true;
+      if (currentMatch) {
+        const ids = [...(currentMatch.blue || []), ...(currentMatch.red || [])]
+          .filter(Boolean).map(p => p.id).filter(Boolean);
+        selectedPlayerIds = new Set(ids.slice(0, 10));
+        saveSelectionDraft();
+      }
       updateBalancerSyncBadge();
       renderSelectionGrid();
+      renderSidebarDrawerList();
+      saveLocalData({ scope: 'balancer' });
     }
 
-    // 상단 타일 클릭은 현재 탭의 선택 초안만 변경한다.
-    // 다른 접속자의 선택이나 게시된 대진표를 직접 수정하지 않는다.
     function toggleSelectPlayer(id) {
       const playerObj = summoners.find(s => s.id === id);
       if (!playerObj) return;
@@ -2951,6 +2902,7 @@ function getRoleSpecificMMR(player, assignedRole) {
         saveSelectionDraft();
         renderSelectionGrid();
         renderSidebarDrawerList();
+        saveLocalData({ scope: 'balancer' });
         return;
       }
 
@@ -2963,6 +2915,7 @@ function getRoleSpecificMMR(player, assignedRole) {
       saveSelectionDraft();
       renderSelectionGrid();
       renderSidebarDrawerList();
+      saveLocalData({ scope: 'balancer' });
     }
 
     // 상단 타일의 [X] 버튼
@@ -2972,6 +2925,7 @@ function getRoleSpecificMMR(player, assignedRole) {
       saveSelectionDraft();
       renderSelectionGrid();
       renderSidebarDrawerList();
+      saveLocalData({ scope: 'balancer' });
     }
 
     // 🌟 대진표 카드 내부의 [X] 버튼 클릭 시 (해당 자리만 비우고 상단 선택도 해제)
@@ -3017,7 +2971,8 @@ function getRoleSpecificMMR(player, assignedRole) {
       saveSelectionDraft();
       renderSelectionGrid();
       renderSidebarDrawerList();
-      showToast('현재 탭의 10인 선택 목록을 비웠습니다. 게시된 대진표는 유지됩니다.', 'info');
+      saveLocalData({ scope: 'balancer' });
+      showToast('10인 선택 목록을 초기화했습니다.', 'info');
     }
 
     function autoSelectTop10() {
@@ -3026,6 +2981,7 @@ function getRoleSpecificMMR(player, assignedRole) {
       saveSelectionDraft();
       renderSelectionGrid();
       renderSidebarDrawerList();
+      saveLocalData({ scope: 'balancer' });
       showToast('MMR 상위 10명이 자동 선택되었습니다.', 'success');
     }
 
@@ -3149,11 +3105,11 @@ function runSmartBalancing() {
       }
 
       currentCandidateIdx = 0;
-      hasLocalBalancerDraft = true;
       startBalancerPoll(pool);
       applyMatchCandidate(0, false);
       updateBalancerSyncBadge();
-      showToast('1대안 대진표가 내 화면에 생성되었습니다! 비교/조정 후 [대진표 공유하기]를 누르면 모두에게 게시됩니다.', 'success');
+      saveLocalData({ scope: 'balancer', force: true });
+      showToast('스마트 밸런싱 대진표가 생성되어 모든 멤버 화면에 공유되었습니다!', 'success');
     }
 
     function applyMatchCandidate(idx, isReroll = true) {
@@ -3163,7 +3119,6 @@ function runSmartBalancing() {
       if (balancerPoll) {
         balancerPoll.selectedIdx = currentCandidateIdx;
       }
-      selectedVoteCandidateIdx = currentCandidateIdx;
 
       const candidateBadge = document.getElementById('stat-candidate-badge');
       if (candidateBadge) {
@@ -3191,9 +3146,9 @@ function runSmartBalancing() {
       document.getElementById('balancer-placeholder').classList.add('hidden');
       document.getElementById('balancer-board').classList.remove('hidden');
       if (isReroll) {
-        hasLocalBalancerDraft = true;
         updateBalancerSyncBadge();
-        showToast(`🔄 [${currentCandidateIdx + 1}대안]을 내 화면에 적용했습니다. (전체 반영은 [대진표 공유하기])`, 'info');
+        saveLocalData({ scope: 'balancer' });
+        showToast(`🔄 [${currentCandidateIdx + 1}대안]으로 전체 공유 대진표를 변경했습니다.`, 'info');
       }
     }
 
@@ -3243,12 +3198,14 @@ function runSmartBalancing() {
         createdAt: Date.now(),
         candidates: balancedCandidates,
         participants,
+        selectedIds: participants.map(p => p.id),
         votes: {},
         selectedIdx: 0
       };
-      const mySavedId = typeof getMySavedPlayerId === 'function' ? getMySavedPlayerId() : '';
-      selectedVoteVoterId = (mySavedId && participants.some(p => p.id === mySavedId)) ? mySavedId : (participants[0]?.id || '');
-      selectedVoteCandidateIdx = 0;
+      const me = typeof getMySavedPlayer === 'function' ? getMySavedPlayer() : null;
+      const myParticipant = me ? participants.find(p => p.id === me.id || isSameSummonerName(p.name, me.name)) : null;
+      selectedVoteVoterId = myParticipant ? myParticipant.id : '';
+      selectedVoteCandidateIdx = null;
       renderBalancerVoting();
     }
 
@@ -3258,34 +3215,41 @@ function runSmartBalancing() {
       }[ch]));
     }
 
+    function findMyBalancerParticipant(participants) {
+      const me = typeof getMySavedPlayer === 'function' ? getMySavedPlayer() : null;
+      if (!me) return { me: null, participant: null };
+      const participant = (participants || []).find(p => p.id === me.id || isSameSummonerName(p.name, me.name)) || null;
+      return { me, participant };
+    }
+
     function renderBalancerVoting() {
       const box = document.getElementById('balancer-voting-box');
-      const select = document.getElementById('balancer-voter-select');
+      const badge = document.getElementById('balancer-vote-identity-badge');
+      const hint = document.getElementById('balancer-vote-hint');
       const options = document.getElementById('balancer-vote-options');
       const summary = document.getElementById('balancer-vote-summary');
-      if (!box || !select || !options || !summary) return;
+      const submitBtn = document.getElementById('btn-submit-balancer-vote');
+      if (!box || !options || !summary) return;
+
+      const participants = Array.isArray(balancerPoll?.participants) ? balancerPoll.participants : [];
+      const { me, participant: myParticipant } = findMyBalancerParticipant(participants);
+      selectedVoteVoterId = myParticipant ? myParticipant.id : '';
+
+      if (badge) {
+        if (!me) {
+          badge.textContent = '⚠️ 내 닉네임 미설정 (클릭)';
+        } else {
+          const label = `${me.description ? me.description + ' · ' : ''}${me.name.split('#')[0]}`;
+          badge.textContent = `👤 ${label}`;
+        }
+      }
 
       if (!balancerPoll || !Array.isArray(balancerPoll.candidates) || !balancerPoll.candidates.length) {
-        select.innerHTML = '<option value="">참가자 선택</option>';
         options.innerHTML = '<p class="text-xs text-slate-500">대진안을 생성하면 투표 항목이 표시됩니다.</p>';
         summary.textContent = '아직 투표가 없습니다.';
+        if (submitBtn) submitBtn.disabled = true;
         return;
       }
-
-      const participants = Array.isArray(balancerPoll.participants) ? balancerPoll.participants : [];
-      const mySavedId = typeof getMySavedPlayerId === 'function' ? getMySavedPlayerId() : '';
-      if (!selectedVoteVoterId || !participants.some(p => p.id === selectedVoteVoterId)) {
-        selectedVoteVoterId = (mySavedId && participants.some(p => p.id === mySavedId)) ? mySavedId : (participants[0]?.id || '');
-      }
-      select.innerHTML = '<option value="">참가자 선택</option>' + participants.map(p =>
-        `<option value="${escapeBalancerVoteText(p.id)}" ${p.id === selectedVoteVoterId ? 'selected' : ''}>${escapeBalancerVoteText(p.name)}</option>`
-      ).join('');
-      select.onchange = () => {
-        selectedVoteVoterId = select.value;
-        const existingVote = balancerPoll?.votes?.[selectedVoteVoterId];
-        selectedVoteCandidateIdx = Number.isInteger(existingVote) ? existingVote : null;
-        renderBalancerVoting();
-      };
 
       const votes = balancerPoll.votes && typeof balancerPoll.votes === 'object' ? balancerPoll.votes : {};
       const validVotes = Object.entries(votes).filter(([voterId, idx]) =>
@@ -3294,15 +3258,41 @@ function runSmartBalancing() {
       const counts = balancerPoll.candidates.map((_, idx) => validVotes.filter(([, voteIdx]) => voteIdx === idx).length);
       const total = validVotes.length;
       const labels = ['1대안 · 최적 균형', '2대안 · 진영 밸런스', '3대안 · 1지망 극대화', '4대안 · 라인격차 최소'];
-      const myVote = selectedVoteVoterId ? votes[selectedVoteVoterId] : undefined;
+
+      const myVote = myParticipant ? votes[myParticipant.id] : undefined;
       if (selectedVoteCandidateIdx === null && Number.isInteger(myVote)) selectedVoteCandidateIdx = myVote;
       if (selectedVoteCandidateIdx !== null && selectedVoteCandidateIdx >= balancerPoll.candidates.length) selectedVoteCandidateIdx = null;
+
+      if (hint) {
+        if (!me) {
+          hint.innerHTML = '위 노란색 <strong>[내 닉네임 미설정]</strong>을 눌러 본인 계정을 먼저 설정하면 개인 투표를 할 수 있습니다.';
+        } else if (!myParticipant) {
+          hint.innerHTML = `<strong class="text-rose-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님은 현재 대진표의 10인 참가자에 포함되어 있지 않아 투표할 수 없습니다.`;
+        } else if (Number.isInteger(myVote)) {
+          hint.innerHTML = `내 투표 완료: <strong class="text-emerald-500">${myVote + 1}대안</strong> · 다른 대안을 누르고 다시 투표하면 내 표만 변경됩니다.`;
+        } else {
+          hint.innerHTML = `<strong class="text-amber-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님, 원하는 대진안을 선택해 개인 투표하세요. (참가자당 1표)`;
+        }
+      }
+      if (submitBtn) {
+        submitBtn.disabled = !me || !myParticipant;
+      }
 
       options.innerHTML = balancerPoll.candidates.slice(0, 4).map((match, idx) => {
         const count = counts[idx] || 0;
         const pct = total ? Math.round(count / total * 100) : 0;
+        const isMySavedVote = Number(myVote) === idx;
         const selected = selectedVoteCandidateIdx === idx;
         const label = labels[idx] || `${idx + 1}대안`;
+        const voterNames = validVotes
+          .filter(([, voteIdx]) => voteIdx === idx)
+          .map(([voterId]) => {
+            const vp = participants.find(p => p.id === voterId);
+            const full = vp ? summoners.find(s => s.id === vp.id || isSameSummonerName(s.name, vp.name)) : null;
+            return full?.description?.trim() || (vp?.name || '').split('#')[0];
+          })
+          .filter(Boolean);
+
         return `
           <button type="button" onclick="selectBalancerVoteOption(${idx})" class="text-left p-3 rounded-xl border transition ${selected ? 'border-amber-500 bg-amber-500/15 ring-1 ring-amber-500/40' : 'border-slate-200 dark:border-line-strong bg-white dark:bg-card hover:border-amber-400'}">
             <div class="flex items-center justify-between gap-2">
@@ -3311,18 +3301,31 @@ function runSmartBalancing() {
             </div>
             <div class="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full rounded-full bg-amber-500" style="width:${pct}%"></div></div>
             <div class="mt-1.5 flex justify-between text-[11px] text-slate-500"><span>격차 ${Number(match.diff) || 0} pt</span><span>${pct}%</span></div>
-            <div class="mt-1 text-[11px] font-bold ${selected ? 'text-amber-500' : 'text-sky-500'}">${selected ? (Number(myVote) === idx ? '내 투표 · 선택됨' : '투표할 항목') : '눌러서 선택'}</div>
+            <div class="mt-1 text-[11px] font-bold ${isMySavedVote ? 'text-emerald-500' : (selected ? 'text-amber-500' : 'text-sky-500')}">
+              ${isMySavedVote ? '✅ 내 투표 완료' : (selected ? '선택됨 · [내 표 투표하기] 클릭' : '눌러서 개인 선택')}
+            </div>
+            ${voterNames.length > 0 ? `<div class="mt-1.5 pt-1.5 border-t border-slate-200/70 dark:border-line text-[10px] text-slate-400 truncate" title="${escapeBalancerVoteText(voterNames.join(', '))}">투표: ${escapeBalancerVoteText(voterNames.join(', '))}</div>` : ''}
           </button>`;
       }).join('');
 
       const leaders = counts.map((count, idx) => ({ count, idx })).filter(x => x.count === Math.max(0, ...counts));
       const leaderText = total === 0 ? '아직 투표가 없습니다.' :
         (leaders.length > 1 ? `공동 선두: ${leaders.map(x => `${x.idx + 1}대안`).join(', ')}` : `현재 ${leaders[0].idx + 1}대안이 선두입니다.`);
-      summary.textContent = `${total}표 참여 · ${leaderText}`;
+      summary.textContent = `${total} / ${participants.length}명 투표 참여 · ${leaderText}`;
     }
 
     function selectBalancerVoteOption(candidateIdx) {
       if (!balancerPoll || !Array.isArray(balancerPoll.candidates) || !balancerPoll.candidates[candidateIdx]) return;
+      const { me, participant: myParticipant } = findMyBalancerParticipant(balancerPoll.participants || []);
+      if (!me) {
+        showToast('먼저 본인 소환사 계정을 설정해 주세요!', 'info');
+        openMyAccountModal();
+        return;
+      }
+      if (!myParticipant) {
+        showToast('현재 대진표의 10인 참가자만 투표할 수 있습니다.', 'error');
+        return;
+      }
       selectedVoteCandidateIdx = candidateIdx;
       renderBalancerVoting();
     }
@@ -3332,20 +3335,21 @@ function runSmartBalancing() {
         showToast('먼저 스마트 밸런싱으로 대진안을 생성해 주세요.', 'error');
         return;
       }
-      if (!Number.isInteger(candidateIdx) || !balancerPoll.candidates[candidateIdx]) {
-        if (Number.isInteger(currentCandidateIdx) && balancerPoll.candidates[currentCandidateIdx]) {
-          candidateIdx = currentCandidateIdx;
-        } else {
-          showToast('투표할 대진안(1~4대안)을 먼저 눌러서 선택해 주세요.', 'error');
-          return;
-        }
-      }
-      const select = document.getElementById('balancer-voter-select');
-      const voterId = select?.value || selectedVoteVoterId;
-      if (!voterId || !(balancerPoll.participants || []).some(p => p.id === voterId)) {
-        showToast('투표할 참가자를 먼저 선택해 주세요.', 'error');
+      const { me, participant: myParticipant } = findMyBalancerParticipant(balancerPoll.participants || []);
+      if (!me) {
+        showToast('먼저 본인 소환사 계정을 설정해 주세요!', 'info');
+        openMyAccountModal();
         return;
       }
+      if (!myParticipant) {
+        showToast('현재 대진표의 10인 참가자만 투표할 수 있습니다.', 'error');
+        return;
+      }
+      if (!Number.isInteger(candidateIdx) || !balancerPoll.candidates[candidateIdx]) {
+        showToast('투표할 대진안(1~4대안)을 먼저 눌러서 선택해 주세요.', 'error');
+        return;
+      }
+      const voterId = myParticipant.id;
       if (!balancerPoll.votes || typeof balancerPoll.votes !== 'object') balancerPoll.votes = {};
       const previousVote = balancerPoll.votes[voterId];
       balancerPoll.votes[voterId] = candidateIdx;
@@ -3353,10 +3357,10 @@ function runSmartBalancing() {
       selectedVoteCandidateIdx = candidateIdx;
       saveLocalData({ scope: 'balancer_vote', voteEntry: { [voterId]: candidateIdx } });
       renderBalancerVoting();
-      const name = balancerPoll.participants.find(p => p.id === voterId)?.name || '참가자';
+      const displayName = me.description || me.name.split('#')[0];
       showToast(previousVote === undefined
-        ? `${name}: ${candidateIdx + 1}대안에 투표했습니다.`
-        : `${name}: ${candidateIdx + 1}대안으로 투표를 변경했습니다.`, 'success');
+        ? `[${displayName}] ${candidateIdx + 1}대안에 개인 투표했습니다.`
+        : `[${displayName}] ${candidateIdx + 1}대안으로 내 투표를 변경했습니다.`, 'success');
     }
 
     // 🌟 라인별 맞대결 유불리 부등호(>, >>, <<<) 및 격차 렌더러
@@ -3395,7 +3399,7 @@ function runSmartBalancing() {
     }
 
     function clearMatchTeams() {
-      const alsoClearShared = !hasLocalBalancerDraft && isAdminLoggedIn && confirm('전체 멤버에게 공유된 대진표도 함께 초기화할까요?\n(취소를 누르면 내 화면만 초기화됩니다)');
+      if (!confirm('현재 공유 중인 대진표와 1~4대안 투표를 초기화할까요?')) return;
       currentMatch = null;
       balancedCandidates = [];
       currentCandidateIdx = 0;
@@ -3404,16 +3408,9 @@ function runSmartBalancing() {
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
       renderBalancerVoting();
-      if (alsoClearShared) {
-        hasLocalBalancerDraft = false;
-        lastSharedBalancerState = { currentMatch: null, balancerPoll: null };
-        saveLocalData({ scope: 'balancer', force: true });
-        showToast('공유된 대진표가 전체 초기화되었습니다.', 'info');
-      } else {
-        hasLocalBalancerDraft = true;
-        showToast('내 화면의 대진표가 초기화되었습니다.', 'info');
-      }
+      saveLocalData({ scope: 'balancer', force: true });
       updateBalancerSyncBadge();
+      showToast('대진표가 전체 초기화되었습니다.', 'info');
     }
 
 
@@ -3455,10 +3452,10 @@ function runSmartBalancing() {
       const temp = currentMatch.blue;
       currentMatch.blue = currentMatch.red;
       currentMatch.red = temp;
-      hasLocalBalancerDraft = true;
       recalculateMatchMMR();
       updateBalancerSyncBadge();
-      showToast('내 화면에서 블루 ↔ 레드 진영이 교체되었습니다. (전체 반영은 [대진표 공유하기])', 'success');
+      saveLocalData({ scope: 'balancer' });
+      showToast('블루 ↔ 레드 진영이 전체 교체되어 공유되었습니다.', 'success');
     }
 
     function swapLaneLineup() {
@@ -3471,10 +3468,10 @@ function runSmartBalancing() {
       currentMatch.blue[idx] = currentMatch.red[idx];
       currentMatch.red[idx] = temp;
 
-      hasLocalBalancerDraft = true;
       recalculateMatchMMR();
       updateBalancerSyncBadge();
-      showToast(`내 화면에서 ${targetPos} 라인이 맞교체되었습니다.`, 'info');
+      saveLocalData({ scope: 'balancer' });
+      showToast(`${targetPos} 라인이 맞교체되어 공유되었습니다.`, 'info');
     }
 
       function recalculateMatchMMR() {
@@ -5404,24 +5401,22 @@ function resetMatchHistory() {
         return;
       }
 
-      // 중요: 이전 currentMatch가 빈 슬롯을 갖고 있으면 renderSelectionGrid()가
-      // 선택한 10명을 빈 대진표 기준으로 덮어쓸 수 있으므로, 새 대진표 진입 전에 초기화한다.
       currentMatch = null;
       balancedCandidates = [];
       currentCandidateIdx = 0;
       balancerPoll = null;
       selectedVoteCandidateIdx = null;
       selectedPlayerIds = new Set(matchedPlayers.map(s => s.id));
+      saveSelectionDraft();
 
-      // 이전 대진표가 내 화면에 남지 않도록 빈 상태 UI로 되돌린다 (공유 DB는 유지).
-      hasLocalBalancerDraft = true;
       document.getElementById('balancer-placeholder')?.classList.remove('hidden');
       document.getElementById('balancer-board')?.classList.add('hidden');
 
+      saveLocalData({ scope: 'balancer', force: true });
       switchTab('balancer');
       renderSelectionGrid();
 
-      showToast('참가 확정 10명이 밸런서에 연결되었습니다. [스마트 밸런싱 실행]을 눌러 대진을 생성하세요!', 'success');
+      showToast('참가 확정 10명이 밸런서에 공유되었습니다. [스마트 밸런싱 실행]을 눌러 대진을 생성하세요!', 'success');
     }
     // ==========================================
     // 👑 관리자 권한 (이준희) 보안 엔진
