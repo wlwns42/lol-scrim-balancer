@@ -1786,16 +1786,104 @@ async function initData() {
       // 🌟 [핵심] 페이지 접속 즉시 Supabase 클라우드 DB를 최우선으로 읽어와 화면 완전 동기화
       await fetchCloudData(true);
 
-      // 이후 15초마다 백그라운드 자동 동기화 (현재 보고 있는 탭만 조용히 갱신)
-      setInterval(() => fetchCloudData(false), 15000);
+      // 이후 4초마다 백그라운드 자동 동기화 (투표·대진표 실시간 반영)
+      setInterval(() => fetchCloudData(false), 4000);
     }
 
     let cloudSaveInProgress = false;
     let lastLocalSaveAt = 0;
+    let cloudSaveQueue = Promise.resolve();
+    const pendingRsvpOps = new Map(); // key: `${dateKey}::${playerKey}` -> op object
+    const pendingBalancerVoteOps = new Map(); // key: `${pollId}::${voterId}` -> { pollId, voterId, candidateIdx | null }
 
-    async function saveLocalData(options = {}) {
+    function applyScheduleOpToSchedules(targetSchedules, op) {
+      if (!targetSchedules || typeof targetSchedules !== 'object' || !op || !op.dateKey) return;
+      const dKey = op.dateKey;
+      if (!targetSchedules[dKey] || typeof targetSchedules[dKey] !== 'object') {
+        targetSchedules[dKey] = { time: '22:00', participants: [], voteLogs: [] };
+      }
+      const sched = targetSchedules[dKey];
+      if (!Array.isArray(sched.participants)) sched.participants = [];
+      if (!Array.isArray(sched.voteLogs)) sched.voteLogs = [];
+
+      if (op.action === 'time' && op.time) {
+        sched.time = op.time;
+      } else if (op.action === 'upsert' && op.participant) {
+        const p = op.participant;
+        const idx = sched.participants.findIndex(item =>
+          (p.id && item.id === p.id) || (p.name && item.name === p.name)
+        );
+        if (idx >= 0) sched.participants[idx] = { ...p };
+        else sched.participants.push({ ...p });
+        if (op.voteLog) {
+          const dup = sched.voteLogs.some(l =>
+            l.timestamp === op.voteLog.timestamp && l.name === op.voteLog.name && l.newStatus === op.voteLog.newStatus
+          );
+          if (!dup) {
+            sched.voteLogs.unshift({ ...op.voteLog });
+            if (sched.voteLogs.length > 25) sched.voteLogs.pop();
+          }
+        }
+      } else if (op.action === 'remove') {
+        sched.participants = sched.participants.filter(item =>
+          item.id !== op.playerId && item.name !== op.playerId && (!op.playerName || item.name !== op.playerName)
+        );
+        if (op.voteLog) {
+          const dup = sched.voteLogs.some(l =>
+            l.timestamp === op.voteLog.timestamp && l.name === op.voteLog.name && l.newStatus === op.voteLog.newStatus
+          );
+          if (!dup) {
+            sched.voteLogs.unshift({ ...op.voteLog });
+            if (sched.voteLogs.length > 25) sched.voteLogs.pop();
+          }
+        }
+      }
+    }
+
+    function applyPendingDeltasToState(targetSchedules, targetPoll) {
+      if (targetSchedules && pendingRsvpOps.size > 0) {
+        pendingRsvpOps.forEach(op => applyScheduleOpToSchedules(targetSchedules, op));
+      }
+      if (targetPoll && pendingBalancerVoteOps.size > 0) {
+        if (!targetPoll.votes || typeof targetPoll.votes !== 'object') targetPoll.votes = {};
+        pendingBalancerVoteOps.forEach(op => {
+          if (op.pollId === targetPoll.id) {
+            if (op.candidateIdx === null || op.candidateIdx === undefined) {
+              delete targetPoll.votes[op.voterId];
+            } else {
+              targetPoll.votes[op.voterId] = op.candidateIdx;
+            }
+          }
+        });
+      }
+    }
+
+    function saveLocalData(options = {}) {
       // 🌟 [DB 보호 락] 초기 로드 전 전체 덮어쓰기는 차단하되, scope 병합 저장이나 force 저장은 허용
-      if (!isCloudLoaded && !options.force && !options.scope) return;
+      if (!isCloudLoaded && !options.force && !options.scope) return Promise.resolve();
+
+      if (options.scope === 'schedule' && options.rsvpOp) {
+        const opKey = options.rsvpOp.key || `${options.rsvpOp.dateKey}::${options.rsvpOp.playerId || 'time'}`;
+        pendingRsvpOps.set(opKey, options.rsvpOp);
+      }
+      if (options.scope === 'balancer_vote' && balancerPoll?.id) {
+        if (options.removeVoterId) {
+          pendingBalancerVoteOps.set(`${balancerPoll.id}::${options.removeVoterId}`, {
+            pollId: balancerPoll.id,
+            voterId: options.removeVoterId,
+            candidateIdx: null
+          });
+        }
+        if (options.voteEntry) {
+          Object.entries(options.voteEntry).forEach(([vId, cIdx]) => {
+            pendingBalancerVoteOps.set(`${balancerPoll.id}::${vId}`, {
+              pollId: balancerPoll.id,
+              voterId: vId,
+              candidateIdx: cIdx
+            });
+          });
+        }
+      }
 
       try {
         localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
@@ -1814,30 +1902,52 @@ async function initData() {
         }
       } catch(e) {}
 
-      // 🌟 Supabase 클라우드 DB로 전송 (영역별 병합으로 다른 사용자의 실명/별명 등 덮어쓰기 방지)
+      // 🌟 동시 클릭/투표 시 저장 요청이 서로 덮어쓰지 않도록 직렬 큐(cloudSaveQueue)로 순차 실행
+      cloudSaveQueue = cloudSaveQueue.then(() => executeCloudSave(options)).catch(() => {});
+      return cloudSaveQueue;
+    }
+
+    async function executeCloudSave(options = {}) {
       cloudSaveInProgress = true;
       lastLocalSaveAt = Date.now();
+      const opSnapshotRsvp = (options.scope === 'schedule' && options.rsvpOp) ? { ...options.rsvpOp } : null;
+      const opSnapshotVote = (options.scope === 'balancer_vote' && balancerPoll?.id)
+        ? { pollId: balancerPoll.id, removeVoterId: options.removeVoterId || null, voteEntry: options.voteEntry ? { ...options.voteEntry } : null }
+        : null;
+
       try {
         let baseData = null;
         if (options.scope && !options.fullReplace) {
-          try {
-            const latestRes = await fetch('/api/sync');
-            if (latestRes.ok) {
-              const latestJson = await latestRes.json();
-              if (latestJson && typeof latestJson === 'object') baseData = latestJson;
-            }
-          } catch (fetchErr) {}
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              const latestRes = await fetch(`/api/sync?_t=${Date.now()}`, { cache: 'no-store' });
+              if (latestRes.ok) {
+                const latestJson = await latestRes.json();
+                if (latestJson && typeof latestJson === 'object') {
+                  baseData = latestJson;
+                  break;
+                }
+              }
+            } catch (fetchErr) {}
+          }
+          // 네트워크 오류로 최신 서버 상태를 못 읽었을 때는 다른 사람의 데이터를 덮어쓰지 않도록 중단
+          if (!baseData && !options.force) {
+            console.warn('Skipped scoped cloud save because latest server snapshot could not be fetched.');
+            return;
+          }
         }
 
         const payloadToSave = {
           summoners: (baseData && Array.isArray(baseData.summoners)) ? baseData.summoners : summoners,
           matchHistory: (baseData && Array.isArray(baseData.matchHistory)) ? baseData.matchHistory : matchHistory,
           replayArchives: (baseData && Array.isArray(baseData.replayArchives)) ? baseData.replayArchives : replayArchives,
-          scrimSchedules: (baseData && baseData.scrimSchedules && typeof baseData.scrimSchedules === 'object') ? baseData.scrimSchedules : scrimSchedules,
+          scrimSchedules: (baseData && baseData.scrimSchedules && typeof baseData.scrimSchedules === 'object')
+            ? JSON.parse(JSON.stringify(baseData.scrimSchedules))
+            : JSON.parse(JSON.stringify(scrimSchedules || {})),
           communityPosts: (baseData && Array.isArray(baseData.communityPosts)) ? baseData.communityPosts : communityPosts,
           selectedPlayerIds: (baseData && Array.isArray(baseData.selectedPlayerIds)) ? baseData.selectedPlayerIds : Array.from(selectedPlayerIds || []),
           currentMatch: (baseData && baseData.currentMatch !== undefined) ? baseData.currentMatch : (currentMatch || null),
-          balancerPoll: (baseData && baseData.balancerPoll !== undefined) ? baseData.balancerPoll : (balancerPoll || null),
+          balancerPoll: (baseData && baseData.balancerPoll !== undefined) ? JSON.parse(JSON.stringify(baseData.balancerPoll)) : (balancerPoll ? JSON.parse(JSON.stringify(balancerPoll)) : null),
           kakaoBindings: {
             ...((baseData && baseData.kakaoBindings && typeof baseData.kakaoBindings === 'object') ? baseData.kakaoBindings : {}),
             ...(kakaoBindings || {})
@@ -1868,7 +1978,13 @@ async function initData() {
             payloadToSave.summoners = summoners;
           }
         } else if (options.scope === 'schedule') {
-          payloadToSave.scrimSchedules = scrimSchedules;
+          if (opSnapshotRsvp && baseData && baseData.scrimSchedules) {
+            applyScheduleOpToSchedules(payloadToSave.scrimSchedules, opSnapshotRsvp);
+            scrimSchedules = JSON.parse(JSON.stringify(payloadToSave.scrimSchedules));
+            applyPendingDeltasToState(scrimSchedules, null);
+          } else {
+            payloadToSave.scrimSchedules = scrimSchedules;
+          }
         } else if (options.scope === 'balancer') {
           payloadToSave.selectedPlayerIds = Array.from(selectedPlayerIds || []);
           payloadToSave.currentMatch = currentMatch || null;
@@ -1887,21 +2003,24 @@ async function initData() {
           }
         } else if (options.scope === 'balancer_vote') {
           const targetPoll = (baseData && baseData.balancerPoll && balancerPoll && baseData.balancerPoll.id === balancerPoll.id)
-            ? baseData.balancerPoll
-            : balancerPoll;
+            ? JSON.parse(JSON.stringify(baseData.balancerPoll))
+            : (balancerPoll ? JSON.parse(JSON.stringify(balancerPoll)) : null);
           if (targetPoll) {
             const mergedVotes = { ...(targetPoll.votes || {}) };
-            if (options.removeVoterId) {
-              delete mergedVotes[options.removeVoterId];
+            if (opSnapshotVote?.removeVoterId) {
+              delete mergedVotes[opSnapshotVote.removeVoterId];
             }
-            if (options.voteEntry) {
-              Object.assign(mergedVotes, options.voteEntry);
+            if (opSnapshotVote?.voteEntry) {
+              Object.assign(mergedVotes, opSnapshotVote.voteEntry);
             }
             payloadToSave.balancerPoll = {
               ...targetPoll,
               votes: mergedVotes
             };
-            if (balancerPoll) balancerPoll.votes = mergedVotes;
+            if (balancerPoll && balancerPoll.id === targetPoll.id) {
+              balancerPoll.votes = { ...mergedVotes };
+              applyPendingDeltasToState(null, balancerPoll);
+            }
           } else {
             payloadToSave.currentMatch = currentMatch || null;
             payloadToSave.balancerPoll = balancerPoll || null;
@@ -1932,17 +2051,38 @@ async function initData() {
         });
         if (!postRes.ok) {
           console.warn('Cloud save HTTP error:', postRes.status);
-          if (options.scope === 'summoners') {
-            showToast('서버 DB 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+          if (options.scope === 'summoners' || options.scope === 'schedule' || options.scope === 'balancer_vote') {
+            showToast('서버 반영이 지연되고 있습니다. 잠시 후 자동 재동기화됩니다.', 'error');
           }
         } else {
           lastLocalSaveAt = Date.now();
           isCloudLoaded = true;
+          if (opSnapshotRsvp) {
+            const opKey = opSnapshotRsvp.key || `${opSnapshotRsvp.dateKey}::${opSnapshotRsvp.playerId || 'time'}`;
+            if (pendingRsvpOps.get(opKey) === options.rsvpOp) pendingRsvpOps.delete(opKey);
+          }
+          if (opSnapshotVote) {
+            if (opSnapshotVote.removeVoterId) {
+              const k = `${opSnapshotVote.pollId}::${opSnapshotVote.removeVoterId}`;
+              if (pendingBalancerVoteOps.get(k)?.candidateIdx === null) pendingBalancerVoteOps.delete(k);
+            }
+            if (opSnapshotVote.voteEntry) {
+              Object.entries(opSnapshotVote.voteEntry).forEach(([vId, cIdx]) => {
+                const k = `${opSnapshotVote.pollId}::${vId}`;
+                if (pendingBalancerVoteOps.get(k)?.candidateIdx === cIdx) pendingBalancerVoteOps.delete(k);
+              });
+            }
+          }
+          localStorage.setItem('scrim_schedules_data', JSON.stringify(scrimSchedules));
+          if (balancerPoll) localStorage.setItem('scrim_balancer_poll', JSON.stringify(balancerPoll));
+          if (!isUserBusyInCurrentTab()) {
+            renderActiveTabOnly();
+          }
         }
       } catch (e) {
         console.warn("Cloud save failed:", e);
-        if (options.scope === 'summoners') {
-          showToast('네트워크 오류로 서버 DB 저장에 실패했습니다.', 'error');
+        if (options.scope === 'summoners' || options.scope === 'schedule' || options.scope === 'balancer_vote') {
+          showToast('네트워크 오류로 서버 반영이 지연되었습니다.', 'error');
         }
       } finally {
         cloudSaveInProgress = false;
@@ -1977,7 +2117,7 @@ async function initData() {
       })) return true;
 
       const ae = document.activeElement;
-      if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) return true;
+      if (ae && ['INPUT', 'TEXTAREA'].includes(ae.tagName)) return true;
 
       if (activeTab === 'schedule') {
         const details = document.getElementById('rsvp-extra-details');
@@ -2035,13 +2175,15 @@ async function initData() {
     let cloudFetchInProgress = false;
     async function fetchCloudData(isInitial = false) {
       if (cloudFetchInProgress) return;
-      if (!isInitial && (document.hidden || cloudSaveInProgress || (Date.now() - lastLocalSaveAt < 3000))) return;
+      if (!isInitial && (document.hidden || cloudSaveInProgress || pendingRsvpOps.size > 0 || pendingBalancerVoteOps.size > 0 || (Date.now() - lastLocalSaveAt < 1500))) return;
       cloudFetchInProgress = true;
       try {
-        const res = await fetch('/api/sync');
+        const res = await fetch(`/api/sync?_t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) return;
         const cloudData = await res.json();
         if (!cloudData) return;
+        // 요청 중에 새로운 로컬 저장이 시작되었으면 오래된 응답이 덮어쓰지 않도록 즉시 폐기
+        if (!isInitial && (cloudSaveInProgress || pendingRsvpOps.size > 0 || pendingBalancerVoteOps.size > 0)) return;
 
         isCloudLoaded = true;
         const localUpdated = parseInt(localStorage.getItem('scrim_last_sync_time') || '0', 10);
@@ -2115,6 +2257,8 @@ async function initData() {
               saveSelectionDraft();
             }
           }
+
+          applyPendingDeltasToState(scrimSchedules, balancerPoll);
 
           localStorage.setItem('scrim_balancer_summoners', JSON.stringify(summoners));
           localStorage.setItem('scrim_balancer_history', JSON.stringify(matchHistory));
@@ -3364,8 +3508,8 @@ function runSmartBalancing() {
       balancerPoll.votes[voterId] = candidateIdx;
       selectedVoteVoterId = voterId;
       selectedVoteCandidateIdx = candidateIdx;
-      saveLocalData({ scope: 'balancer_vote', voteEntry: { [voterId]: candidateIdx } });
       renderBalancerVoting();
+      saveLocalData({ scope: 'balancer_vote', voteEntry: { [voterId]: candidateIdx } });
       const displayName = me.description || me.name.split('#')[0];
       showToast(previousVote === undefined
         ? `[${displayName}] ${candidateIdx + 1}대안에 개인 투표했습니다!`
@@ -3380,8 +3524,8 @@ function runSmartBalancing() {
       if (balancerPoll.votes[voterId] === undefined) return;
       delete balancerPoll.votes[voterId];
       selectedVoteCandidateIdx = null;
-      saveLocalData({ scope: 'balancer_vote', removeVoterId: voterId });
       renderBalancerVoting();
+      saveLocalData({ scope: 'balancer_vote', removeVoterId: voterId });
       const displayName = me.description || me.name.split('#')[0];
       showToast(`[${displayName}] 내 투표를 취소했습니다.`, 'info');
     }
@@ -5244,7 +5388,16 @@ function resetMatchHistory() {
       } else {
         scrimSchedules[selectedSchedDateKey].time = newTime;
       }
-      saveLocalData({ scope: 'schedule' });
+      document.getElementById('sched-match-time')?.blur();
+      saveLocalData({
+        scope: 'schedule',
+        rsvpOp: {
+          key: `${selectedSchedDateKey}::time`,
+          dateKey: selectedSchedDateKey,
+          action: 'time',
+          time: newTime
+        }
+      });
       showToast(`시작 시간이 [${newTime}]으로 변경되었습니다.`, 'info');
     }
 
@@ -5258,18 +5411,19 @@ function resetMatchHistory() {
       }
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-      
-      scrimSchedules[selectedSchedDateKey].voteLogs.unshift({
+      const logEntry = {
         timestamp: timeStr,
         name: playerName,
         oldStatus: oldStatus || '미투표',
         newStatus: newStatus,
         availTime: availTime || '-',
         reason: reason || ''
-      });
+      };
+      scrimSchedules[selectedSchedDateKey].voteLogs.unshift(logEntry);
       if (scrimSchedules[selectedSchedDateKey].voteLogs.length > 25) {
         scrimSchedules[selectedSchedDateKey].voteLogs.pop();
       }
+      return logEntry;
     }
 
     // 🌟 투표 변동 타임라인 렌더러
@@ -5324,14 +5478,16 @@ function resetMatchHistory() {
 
       const existingIdx = sched.participants.findIndex(item => item.id === p.id || item.name === p.name);
       const oldStatus = existingIdx >= 0 ? sched.participants[existingIdx].status : '미투표';
+      let itemData = null;
+      let logEntry = null;
 
       if (voteType === 'JOIN') {
-        const itemData = { id: p.id, name: p.name, status: 'JOIN', availTime: availTime, reason: reasonText };
+        itemData = { id: p.id, name: p.name, status: 'JOIN', availTime: availTime, reason: reasonText };
         const prevJoins = sched.participants.filter(item => item.status === 'JOIN').length;
         if (existingIdx >= 0) sched.participants[existingIdx] = itemData;
         else sched.participants.push(itemData);
         
-        recordVoteLog(p.name, oldStatus, 'JOIN', availTime, reasonText);
+        logEntry = recordVoteLog(p.name, oldStatus, 'JOIN', availTime, reasonText);
         const nowJoins = sched.participants.filter(item => item.status === 'JOIN').length;
         showToast(`[${p.name}] 참가 확정! (${availTime})`, 'success');
         
@@ -5343,16 +5499,16 @@ function resetMatchHistory() {
           }, 300);
         }
       } else if (voteType === 'HOLD') {
-        const itemData = { id: p.id, name: p.name, status: 'HOLD', availTime: availTime, reason: reasonText };
+        itemData = { id: p.id, name: p.name, status: 'HOLD', availTime: availTime, reason: reasonText };
         if (existingIdx >= 0) sched.participants[existingIdx] = itemData;
         else sched.participants.push(itemData);
-        recordVoteLog(p.name, oldStatus, 'HOLD', availTime, reasonText);
+        logEntry = recordVoteLog(p.name, oldStatus, 'HOLD', availTime, reasonText);
         showToast(`[${p.name}] 보류 등록! (${availTime})`, 'info');
       } else if (voteType === 'ABSENT') {
-        const itemData = { id: p.id, name: p.name, status: 'ABSENT', availTime: '불참', reason: reasonText || '개인 사유 불참' };
+        itemData = { id: p.id, name: p.name, status: 'ABSENT', availTime: '불참', reason: reasonText || '개인 사유 불참' };
         if (existingIdx >= 0) sched.participants[existingIdx] = itemData;
         else sched.participants.push(itemData);
-        recordVoteLog(p.name, oldStatus, 'ABSENT', '불참', reasonText || '개인 사유');
+        logEntry = recordVoteLog(p.name, oldStatus, 'ABSENT', '불참', reasonText || '개인 사유');
         showToast(`[${p.name}] 불참 사유가 등록되었습니다.`, 'info');
       }
 
@@ -5366,24 +5522,45 @@ function resetMatchHistory() {
       if (typeof updateAndBroadcastPresence === 'function') updateAndBroadcastPresence();
 
       if (reasonInput) reasonInput.value = '';
-      saveLocalData({ scope: 'schedule' });
       renderCalendar();
       renderScheduleBoard();
       renderVoteLogs();
+      saveLocalData({
+        scope: 'schedule',
+        rsvpOp: {
+          key: `${selectedSchedDateKey}::${p.id}`,
+          dateKey: selectedSchedDateKey,
+          action: 'upsert',
+          playerId: p.id,
+          participant: itemData,
+          voteLog: logEntry
+        }
+      });
     }
 
     function removeRsvp(playerId) {
       const sched = scrimSchedules[selectedSchedDateKey];
       if (!sched) return;
       const target = sched.participants.find(item => item.id === playerId || item.name === playerId);
+      let logEntry = null;
       if (target) {
-        recordVoteLog(target.name, target.status, 'CANCEL', '-', '참가 취소');
+        logEntry = recordVoteLog(target.name, target.status, 'CANCEL', '-', '참가 취소');
       }
       sched.participants = sched.participants.filter(item => item.id !== playerId && item.name !== playerId);
-      saveLocalData({ scope: 'schedule' });
       renderCalendar();
       renderScheduleBoard();
       renderVoteLogs();
+      saveLocalData({
+        scope: 'schedule',
+        rsvpOp: {
+          key: `${selectedSchedDateKey}::${target?.id || playerId}`,
+          dateKey: selectedSchedDateKey,
+          action: 'remove',
+          playerId: target?.id || playerId,
+          playerName: target?.name || '',
+          voteLog: logEntry
+        }
+      });
       showToast('참가가 취소되었습니다.', 'info');
     }
 
