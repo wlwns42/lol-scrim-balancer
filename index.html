@@ -872,17 +872,17 @@
                 <!-- 자바스크립트로 1~4대안 카드 4장 동시 렌더링 -->
               </div>
 
-              <!-- 1~4대안 개인별 투표 (각자 본인 계정으로 개별 투표) -->
+              <!-- 1~4대안 개인별 원클릭 투표 (각자 본인 계정으로 즉시 투표) -->
               <div id="balancer-voting-box" class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <h4 class="text-sm font-black text-slate-800 dark:text-gray-100"><i class="fa-solid fa-check-to-slot text-amber-500 mr-1.5"></i>대진안 개인 투표</h4>
+                      <h4 class="text-sm font-black text-slate-800 dark:text-gray-100"><i class="fa-solid fa-check-to-slot text-amber-500 mr-1.5"></i>대진안 개인 투표 (원클릭)</h4>
                       <span id="balancer-vote-identity-badge" onclick="openMyAccountModal()" class="cursor-pointer px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/40 text-[11px] font-black hover:bg-amber-500/30 transition" title="클릭하여 내 소환사 변경">
                         내 닉네임 미설정 (클릭)
                       </span>
                     </div>
-                    <p id="balancer-vote-hint" class="text-[11px] text-slate-500 dark:text-gray-400 mt-1">각자 본인 계정으로 마음에 드는 대진안에 개인 투표하세요. (참가자당 1표 · 재투표 시 변경)</p>
+                    <p id="balancer-vote-hint" class="text-[11px] text-slate-500 dark:text-gray-400 mt-1">원하는 대진안 카드를 누르면 즉시 개인 투표됩니다. (참가자당 1표 · 다른 카드 클릭 시 변경)</p>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
                     <button type="button" onclick="openMyAccountModal()" class="h-8 px-2.5 rounded-lg bg-white dark:bg-card border border-slate-200 dark:border-line-strong text-slate-600 dark:text-gray-300 hover:text-amber-500 font-bold text-[11px] transition">
@@ -895,8 +895,8 @@
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-amber-500/20 pt-3">
                   <p id="balancer-vote-summary" class="text-xs font-bold text-slate-600 dark:text-gray-300">아직 투표가 없습니다.</p>
-                  <button id="btn-submit-balancer-vote" type="button" onclick="submitBalancerVote()" class="btn btn-primary">
-                    <i class="fa-solid fa-vote-yea mr-1"></i>내 표 투표하기
+                  <button id="btn-cancel-balancer-vote" type="button" onclick="cancelBalancerVote()" class="hidden btn btn-outline btn-sm text-rose-500 border-rose-500/40 hover:bg-rose-500/10">
+                    <i class="fa-solid fa-rotate-left mr-1"></i>내 투표 취소
                   </button>
                 </div>
               </div>
@@ -1872,18 +1872,36 @@ async function initData() {
         } else if (options.scope === 'balancer') {
           payloadToSave.selectedPlayerIds = Array.from(selectedPlayerIds || []);
           payloadToSave.currentMatch = currentMatch || null;
-          payloadToSave.balancerPoll = balancerPoll || null;
-        } else if (options.scope === 'balancer_vote') {
-          if (baseData && baseData.balancerPoll && balancerPoll && baseData.balancerPoll.id === balancerPoll.id) {
-            const mergedVotes = {
+          if (balancerPoll && baseData && baseData.balancerPoll && baseData.balancerPoll.id === balancerPoll.id) {
+            const preservedVotes = {
               ...(baseData.balancerPoll.votes || {}),
-              ...(options.voteEntry || {})
+              ...(balancerPoll.votes || {})
             };
+            balancerPoll.votes = preservedVotes;
             payloadToSave.balancerPoll = {
-              ...baseData.balancerPoll,
+              ...balancerPoll,
+              votes: preservedVotes
+            };
+          } else {
+            payloadToSave.balancerPoll = balancerPoll || null;
+          }
+        } else if (options.scope === 'balancer_vote') {
+          const targetPoll = (baseData && baseData.balancerPoll && balancerPoll && baseData.balancerPoll.id === balancerPoll.id)
+            ? baseData.balancerPoll
+            : balancerPoll;
+          if (targetPoll) {
+            const mergedVotes = { ...(targetPoll.votes || {}) };
+            if (options.removeVoterId) {
+              delete mergedVotes[options.removeVoterId];
+            }
+            if (options.voteEntry) {
+              Object.assign(mergedVotes, options.voteEntry);
+            }
+            payloadToSave.balancerPoll = {
+              ...targetPoll,
               votes: mergedVotes
             };
-            balancerPoll.votes = mergedVotes;
+            if (balancerPoll) balancerPoll.votes = mergedVotes;
           } else {
             payloadToSave.currentMatch = currentMatch || null;
             payloadToSave.balancerPoll = balancerPoll || null;
@@ -3228,7 +3246,7 @@ function runSmartBalancing() {
       const hint = document.getElementById('balancer-vote-hint');
       const options = document.getElementById('balancer-vote-options');
       const summary = document.getElementById('balancer-vote-summary');
-      const submitBtn = document.getElementById('btn-submit-balancer-vote');
+      const cancelBtn = document.getElementById('btn-cancel-balancer-vote');
       if (!box || !options || !summary) return;
 
       const participants = Array.isArray(balancerPoll?.participants) ? balancerPoll.participants : [];
@@ -3247,7 +3265,7 @@ function runSmartBalancing() {
       if (!balancerPoll || !Array.isArray(balancerPoll.candidates) || !balancerPoll.candidates.length) {
         options.innerHTML = '<p class="text-xs text-slate-500">대진안을 생성하면 투표 항목이 표시됩니다.</p>';
         summary.textContent = '아직 투표가 없습니다.';
-        if (submitBtn) submitBtn.disabled = true;
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         return;
       }
 
@@ -3260,29 +3278,28 @@ function runSmartBalancing() {
       const labels = ['1대안 · 최적 균형', '2대안 · 진영 밸런스', '3대안 · 1지망 극대화', '4대안 · 라인격차 최소'];
 
       const myVote = myParticipant ? votes[myParticipant.id] : undefined;
-      if (selectedVoteCandidateIdx === null && Number.isInteger(myVote)) selectedVoteCandidateIdx = myVote;
-      if (selectedVoteCandidateIdx !== null && selectedVoteCandidateIdx >= balancerPoll.candidates.length) selectedVoteCandidateIdx = null;
+      const hasMyVote = Number.isInteger(myVote) && myVote >= 0 && myVote < balancerPoll.candidates.length;
+      selectedVoteCandidateIdx = hasMyVote ? myVote : null;
 
       if (hint) {
         if (!me) {
           hint.innerHTML = '위 노란색 <strong>[내 닉네임 미설정]</strong>을 눌러 본인 계정을 먼저 설정하면 개인 투표를 할 수 있습니다.';
         } else if (!myParticipant) {
           hint.innerHTML = `<strong class="text-rose-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님은 현재 대진표의 10인 참가자에 포함되어 있지 않아 투표할 수 없습니다.`;
-        } else if (Number.isInteger(myVote)) {
-          hint.innerHTML = `내 투표 완료: <strong class="text-emerald-500">${myVote + 1}대안</strong> · 다른 대안을 누르고 다시 투표하면 내 표만 변경됩니다.`;
+        } else if (hasMyVote) {
+          hint.innerHTML = `내 투표 완료: <strong class="text-emerald-500">${myVote + 1}대안</strong> · 다른 대안 카드를 누르면 즉시 내 표가 변경됩니다.`;
         } else {
-          hint.innerHTML = `<strong class="text-amber-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님, 원하는 대진안을 선택해 개인 투표하세요. (참가자당 1표)`;
+          hint.innerHTML = `<strong class="text-amber-500">${escHtml(me.description || me.name.split('#')[0])}</strong>님, 원하는 대진안 카드를 누르면 즉시 개인 투표됩니다. (참가자당 1표)`;
         }
       }
-      if (submitBtn) {
-        submitBtn.disabled = !me || !myParticipant;
+      if (cancelBtn) {
+        cancelBtn.classList.toggle('hidden', !hasMyVote);
       }
 
       options.innerHTML = balancerPoll.candidates.slice(0, 4).map((match, idx) => {
         const count = counts[idx] || 0;
         const pct = total ? Math.round(count / total * 100) : 0;
-        const isMySavedVote = Number(myVote) === idx;
-        const selected = selectedVoteCandidateIdx === idx;
+        const isMySavedVote = hasMyVote && myVote === idx;
         const label = labels[idx] || `${idx + 1}대안`;
         const voterNames = validVotes
           .filter(([, voteIdx]) => voteIdx === idx)
@@ -3294,15 +3311,15 @@ function runSmartBalancing() {
           .filter(Boolean);
 
         return `
-          <button type="button" onclick="selectBalancerVoteOption(${idx})" class="text-left p-3 rounded-xl border transition ${selected ? 'border-amber-500 bg-amber-500/15 ring-1 ring-amber-500/40' : 'border-slate-200 dark:border-line-strong bg-white dark:bg-card hover:border-amber-400'}">
+          <button type="button" onclick="selectBalancerVoteOption(${idx})" class="text-left p-3 rounded-xl border transition ${isMySavedVote ? 'border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/40' : 'border-slate-200 dark:border-line-strong bg-white dark:bg-card hover:border-amber-400'}">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-black ${selected ? 'text-amber-500' : 'text-slate-800 dark:text-gray-100'}">${label}</span>
-              <span class="text-[11px] font-bold ${selected ? 'text-amber-500' : 'text-slate-500'}">${count}표</span>
+              <span class="text-xs font-black ${isMySavedVote ? 'text-emerald-500' : 'text-slate-800 dark:text-gray-100'}">${label}</span>
+              <span class="text-[11px] font-bold ${isMySavedVote ? 'text-emerald-500' : 'text-slate-500'}">${count}표</span>
             </div>
-            <div class="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full rounded-full bg-amber-500" style="width:${pct}%"></div></div>
+            <div class="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full rounded-full ${isMySavedVote ? 'bg-emerald-500' : 'bg-amber-500'}" style="width:${pct}%"></div></div>
             <div class="mt-1.5 flex justify-between text-[11px] text-slate-500"><span>격차 ${Number(match.diff) || 0} pt</span><span>${pct}%</span></div>
-            <div class="mt-1 text-[11px] font-bold ${isMySavedVote ? 'text-emerald-500' : (selected ? 'text-amber-500' : 'text-sky-500')}">
-              ${isMySavedVote ? '✅ 내 투표 완료' : (selected ? '선택됨 · [내 표 투표하기] 클릭' : '눌러서 개인 선택')}
+            <div class="mt-1 text-[11px] font-bold ${isMySavedVote ? 'text-emerald-500' : 'text-sky-500'}">
+              ${isMySavedVote ? '✅ 내 투표 완료' : '눌러서 바로 투표'}
             </div>
             ${voterNames.length > 0 ? `<div class="mt-1.5 pt-1.5 border-t border-slate-200/70 dark:border-line text-[10px] text-slate-400 truncate" title="${escapeBalancerVoteText(voterNames.join(', '))}">투표: ${escapeBalancerVoteText(voterNames.join(', '))}</div>` : ''}
           </button>`;
@@ -3315,19 +3332,7 @@ function runSmartBalancing() {
     }
 
     function selectBalancerVoteOption(candidateIdx) {
-      if (!balancerPoll || !Array.isArray(balancerPoll.candidates) || !balancerPoll.candidates[candidateIdx]) return;
-      const { me, participant: myParticipant } = findMyBalancerParticipant(balancerPoll.participants || []);
-      if (!me) {
-        showToast('먼저 본인 소환사 계정을 설정해 주세요!', 'info');
-        openMyAccountModal();
-        return;
-      }
-      if (!myParticipant) {
-        showToast('현재 대진표의 10인 참가자만 투표할 수 있습니다.', 'error');
-        return;
-      }
-      selectedVoteCandidateIdx = candidateIdx;
-      renderBalancerVoting();
+      submitBalancerVote(candidateIdx);
     }
 
     function submitBalancerVote(candidateIdx = selectedVoteCandidateIdx) {
@@ -3346,12 +3351,16 @@ function runSmartBalancing() {
         return;
       }
       if (!Number.isInteger(candidateIdx) || !balancerPoll.candidates[candidateIdx]) {
-        showToast('투표할 대진안(1~4대안)을 먼저 눌러서 선택해 주세요.', 'error');
+        showToast('투표할 대진안(1~4대안)을 선택해 주세요.', 'error');
         return;
       }
       const voterId = myParticipant.id;
       if (!balancerPoll.votes || typeof balancerPoll.votes !== 'object') balancerPoll.votes = {};
       const previousVote = balancerPoll.votes[voterId];
+      if (previousVote === candidateIdx) {
+        showToast(`이미 ${candidateIdx + 1}대안에 투표되어 있습니다. (취소하려면 우측 하단 [내 투표 취소] 클릭)`, 'info');
+        return;
+      }
       balancerPoll.votes[voterId] = candidateIdx;
       selectedVoteVoterId = voterId;
       selectedVoteCandidateIdx = candidateIdx;
@@ -3359,8 +3368,22 @@ function runSmartBalancing() {
       renderBalancerVoting();
       const displayName = me.description || me.name.split('#')[0];
       showToast(previousVote === undefined
-        ? `[${displayName}] ${candidateIdx + 1}대안에 개인 투표했습니다.`
-        : `[${displayName}] ${candidateIdx + 1}대안으로 내 투표를 변경했습니다.`, 'success');
+        ? `[${displayName}] ${candidateIdx + 1}대안에 개인 투표했습니다!`
+        : `[${displayName}] ${candidateIdx + 1}대안으로 내 투표를 변경했습니다!`, 'success');
+    }
+
+    function cancelBalancerVote() {
+      if (!balancerPoll || !balancerPoll.votes) return;
+      const { me, participant: myParticipant } = findMyBalancerParticipant(balancerPoll.participants || []);
+      if (!me || !myParticipant) return;
+      const voterId = myParticipant.id;
+      if (balancerPoll.votes[voterId] === undefined) return;
+      delete balancerPoll.votes[voterId];
+      selectedVoteCandidateIdx = null;
+      saveLocalData({ scope: 'balancer_vote', removeVoterId: voterId });
+      renderBalancerVoting();
+      const displayName = me.description || me.name.split('#')[0];
+      showToast(`[${displayName}] 내 투표를 취소했습니다.`, 'info');
     }
 
     // 🌟 라인별 맞대결 유불리 부등호(>, >>, <<<) 및 격차 렌더러
